@@ -2,16 +2,10 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 import time
-print(cv2.getBuildInformation())
-print(cv2.cuda.getCudaEnabledDeviceCount())
-print(cv2.ocl.haveOpenCL())
-print(cv2.cuda.DeviceInfo())
-cv2.ocl.setUseOpenCL(True)
-cam_left = cv2.VideoCapture(0)
-cam_right = cv2.VideoCapture(1)
 
-frame_left = cv2.imread('scene11.png', cv2.IMREAD_COLOR)
-frame_right = cv2.imread('scene12.png', cv2.IMREAD_COLOR)
+
+cam_left = cv2.VideoCapture(0, cv2.CAP_V4L2)
+cam_right = cv2.VideoCapture(1, cv2.CAP_V4L2)
 def main():
     while True:
         start_time = time.time()
@@ -21,11 +15,8 @@ def main():
         # cv2.imshow("test", result)
         # cv2.waitKey(int (1000 * (time.time() - start_time)))
 def ShowDisparity(bSize=15):
-    frame_left = cv2.imread('scene11.png', cv2.IMREAD_COLOR)
-    frame_right = cv2.imread('scene12.png', cv2.IMREAD_COLOR)
-    #retl, frame_left = cam_left.read()
-    #retr, frame_right = cam_right.read()
-
+    retl, frame_left = cam_left.read()
+    retr, frame_right = cam_right.read()
     gpu_image_left = cv2.cuda.GpuMat()
     gpu_image_left.upload(frame_left)
     gpu_image_right = cv2.cuda.GpuMat()
@@ -42,6 +33,10 @@ def ShowDisparity(bSize=15):
 
     return disparity
 
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":
