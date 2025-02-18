@@ -22,6 +22,16 @@ https://github.com/Qengineering/Install-OpenCV-Jetson-Nano
 
 models onedong:
 
+```sh
 wget https://pjreddie.com/media/files/yolov3.weights
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names
+```
+
+## Install OpenCV
+`sudo apt install libopencv-dev`
+
+## Compile
+```sh
+g++ -o main main.cpp `pkg-config --cflags --libs opencv4`
+```
