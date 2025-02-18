@@ -1,1 +1,5 @@
 venv/
+
+onedong/yolov3.weights
+onedong/yolov3.cfg
+onedong/coco.names
