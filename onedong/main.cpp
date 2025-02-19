@@ -11,6 +11,11 @@ using namespace std;
 int main() {
     // Load YOLO model
     Net net = readNet("yolov3.weights", "yolov3.cfg");
+
+    // Use GPU for processing
+    net.setPreferableBackend(DNN_BACKEND_CUDA);  // Set to CUDA backend
+    net.setPreferableTarget(DNN_TARGET_CUDA);    // Set to use GPU (CUDA)
+
     vector<string> layerNames = net.getUnconnectedOutLayersNames();
 
     // Load class labels (COCO dataset labels)
@@ -22,7 +27,7 @@ int main() {
     }
 
     // Open the laptop camera (use 0 for default webcam)
-    VideoCapture cap(0);
+    VideoCapture cap(0, CAP_V4L2);
     if (!cap.isOpened()) {
         cerr << "Error: Cannot open webcam" << endl;
         return -1;
