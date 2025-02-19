@@ -28,6 +28,7 @@ class Person {
         BoxSize size;
         list<Position> history;
         Scalar color;
+        int killCount = 0;
         bool fromTop = false;
         bool fromBottom = false;
 
@@ -37,12 +38,13 @@ class Person {
             int bottomY = pos.y + size.height / 2;
             int topY = pos.y - size.height / 2;
             this->fromTop = topY < 50;
-            this->fromBottom = bottomY > 400;
+            this->fromBottom = bottomY > 440;
         };
         void update(Position pos, BoxSize size) {
             this->pos = pos;
             this->size = size;
             this->history.push_back(pos);
+            this->killCount = 0;
         };
         Rect getBoundingBox() {
             return Rect(
@@ -68,7 +70,15 @@ class PeopleTracker {
                     if (sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2)) < 100) {
                         person.update(pos, size);
                         new_person = person;
+                        people.remove(person);
+                        break;
                     }
+                }
+            }
+            for (Person& dead_person : people) {
+                dead_person.killCount++;
+                if (dead_person.killCount < 10) {
+                    new_people.push_back(dead_person);  
                 }
             }
             people = new_people;
