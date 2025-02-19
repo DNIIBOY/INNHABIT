@@ -4,12 +4,37 @@
 #include <opencv2/dnn.hpp>
 #include <iostream>
 #include <fstream>
-#include <unordered_map>
-#include <vector>
+#include <curl/curl.h>
+#include <string>
 
 using namespace cv;
 using namespace dnn;
 using namespace std;
+
+void sendHttpRequest(const string& url, const string& jsonPayload) {
+    CURL* curl = curl_easy_init();
+    if (!curl) {
+        cerr << "Failed to initialize CURL" << endl;
+        return;
+    }
+
+    struct curl_slist* headers = NULL;
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonPayload.c_str());
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        cerr << "CURL request failed: " << curl_easy_strerror(res) << endl;
+    }
+
+    curl_easy_cleanup(curl);
+}
+
+
 
 struct Position{
     int x;
@@ -67,7 +92,7 @@ class PeopleTracker {
                 Position pos = new_person.pos;
                 BoxSize size = new_person.size;
                 for (Person& person : people) {
-                    if (sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2)) < 100) {
+                    if (sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2)) < 120) {
                         person.update(pos, size);
                         new_person = person;
                         people.remove(person);
@@ -75,10 +100,12 @@ class PeopleTracker {
                     }
                 }
             }
-            for (Person& dead_person : people) {
-                dead_person.killCount++;
-                if (dead_person.killCount < 10) {
-                    new_people.push_back(dead_person);  
+            for (Person& missing_person : people) {
+                missing_person.killCount++;
+                if (missing_person.killCount < 10) {
+                    new_people.push_back(missing_person);
+                } else {
+                    triggerMove(missing_person);
                 }
             }
             people = new_people;
@@ -96,6 +123,22 @@ class PeopleTracker {
                 for (Position pos : person.history) {
                     circle(frame, Point(pos.x, pos.y), 2, person.color, -1);
                 }
+            }
+        };
+        void triggerMove(Person person) {
+            int bottomY = person.pos.y + person.size.height / 2;
+            int topY = person.pos.y - person.size.height / 2;
+            string jsonPayload = R"({"person": 2})";
+            string serverUrl;
+            if (person.fromTop && bottomY > 440) {
+                serverUrl = "http://localhost:8000/exit";
+                sendHttpRequest(serverUrl, jsonPayload);
+                cout << "Person moved from top to bottom" << endl;
+            }
+            if (person.fromBottom && topY < 50) {
+                serverUrl = "http://localhost:8000/enter";
+                sendHttpRequest(serverUrl, jsonPayload);
+                cout << "Person moved from bottom to top" << endl;
             }
         };
 };
