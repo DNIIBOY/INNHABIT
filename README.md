@@ -20,12 +20,21 @@ OpenCV needs to be build with CUDA & OPENCL using following scripts.  3.5 hours 
 https://github.com/Qengineering/Install-OpenCV-Jetson-Nano 
 
 
-models onedong:
+# Models
 
+### coco.names
+`wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names`
+
+### YoloV3
 ```sh
 wget https://pjreddie.com/media/files/yolov3.weights
 wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg
-wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names
+```
+
+### YoloV7-tiny
+```sh
+wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.weights
+wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov7-tiny.cfg
 ```
 
 ## Install OpenCV

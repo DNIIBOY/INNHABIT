@@ -10,7 +10,7 @@ using namespace std;
 
 int main() {
     // Load YOLO model
-    Net net = readNet("yolov3.weights", "yolov3.cfg");
+    Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
 
     // Use GPU for processing
     net.setPreferableBackend(DNN_BACKEND_CUDA);  // Set to CUDA backend
