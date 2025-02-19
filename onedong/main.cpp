@@ -1,16 +1,99 @@
+#include <cmath>
+#include <list>
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 #include <vector>
 
 using namespace cv;
 using namespace dnn;
 using namespace std;
 
+struct Position{
+    int x;
+    int y;
+};
+
+struct BoxSize{
+    int width;
+    int height;
+};
+
+
+class Person {
+    public:
+        Position pos;
+        BoxSize size;
+        list<Position> history;
+        Scalar color;
+        bool fromTop = false;
+        bool fromBottom = false;
+
+        Person(Position pos, BoxSize size) {
+            this->update(pos, size);
+            this->color = Scalar(rand() % 255, rand() % 255, rand() % 255);
+            int bottomY = pos.y + size.height / 2;
+            int topY = pos.y - size.height / 2;
+            this->fromTop = topY < 50;
+            this->fromBottom = bottomY > 400;
+        };
+        void update(Position pos, BoxSize size) {
+            this->pos = pos;
+            this->size = size;
+            this->history.push_back(pos);
+        };
+        Rect getBoundingBox() {
+            return Rect(
+                pos.x - size.width / 2,
+                pos.y - size.height / 2,
+                size.width,
+                size.height
+            );
+        };
+        bool operator==(const Person& other) const {
+            return this->pos.x == other.pos.x && this->pos.y == other.pos.y;
+        };
+};
+
+class PeopleTracker {
+    public:
+        list<Person> people;
+        void update(list<Person> new_people) {
+            for (Person& new_person : new_people) {
+                Position pos = new_person.pos;
+                BoxSize size = new_person.size;
+                for (Person& person : people) {
+                    if (sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2)) < 100) {
+                        person.update(pos, size);
+                        new_person = person;
+                    }
+                }
+            }
+            people = new_people;
+        };
+        void draw(Mat frame) {
+            for (Person person : people) {
+                if (person.fromTop) {
+                    putText(frame, "Top", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+                }
+                if (person.fromBottom) {
+                    putText(frame, "Bottom", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+                }
+                Rect box = person.getBoundingBox();
+                rectangle(frame, box, person.color, 2);
+                for (Position pos : person.history) {
+                    circle(frame, Point(pos.x, pos.y), 2, person.color, -1);
+                }
+            }
+        };
+};
+
 int main() {
     // Load YOLO model
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
+    PeopleTracker tracker;
 
     // Use GPU for processing
     net.setPreferableBackend(DNN_BACKEND_CUDA);  // Set to CUDA backend
@@ -64,9 +147,7 @@ int main() {
                     int centerY = static_cast<int>(data[1] * height);
                     int w = static_cast<int>(data[2] * width);
                     int h = static_cast<int>(data[3] * height);
-                    int x = centerX - w / 2;
-                    int y = centerY - h / 2;
-                    boxes.emplace_back(x, y, w, h);
+                    boxes.emplace_back(centerX, centerY, w, h);
                     confidences.push_back(confidence);
                     classIds.push_back(classId);
                 }
@@ -78,12 +159,14 @@ int main() {
         NMSBoxes(boxes, confidences, 0.5, 0.4, indices);
 
         // Draw bounding boxes for detected humans
+        list<Person> people;
         for (int i : indices) {
             Rect box = boxes[i];
-            string label = classes[classIds[i]] + " " + to_string(confidences[i]);
-            rectangle(frame, box, Scalar(0, 255, 0), 2);
-            putText(frame, label, Point(box.x, box.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
+            Person person = Person({box.x, box.y}, {box.width, box.height});
+            people.push_back(person);
         }
+        tracker.update(people);
+        tracker.draw(frame);
 
         // Show the output frame
         imshow("Human Detection", frame);
