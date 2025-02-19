@@ -42,5 +42,5 @@ wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov7-tiny.c
 
 ## Compile
 ```sh
-g++ -o main main.cpp `pkg-config --cflags --libs opencv4`
+g++ -o main main.cpp `pkg-config --cflags --libs opencv4` -lcurl
 ```
