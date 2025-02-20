@@ -38,7 +38,31 @@ void sendHttpRequest(const string& url, const string& jsonPayload) {
 struct Position{
     int x;
     int y;
+
+    Position operator+(const Position& other) const {
+        return {x + other.x, y + other.y};
+    }
+
+    Position operator-(const Position& other) const {
+        return {x - other.x, y - other.y};
+    }
 };
+
+Position averageVelocity(const std::vector<Position>& history) {
+    int size = history.size();
+    if (size < 2) return {0, 0}; // Need at least 2 positions to compute velocity
+
+    int count = std::min(size - 1, 5); // Up to last 5 intervals
+    Position sumVelocity = {0, 0};
+
+    // Sum up velocity differences over last `count` intervals
+    for (int i = size - count; i < size - 1; ++i) {
+        sumVelocity = sumVelocity + (history[i + 1] - history[i]);
+    }
+
+    // Compute the average velocity
+    return {sumVelocity.x / count, sumVelocity.y / count};
+}
 
 struct BoxSize{
     int width;
@@ -51,10 +75,13 @@ class Person {
         Position pos;
         BoxSize size;
         vector<Position> history;
+        Position velocity {0,0};
         Scalar color;
         int killCount = 0;
         bool fromTop = false;
         bool fromBottom = false;
+
+        Position expectedPos;
 
         Person() {};
 
@@ -68,9 +95,16 @@ class Person {
         };
         void update(Position pos, BoxSize size) {
             this->pos = pos;
+            this->expectedPos = pos;
             this->size = size;
             this->history.push_back(pos);
             this->killCount = 0;
+            this->velocity = averageVelocity(this->history);
+            
+        };
+        void missingUpdate() {
+            this->killCount += 1;
+            this->expectedPos = expectedPos + velocity;
         };
         Rect getBoundingBox() {
             return Rect(
@@ -135,6 +169,11 @@ class PeopleTracker {
                 for (Position pos : person.history) {
                     circle(frame, Point(pos.x, pos.y), 2, person.color, -1);
                 }
+
+                // Draw velocity vector
+                Point start(person.pos.x, person.pos.y); 
+                Point end(person.pos.x + person.velocity.x, person.pos.y + person.velocity.y);
+                arrowedLine(frame, start, end, person.color, 2, LINE_AA, 0, 10.0); // 0.2 for arrow scale
             }
         };
         void triggerMove(Person person) {
