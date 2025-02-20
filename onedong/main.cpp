@@ -191,7 +191,7 @@ int main() {
 
         // Convert the frame to a blob (required by YOLO)
         Mat blob;
-        blobFromImage(frame, blob, 0.00392, Size(416, 416), Scalar(0, 0, 0), true, false);
+        blobFromImage(frame, blob, 0.00392, Size(320, 320), Scalar(0, 0, 0), true, false);
         net.setInput(blob);
         vector<Mat> outs;
         net.forward(outs, layerNames);
