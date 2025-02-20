@@ -1,5 +1,4 @@
 #include <cmath>
-#include <list>
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
 #include <iostream>
@@ -51,11 +50,13 @@ class Person {
     public:
         Position pos;
         BoxSize size;
-        list<Position> history;
+        vector<Position> history;
         Scalar color;
         int killCount = 0;
         bool fromTop = false;
         bool fromBottom = false;
+
+        Person() {};
 
         Person(Position pos, BoxSize size) {
             this->update(pos, size);
@@ -86,29 +87,40 @@ class Person {
 
 class PeopleTracker {
     public:
-        list<Person> people;
-        void update(list<Person> new_people) {
-            for (Person& new_person : new_people) {
-                Position pos = new_person.pos;
-                BoxSize size = new_person.size;
-                for (Person& person : people) {
-                    if (sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2)) < 120) {
-                        person.update(pos, size);
-                        new_person = person;
-                        people.remove(person);
-                        break;
+        vector<Person> people;
+        void update(vector<Person> newPeople) {
+            for (Person& newPerson : newPeople) {
+                Position pos = newPerson.pos;
+                BoxSize size = newPerson.size;
+                Person closestPerson;
+                int minDistance = 999999;
+                int closestPersonIndex = -1;
+                for (int i = 0; i < people.size(); i++) {
+                    Person person = people[i];
+                    int distance = sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2));
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestPerson = person;
+                        closestPersonIndex = i;
                     }
                 }
-            }
-            for (Person& missing_person : people) {
-                missing_person.killCount++;
-                if (missing_person.killCount < 10) {
-                    new_people.push_back(missing_person);
+                if (minDistance < 120) {
+                    closestPerson.update(pos, size);
+                    newPerson=closestPerson;
+                    people.erase(people.begin() + closestPersonIndex);
                 } else {
-                    triggerMove(missing_person);
+                    people.push_back(newPerson);
                 }
             }
-            people = new_people;
+            for (Person& missingPerson : people) {
+                missingPerson.killCount++;
+                if (missingPerson.killCount < 10) {
+                    newPeople.push_back(missingPerson);
+                } else {
+                    triggerMove(missingPerson);
+                }
+            }
+            people = newPeople;
         };
         void draw(Mat frame) {
             for (Person person : people) {
@@ -212,7 +224,7 @@ int main() {
         NMSBoxes(boxes, confidences, 0.5, 0.4, indices);
 
         // Draw bounding boxes for detected humans
-        list<Person> people;
+        vector<Person> people;
         for (int i : indices) {
             Rect box = boxes[i];
             Person person = Person({box.x, box.y}, {box.width, box.height});
