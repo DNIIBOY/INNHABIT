@@ -24,7 +24,7 @@ stakeholders = [
     (1, 6, "Insurance", "center", "center"),
     (1.2, 5.5, "Competitors", "center", "center"),
     (1.7, 6.5, "Emergency Services", "center", "center"),
-    (4, 9, "FoodHub", "center", "center"),
+    (4, 5, "FoodHub", "center", "center"),
     (6, 3.5, "Customers", "center", "center"),
     (8.1, 2, "Data Protection Agency", "center", "center"),
     (7.6, 1.5, "Working Environment Authority", "center", "center"),
