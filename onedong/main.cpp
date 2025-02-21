@@ -46,6 +46,10 @@ struct Position{
     Position operator-(const Position& other) const {
         return {x - other.x, y - other.y};
     }
+
+    static Position average(const Position& p1, const Position& p2) {
+        return { (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 };
+    }
 };
 
 Position averageVelocity(const std::vector<Position>& history) {
@@ -121,16 +125,17 @@ class Person {
 
 class PeopleTracker {
     public:
-        vector<Person> people;
-        void update(vector<Person> newPeople) {
-            for (Person& newPerson : newPeople) {
-                Position pos = newPerson.pos;
-                BoxSize size = newPerson.size;
+        vector<Person> peopleManifest;
+        void update(vector<Person> peopleDetectedThisFrame) {
+            for (Person& detectedPerson : peopleDetectedThisFrame) {
+                Position pos = detectedPerson.pos;
+                BoxSize size = detectedPerson.size;
                 Person closestPerson;
                 int minDistance = 999999;
                 int closestPersonIndex = -1;
-                for (int i = 0; i < people.size(); i++) {
-                    Person person = people[i];
+                // Find nearest already existing person
+                for (int i = 0; i < peopleManifest.size(); i++) {
+                    Person person = peopleManifest[i];
                     int distance = sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2));
                     if (distance < minDistance) {
                         minDistance = distance;
@@ -138,42 +143,65 @@ class PeopleTracker {
                         closestPersonIndex = i;
                     }
                 }
+                // If the closest one is within 120 px, this must be the same person as from last frame
                 if (minDistance < 120) {
-                    closestPerson.update(pos, size);
-                    newPerson=closestPerson;
-                    people.erase(people.begin() + closestPersonIndex);
-                } else {
-                    people.push_back(newPerson);
-                }
+                    closestPerson.update(pos, size); // Set the closestPerson pos and size, so they match the new one
+                    detectedPerson=closestPerson; // Give this detected person the values of the closest person
+                    peopleManifest.erase(peopleManifest.begin() + closestPersonIndex); // Delete this closestPerson, so it is not treated as a missing person
+                } /*else {
+                    peopleManifest.push_back(detectedPerson); // Add
+                }*/
             }
-            for (Person& missingPerson : people) {
-                missingPerson.killCount++;
-                if (missingPerson.killCount < 10) {
-                    newPeople.push_back(missingPerson);
-                } else {
+            for (Person& missingPerson : peopleManifest) {
+                missingPerson.missingUpdate();
+                // if the character has not been missing for too long, keep it alive
+                if (missingPerson.killCount < 100) {
+                    peopleDetectedThisFrame.push_back(missingPerson);
+                } else { // If the person has been gone for too long, it is told to move
                     triggerMove(missingPerson);
                 }
             }
-            people = newPeople;
+            peopleManifest = peopleDetectedThisFrame;
         };
         void draw(Mat frame) {
-            for (Person person : people) {
-                if (person.fromTop) {
-                    putText(frame, "Top", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
-                }
-                if (person.fromBottom) {
-                    putText(frame, "Bottom", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
-                }
-                Rect box = person.getBoundingBox();
-                rectangle(frame, box, person.color, 2);
-                for (Position pos : person.history) {
-                    circle(frame, Point(pos.x, pos.y), 2, person.color, -1);
-                }
+            
+            for (Person person : peopleManifest) {
+                if (person.killCount == 0) {
+                    if (person.fromTop) {
+                        putText(frame, "Top", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+                    }
+                    if (person.fromBottom) {
+                        putText(frame, "Bottom", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+                    }
 
+                    Rect box = person.getBoundingBox();
+                    rectangle(frame, box, person.color, 2);
+                    for (Position pos : person.history) {
+                        circle(frame, Point(pos.x, pos.y), 2, person.color, -1);
+                    }
+                }
+                
                 // Draw velocity vector
                 Point start(person.pos.x, person.pos.y); 
                 Point end(person.pos.x + person.velocity.x, person.pos.y + person.velocity.y);
                 arrowedLine(frame, start, end, person.color, 2, LINE_AA, 0, 10.0); // 0.2 for arrow scale
+                
+                if (person.killCount > 0) {
+
+                    putText(frame, "(Missing)", Point(person.pos.x+20, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+
+
+                    // Draw line from last known position to expected position
+                    line(frame, start, Point(person.expectedPos.x, person.expectedPos.y), 5);
+
+                    // Draw the expected position
+                    circle(frame, Point(person.expectedPos.x, person.expectedPos.y), 3, (255,0,0), 2);
+
+                    // Draw the space in which a person is looked at
+                    Position averageOfExpectedPosAndPos = Position::average(person.expectedPos, person.pos);
+                    circle(frame, Point(averageOfExpectedPosAndPos.x, averageOfExpectedPosAndPos.y), person.killCount, person.color, 2);
+                }
+                
             }
         };
         void triggerMove(Person person) {
