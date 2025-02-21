@@ -1,6 +1,7 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
+#include <opencv2/core/ocl.hpp>
 #include <iostream>
 #include <fstream>
 #include <curl/curl.h>
@@ -159,10 +160,25 @@ int main() {
     // Load YOLO model
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
     PeopleTracker tracker;
-
-    // Use GPU for processing
-    net.setPreferableBackend(DNN_BACKEND_CUDA);  // Set to CUDA backend
-    net.setPreferableTarget(DNN_TARGET_CUDA);    // Set to use GPU (CUDA)
+    // Set the backend and target
+    if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
+        // If CUDA is available, use it
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
+        cout << "Using CUDA backend" << endl;
+    } 
+    else if (cv::ocl::haveOpenCL()) {
+        // If OpenCL is available, use it
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_OPENCL);
+        cout << "Using OpenCL backend" << endl;
+    } 
+    else {
+        // Fall back to CPU if neither CUDA nor OpenCL is available
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+        cout << "Using CPU backend" << endl;
+    }
 
     vector<string> layerNames = net.getUnconnectedOutLayersNames();
 
