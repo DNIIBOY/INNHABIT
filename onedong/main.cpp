@@ -2,11 +2,12 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
 #include <opencv2/core/ocl.hpp>
+#include <opencv2/tracking.hpp>
 #include <iostream>
 #include <fstream>
 #include <curl/curl.h>
 #include <string>
-
+#include <chrono>
 using namespace cv;
 using namespace dnn;
 using namespace std;
@@ -155,26 +156,22 @@ class PeopleTracker {
             }
         };
 };
-
 int main() {
     // Load YOLO model
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
-    PeopleTracker tracker;
+
     // Set the backend and target
     if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
-        // If CUDA is available, use it
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
         cout << "Using CUDA backend" << endl;
-    } 
+    }
     else if (cv::ocl::haveOpenCL()) {
-        // If OpenCL is available, use it
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_OPENCL);
         cout << "Using OpenCL backend" << endl;
-    } 
+    }
     else {
-        // Fall back to CPU if neither CUDA nor OpenCL is available
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
         cout << "Using CPU backend" << endl;
@@ -197,7 +194,13 @@ int main() {
         return -1;
     }
 
+    // Tracker initialization
+    vector<Ptr<TrackerCSRT>> trackers;
+    vector<Rect> bboxes;
+    bool trackingInitialized = false;
+
     while (true) {
+        auto start = std::chrono::high_resolution_clock::now();
         Mat frame;
         cap >> frame;
         if (frame.empty()) break;
@@ -228,7 +231,7 @@ int main() {
                     int centerY = static_cast<int>(data[1] * height);
                     int w = static_cast<int>(data[2] * width);
                     int h = static_cast<int>(data[3] * height);
-                    boxes.emplace_back(centerX, centerY, w, h);
+                    boxes.emplace_back(centerX - w / 2, centerY - h / 2, w, h);
                     confidences.push_back(confidence);
                     classIds.push_back(classId);
                 }
@@ -239,16 +242,38 @@ int main() {
         vector<int> indices;
         NMSBoxes(boxes, confidences, 0.5, 0.4, indices);
 
-        // Draw bounding boxes for detected humans
-        vector<Person> people;
-        for (int i : indices) {
-            Rect box = boxes[i];
-            Person person = Person({box.x, box.y}, {box.width, box.height});
-            people.push_back(person);
+        // Initialize tracker for each detected person in the first frame
+        if (!trackingInitialized && !indices.empty()) {
+            for (int i : indices) {
+                Rect personBox = boxes[i];
+                bboxes.push_back(Rect2d(personBox.x, personBox.y, personBox.width, personBox.height));
+                Ptr<TrackerCSRT> tracker = TrackerCSRT::create();
+                tracker->init(frame, bboxes.back());
+                trackers.push_back(tracker);
+            }
+            trackingInitialized = true;
         }
-        tracker.update(people);
-        tracker.draw(frame);
 
+        // Update all trackers
+        if (trackingInitialized) {
+            for (size_t i = 0; i < trackers.size(); i++) {
+                bool success = trackers[i]->update(frame, bboxes[i]);
+                if (success) {
+                    // Draw bounding box for each tracked person
+                    rectangle(frame, bboxes[i], Scalar(0, 255, 0), 2);
+                    putText(frame, "Perso " + to_string(i + 1), Point(bboxes[i].x, bboxes[i].y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0), 2);
+                }
+                else {
+                    // If tracking fails, you can reset the tracker
+                    putText(frame, "Tracking failure", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255), 2);
+                }
+            }
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = end - start;
+    
+    // Print the elapsed time in seconds
+        std::cout << "Time taken: " << duration.count() << " seconds\n";
         // Show the output frame
         imshow("Human Detection", frame);
 
