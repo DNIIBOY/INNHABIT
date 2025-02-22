@@ -189,6 +189,8 @@ int main() {
 
     // Open the laptop camera (use 0 for default webcam)
     VideoCapture cap(0, CAP_V4L2);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 320);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 320);
     if (!cap.isOpened()) {
         cerr << "Error: Cannot open webcam" << endl;
         return -1;
