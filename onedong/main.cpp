@@ -156,28 +156,16 @@ class PeopleTracker {
             }
         };
 };
+struct TrackerInfo {
+    Ptr<Tracker> tracker;
+    Rect box;
+    Scalar color;
+    int age;  // Age of the tracker (in frames)
+};
+
 int main() {
-    // Load YOLO model
+    // Load YOLO model and initialize webcam
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
-
-    // Set the backend and target
-    if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
-        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
-        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
-        cout << "Using CUDA backend" << endl;
-    }
-    else if (cv::ocl::haveOpenCL()) {
-        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-        net.setPreferableTarget(cv::dnn::DNN_TARGET_OPENCL);
-        cout << "Using OpenCL backend" << endl;
-    }
-    else {
-        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
-        cout << "Using CPU backend" << endl;
-    }
-
-    vector<string> layerNames = net.getUnconnectedOutLayersNames();
 
     // Load class labels (COCO dataset labels)
     vector<string> classes;
@@ -187,22 +175,26 @@ int main() {
         classes.push_back(line);
     }
 
-    // Open the laptop camera (use 0 for default webcam)
-    VideoCapture cap(0, CAP_V4L2);
-    cap.set(cv::CAP_PROP_FRAME_WIDTH, 320);
-    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 320);
+    // Open the webcam
+    VideoCapture cap(0);
     if (!cap.isOpened()) {
         cerr << "Error: Cannot open webcam" << endl;
         return -1;
     }
 
-    // Tracker initialization
-    vector<Ptr<TrackerCSRT>> trackers;
-    vector<Rect> bboxes;
-    bool trackingInitialized = false;
+    // Get YOLO output layer names
+    vector<string> layerNames = net.getUnconnectedOutLayersNames();
+
+    // This will store the tracker information
+    vector<TrackerInfo> trackers;
+
+    // This will store the detected bounding boxes
+    vector<Rect> detectedBoxes;
+
+    // Tracking parameters
+    const int maxTrackerAge = 30; // Number of frames to keep a lost tracker before removal
 
     while (true) {
-        auto start = std::chrono::high_resolution_clock::now();
         Mat frame;
         cap >> frame;
         if (frame.empty()) break;
@@ -220,7 +212,7 @@ int main() {
         // Post-process the detections
         vector<int> classIds;
         vector<float> confidences;
-        vector<Rect> boxes;
+        vector<Rect> detectedBoxesNew;
 
         for (auto& output : outs) {
             for (int i = 0; i < output.rows; i++) {
@@ -228,12 +220,12 @@ int main() {
                 vector<float> scores(data + 5, data + output.cols);
                 int classId = max_element(scores.begin(), scores.end()) - scores.begin();
                 float confidence = scores[classId];
-                if (confidence > 0.5 && classes[classId] == "person") {
+                if (confidence > 0.5 && classes[classId] == "person") {  // Check if it's a person
                     int centerX = static_cast<int>(data[0] * width);
                     int centerY = static_cast<int>(data[1] * height);
                     int w = static_cast<int>(data[2] * width);
                     int h = static_cast<int>(data[3] * height);
-                    boxes.emplace_back(centerX - w / 2, centerY - h / 2, w, h);
+                    detectedBoxesNew.emplace_back(centerX - w / 2, centerY - h / 2, w, h);
                     confidences.push_back(confidence);
                     classIds.push_back(classId);
                 }
@@ -242,44 +234,94 @@ int main() {
 
         // Non-maxima suppression
         vector<int> indices;
-        NMSBoxes(boxes, confidences, 0.5, 0.4, indices);
+        NMSBoxes(detectedBoxesNew, confidences, 0.5, 0.4, indices);
 
-        // Initialize tracker for each detected person in the first frame
-        if (!trackingInitialized && !indices.empty()) {
-            for (int i : indices) {
-                Rect personBox = boxes[i];
-                bboxes.push_back(Rect2d(personBox.x, personBox.y, personBox.width, personBox.height));
-                Ptr<TrackerCSRT> tracker = TrackerCSRT::create();
-                tracker->init(frame, bboxes.back());
-                trackers.push_back(tracker);
-            }
-            trackingInitialized = true;
+        // Update detected bounding boxes
+        detectedBoxes.clear();
+        for (int i : indices) {
+            detectedBoxes.push_back(detectedBoxesNew[i]);
         }
 
-        // Update all trackers
-        if (trackingInitialized) {
-            for (size_t i = 0; i < trackers.size(); i++) {
-                bool success = trackers[i]->update(frame, bboxes[i]);
-                if (success) {
-                    // Draw bounding box for each tracked person
-                    rectangle(frame, bboxes[i], Scalar(0, 255, 0), 2);
-                    putText(frame, "Perso " + to_string(i + 1), Point(bboxes[i].x, bboxes[i].y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0), 2);
+        // Update trackers and verify with YOLO detection
+        vector<bool> trackerMatched(detectedBoxes.size(), false);
+        for (auto& trackerInfo : trackers) {
+            // Try to update existing trackers
+            bool ok = trackerInfo.tracker->update(frame, trackerInfo.box);
+            if (ok) {
+                // Draw tracker box with its persistent color
+                rectangle(frame, trackerInfo.box, trackerInfo.color, 2, 1);
+                trackerInfo.age = 0; // Reset the age if the tracker is still valid
+                
+                // Verify if the tracker is still tracking a person using YOLO
+                Mat trackerROI = frame(trackerInfo.box);  // Extract the region of interest (ROI) of the tracker
+                Mat trackerBlob;
+                blobFromImage(trackerROI, trackerBlob, 0.00392, Size(320, 320), Scalar(0, 0, 0), true, false);
+                net.setInput(trackerBlob);
+                vector<Mat> outsROI;
+                net.forward(outsROI, layerNames);
+
+                // Post-process the tracker ROI using YOLO to check if it’s still a person
+                bool isPersonTracked = false;
+                for (auto& output : outsROI) {
+                    for (int i = 0; i < output.rows; i++) {
+                        float* data = output.ptr<float>(i);
+                        vector<float> scores(data + 5, data + output.cols);
+                        int classId = max_element(scores.begin(), scores.end()) - scores.begin();
+                        float confidence = scores[classId];
+                        if (confidence > 0.5 && classes[classId] == "person") {
+                            isPersonTracked = true;
+                            break;
+                        }
+                    }
                 }
-                else {
-                    // If tracking fails, you can reset the tracker
-                    putText(frame, "Tracking failure", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255), 2);
+
+                // If the tracker is not tracking a person, reset the tracker
+                if (!isPersonTracked) {
+                    trackerInfo.tracker = TrackerKCF::create();  // Reset the tracker
+                    trackerInfo.age = maxTrackerAge + 1;  // Force tracker removal
                 }
+            } else {
+                // Increment the age if tracking failed
+                trackerInfo.age++;
             }
         }
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> duration = end - start;
-    
-    // Print the elapsed time in seconds
-        std::cout << "Time taken: " << duration.count() << " seconds\n";
-        // Show the output frame
-        imshow("Human Detection", frame);
 
-        // Break on 'q' key press
+        // Remove trackers that have been lost for too long
+        trackers.erase(remove_if(trackers.begin(), trackers.end(),
+                                  [](const TrackerInfo& trackerInfo) { return trackerInfo.age > maxTrackerAge; }),
+                       trackers.end());
+
+        // Create new trackers for new detections
+        for (size_t i = 0; i < detectedBoxes.size(); ++i) {
+            bool matched = false;
+            for (size_t j = 0; j < trackers.size(); ++j) {
+                // If the new detection overlaps an existing tracker, update the tracker
+                if (!trackerMatched[i] && (detectedBoxes[i] & trackers[j].box).area() > 0.3 * detectedBoxes[i].area()) {
+                    trackerMatched[i] = true;
+                    break;
+                }
+            }
+
+            if (!trackerMatched[i]) {
+                // Create a new tracker for the new detection
+                Ptr<TrackerKCF> newTracker = TrackerKCF::create();
+                newTracker->init(frame, detectedBoxes[i]);
+
+                // Assign a random color to the new tracker
+                Scalar color(rand() % 256, rand() % 256, rand() % 256);
+
+                // Add to the trackers list
+                trackers.push_back(TrackerInfo{newTracker, detectedBoxes[i], color, 0});
+            }
+        }
+
+        // Display the output frame
+        imshow("Tracking", frame);
+
+        // Print the number of detected people
+        cout << "Number of detected people: " << detectedBoxes.size() << endl;
+
+        // Wait for 'q' key to break the loop
         if (waitKey(1) == 'q') {
             break;
         }
