@@ -7,3 +7,5 @@ onedong/*.weights
 onedong/*.cfg
 onedong/coco.names
 onedong/main
+onedong/compile_commands.json
+onedong/.cache/
