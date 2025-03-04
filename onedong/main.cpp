@@ -69,179 +69,118 @@ struct Position{
     
 };
 
-Position averageVelocity(const std::vector<Position>& history, int frames) {
-    int size = history.size();
-    if (size < 2) return {0, 0}; // Need at least 2 positions to compute velocity
-
-    int count = std::min(size - 1, frames); // Up to last "frames" intervals
-    Position sumVelocity = {0, 0};
-
-    // Sum up velocity differences over last `count` intervals
-    for (int i = size - count; i < size - 1; ++i) {
-        sumVelocity = sumVelocity + (history[i + 1] - history[i]);
-    }
-
-    // Compute the average velocity
-    return {sumVelocity.x / count, sumVelocity.y / count};
-}
-
 struct BoxSize{
     int width;
     int height;
 };
 
-
-class Person {
-    public:
-        Position pos;
-        BoxSize size;
-        vector<Position> history;
-        int recentVelocity;
-        Position directionVector; // The average velocity over a longer period of time
-        Position velocity;
-        Scalar color;
-        int killCount = 0;
-        bool fromTop = false;
-        bool fromBottom = false;
-
-        Position expectedPos;
-
-        Person() {};
-
-        Person(Position pos, BoxSize size) {
-            this->update(pos, size);
-            this->color = Scalar(rand() % 255, rand() % 255, rand() % 255);
-            int bottomY = pos.y + size.height / 2;
-            int topY = pos.y - size.height / 2;
-            this->fromTop = topY < 50;
-            this->fromBottom = bottomY > 440;
-        };
-        void update(Position pos, BoxSize size) {
-            this->pos = pos;
-            this->expectedPos = pos;
-            this->size = size;
-            this->history.push_back(pos);
-            this->killCount = 0;
-            this->recentVelocity = averageVelocity(this->history,5).magnitude();
-            this->directionVector = averageVelocity(this->history,20).normalize();
-            this->velocity = directionVector.multiplyByScalar(recentVelocity);
-            
-        };
-        void missingUpdate() {
-            this->killCount += 1;
-            this->expectedPos = expectedPos + velocity;
-        };
-        Rect getBoundingBox() {
-            return Rect(
-                pos.x - size.width / 2,
-                pos.y - size.height / 2,
-                size.width,
-                size.height
-            );
-        };
-        bool operator==(const Person& other) const {
-            return this->pos.x == other.pos.x && this->pos.y == other.pos.y;
-        };
+struct Detection {
+    int id;
+    Rect bbox;
+    float confidence;
+    bool matched = false;
+    Scalar color;
+    int killCount = 0;
 };
 
-class PeopleTracker {
+float computeIoU(const Rect& box1, const Rect& box2) {
+    float intersection = (box1 & box2).area();
+    float unionArea = box1.area() + box2.area() - intersection;
+    return intersection / unionArea;
+}
+
+
+class ByteTrack {
+    private:
+        vector<Detection> activeTracks;
+        int nextID = 1;
+        int maxKillCount = 10;
+        float iouThreshold = 0.3;
+        float confThresholdHigh = 0.5; // Threshold for high-confidence detections
+        float confThresholdLow = 0.3;  // Threshold for low-confidence detections
+    
     public:
-        vector<Person> peopleManifest;
-        void update(vector<Person> peopleDetectedThisFrame) {
-            for (Person& detectedPerson : peopleDetectedThisFrame) {
-                Position pos = detectedPerson.pos;
-                BoxSize size = detectedPerson.size;
-                Person closestPerson;
-                int minDistance = 999999;
-                int closestPersonIndex = -1;
-                // Find nearest already existing person
-                for (int i = 0; i < peopleManifest.size(); i++) {
-                    Person person = peopleManifest[i];
-                    int distance = sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2));
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestPerson = person;
-                        closestPersonIndex = i;
+        vector<Detection> update(vector<Detection>& detections) {
+            vector<Detection> highConfDetections;
+            vector<Detection> lowConfDetections;
+            vector<Detection> unmatchedTracks;
+    
+            // Separate high and low-confidence detections
+            for (auto& det : detections) {
+                if (det.confidence > confThresholdHigh) {
+                    highConfDetections.push_back(det);
+                } else if (det.confidence > confThresholdLow) {
+                    lowConfDetections.push_back(det);
+                }
+            }
+    
+            // Step 1: Match high-confidence detections to existing tracks
+            for (auto& track : activeTracks) {
+                track.matched = false; // Set all of the classes tracks to be unmatched
+                for (auto& det : highConfDetections) {
+                    if (!det.matched && computeIoU(track.bbox, det.bbox) > iouThreshold) {
+                        track.killCount = 0;
+                        track.bbox = det.bbox;
+                        track.confidence = det.confidence;
+                        track.matched = true;
+                        det.matched = true;
+                        break;
                     }
                 }
-                // If the closest one is within 120 px, this must be the same person as from last frame
-                if (minDistance < 120) {
-                    closestPerson.update(pos, size); // Set the closestPerson pos and size, so they match the new one
-                    detectedPerson=closestPerson; // Give this detected person the values of the closest person
-                    peopleManifest.erase(peopleManifest.begin() + closestPersonIndex); // Delete this closestPerson, so it is not treated as a missing person
-                } /*else {
-                    peopleManifest.push_back(detectedPerson); // Add
-                }*/
-            }
-            for (Person& missingPerson : peopleManifest) {
-                missingPerson.missingUpdate();
-                // if the character has not been missing for too long, keep it alive
-                if (missingPerson.killCount < 30) {
-                    peopleDetectedThisFrame.push_back(missingPerson);
-                } else { // If the person has been gone for too long, it is told to move
-                    triggerMove(missingPerson);
+                if (!track.matched) {
+                    // Step 2: Assign remaining unmatched tracks to low-confidence detections
+                    for (auto& det : lowConfDetections) {
+                        if (!det.matched && computeIoU(track.bbox, det.bbox) > iouThreshold) {
+                            track.killCount = 0;
+                            track.bbox = det.bbox;
+                            track.confidence = det.confidence;
+                            //track.color = det.color;
+                            track.matched = true;
+                            det.matched = true;
+                            break;
+                        }
+                    }
                 }
+                
             }
-            peopleManifest = peopleDetectedThisFrame;
-        };
-        void draw(Mat frame) {
+    
+            // Step 3:
+            for (auto it = activeTracks.begin(); it != activeTracks.end(); ) {
+                auto& track = *it;
             
-            for (Person person : peopleManifest) {
-                if (person.killCount == 0) {
-                    if (person.fromTop) {
-                        putText(frame, "Top", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+                if (!track.matched) {
+                    track.killCount++;
+                    
+                    // If the track has been unmatched for too long, remove it
+                    if (track.killCount > maxKillCount) {
+                        // Track should be removed from activeTracks, so we erase it
+                        it = activeTracks.erase(it);  // erase returns the next iterator
+                    } else {
+                        // If not removed, just move to the next track
+                        ++it;
                     }
-                    if (person.fromBottom) {
-                        putText(frame, "Bottom", Point(person.pos.x, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
-                    }
-
-                    Rect box = person.getBoundingBox();
-                    rectangle(frame, box, person.color, 2);
-                    for (Position pos : person.history) {
-                        circle(frame, Point(pos.x, pos.y), 2, person.color, -1);
-                    }
+                } else {
+                    // If track is matched, move to the next track
+                    ++it;
                 }
-                
-                // Draw velocity vector
-                Point start(person.pos.x, person.pos.y); 
-                Point end(person.pos.x + person.velocity.x, person.pos.y + person.velocity.y);
-                arrowedLine(frame, start, end, person.color, 2, LINE_AA, 0, 10.0); // 0.2 for arrow scale
-                
-                if (person.killCount > 0) {
-
-                    putText(frame, "(Missing)", Point(person.pos.x+20, person.pos.y), FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
-
-
-                    // Draw line from last known position to expected position
-                    line(frame, start, Point(person.expectedPos.x, person.expectedPos.y), 5);
-
-                    // Draw the expected position
-                    circle(frame, Point(person.expectedPos.x, person.expectedPos.y), 3, (255,0,0), 2);
-
-                    // Draw the space in which a person is looked at
-                    Position averageOfExpectedPosAndPos = Position::average(person.expectedPos, person.pos);
-                    circle(frame, Point(averageOfExpectedPosAndPos.x, averageOfExpectedPosAndPos.y), person.killCount, person.color, 2);
+            }
+            
+    
+            // Step 4: Create new tracks for unmatched high-confidence detections
+            for (auto& det : highConfDetections) {
+                if (!det.matched) {
+                    det.id = nextID++;
+                    det.color = Scalar(rand() % 255, rand() % 255, rand() % 255);
+                    activeTracks.push_back(det);
                 }
-                
             }
-        };
-        void triggerMove(Person person) {
-            int bottomY = person.pos.y + person.size.height / 2;
-            int topY = person.pos.y - person.size.height / 2;
-            string jsonPayload = R"({"person": 2})";
-            string serverUrl;
-            if (person.fromTop && bottomY > 440) {
-                serverUrl = "http://localhost:8000/exit";
-                sendHttpRequest(serverUrl, jsonPayload);
-                cout << "Person moved from top to bottom" << endl;
-            }
-            if (person.fromBottom && topY < 50) {
-                serverUrl = "http://localhost:8000/enter";
-                sendHttpRequest(serverUrl, jsonPayload);
-                cout << "Person moved from bottom to top" << endl;
-            }
-        };
-};
+    
+            return activeTracks;
+        }
+
+    };
+
+
 
 int main(int argc, char* argv[]) {
     std::string imagePath = "WIN_20250303_10_21_48_Pro.mp4";
@@ -252,7 +191,7 @@ int main(int argc, char* argv[]) {
 
     // Load YOLO model
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
-    PeopleTracker tracker;
+
     // Set the backend and target
     if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
         // If CUDA is available, use it
@@ -290,57 +229,89 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    ByteTrack tracker;
+
+    
     while (true) {
         Mat frame;
         cap >> frame;
         if (frame.empty()) break;
 
-        int width = frame.cols;
-        int height = frame.rows;
+        vector<Detection> detections;
 
-        // Convert the frame to a blob (required by YOLO)
+        // Prepare input blob for YOLOv7
         Mat blob;
         blobFromImage(frame, blob, 0.00392, Size(320, 320), Scalar(0, 0, 0), true, false);
         net.setInput(blob);
-        vector<Mat> outs;
-        net.forward(outs, layerNames);
 
-        // Post-process the detections
+        // Perform forward pass and get output layers
+        vector<Mat> outputs;
+        net.forward(outputs, layerNames);
+
         vector<int> classIds;
         vector<float> confidences;
         vector<Rect> boxes;
 
-        for (auto& output : outs) {
+        // Process the outputs
+        for (const auto& output : outputs) {
             for (int i = 0; i < output.rows; i++) {
-                float* data = output.ptr<float>(i);
+                const float* data = output.ptr<float>(i);
                 vector<float> scores(data + 5, data + output.cols);
                 int classId = max_element(scores.begin(), scores.end()) - scores.begin();
-                float confidence = scores[classId];
-                if (confidence > 0.5 && classes[classId] == "person") {
-                    int centerX = static_cast<int>(data[0] * width);
-                    int centerY = static_cast<int>(data[1] * height);
-                    int w = static_cast<int>(data[2] * width);
-                    int h = static_cast<int>(data[3] * height);
-                    boxes.emplace_back(centerX, centerY, w, h);
+                float confidence = scores[classId];; // Confidence score for each detected object
+    
+                if (confidence > 0.1 && classId == 0) {
+                    // The data format depends on YOLO model
+                    // YOLOv7 has 4 values for bbox (x_center, y_center, width, height) followed by class scores
+    
+                    int centerX = static_cast<int>(data[0] * frame.cols);
+                    int centerY = static_cast<int>(data[1] * frame.rows);
+                    int width = static_cast<int>(data[2] * frame.cols);
+                    int height = static_cast<int>(data[3] * frame.rows);
+    
+                    // Create a Rect bounding box around the detected object
+                    int x = centerX - width / 2;
+                    int y = centerY - height / 2;
+                    Rect box(x, y, width, height);
+    
+                    // Push detected class IDs, confidence, and bounding box coordinates
                     confidences.push_back(confidence);
-                    classIds.push_back(classId);
+                    boxes.push_back(box);
+                    classIds.push_back(0);  // Assuming we're detecting "people" (class 0 in COCO dataset)
                 }
             }
         }
 
-        // Non-maxima suppression
+        // Apply Non-Maximum Suppression (NMS) to remove overlapping bounding boxes
         vector<int> indices;
-        NMSBoxes(boxes, confidences, 0.5, 0.4, indices);
+        dnn::NMSBoxes(boxes, confidences, 0.2, 0.2, indices);
+
+        // Store final detections with unique IDs
+        for (int i : indices) {
+            Detection detection;
+            detection.bbox = boxes[i];
+            detection.confidence = confidences[i];
+            detection.id = -1;  // ID will be assigned later during tracking
+            detections.push_back(detection);
+        }
+
+        vector<Detection> trackedObjects = tracker.update(detections);
+
+        for (const auto& obj : trackedObjects) {
+            
+            rectangle(frame, obj.bbox, obj.color, 2);
+            putText(frame, "ID: " + to_string(obj.id), obj.bbox.tl(), FONT_HERSHEY_SIMPLEX, 0.5, obj.color, 2);
+        }
 
         // Draw bounding boxes for detected humans
-        vector<Person> people;
+        /*vector<Person> people;
         for (int i : indices) {
             Rect box = boxes[i];
             Person person = Person({box.x, box.y}, {box.width, box.height});
             people.push_back(person);
         }
         tracker.update(people);
-        tracker.draw(frame);
+        tracker.draw(frame);*/
 
         // Show the output frame
         imshow("Human Detection", frame);
