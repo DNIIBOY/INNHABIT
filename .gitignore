@@ -3,3 +3,5 @@ venv/
 onedong/*.weights
 onedong/*.cfg
 onedong/coco.names
+
+.vscode/
