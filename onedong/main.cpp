@@ -35,45 +35,6 @@ void sendHttpRequest(const string& url, const string& jsonPayload) {
     curl_easy_cleanup(curl);
 }
 
-
-
-struct Position{
-    int x;
-    int y;
-
-    Position operator+(const Position& other) const {
-        return {x + other.x, y + other.y};
-    }
-
-    Position operator-(const Position& other) const {
-        return {x - other.x, y - other.y};
-    }
-
-    static Position average(const Position& p1, const Position& p2) {
-        return { (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 };
-    }
-
-    int magnitude() const {
-        return std::sqrt(x * x + y * y);
-    }
-
-    Position normalize() const {
-        int magnitude = std::sqrt(x * x + y * y);
-        if (magnitude == 0) return {0, 0}; // Avoid division by zero
-        return {x / magnitude, y / magnitude};
-    }
-
-    Position multiplyByScalar(int scalar) {
-        return {x * scalar, y * scalar};
-    }
-    
-};
-
-struct BoxSize{
-    int width;
-    int height;
-};
-
 struct Detection {
     int id;
     Rect bbox;
@@ -89,15 +50,15 @@ float computeIoU(const Rect& box1, const Rect& box2) {
     return intersection / unionArea;
 }
 
-
 class ByteTrack {
     private:
         vector<Detection> activeTracks;
         int nextID = 1;
-        int maxKillCount = 10;
-        float iouThreshold = 0.3;
-        float confThresholdHigh = 0.5; // Threshold for high-confidence detections
-        float confThresholdLow = 0.3;  // Threshold for low-confidence detections
+        int maxKillCount = 15;
+        float iouThresholdLow = 0.4;
+        float iouThresholdHigh = 0.3;
+        float confThresholdHigh = 0.6; // Threshold for high-confidence detections
+        float confThresholdLow = 0.1;  // Threshold for low-confidence detections
     
     public:
         vector<Detection> update(vector<Detection>& detections) {
@@ -117,34 +78,50 @@ class ByteTrack {
             // Step 1: Match high-confidence detections to existing tracks
             for (auto& track : activeTracks) {
                 track.matched = false; // Set all of the classes tracks to be unmatched
+
+                float highestIoU = 0.0;
+                Detection* bestDetection;
                 for (auto& det : highConfDetections) {
-                    if (!det.matched && computeIoU(track.bbox, det.bbox) > iouThreshold) {
-                        track.killCount = 0;
-                        track.bbox = det.bbox;
-                        track.confidence = det.confidence;
-                        track.matched = true;
-                        det.matched = true;
-                        break;
+                    float IoU = computeIoU(track.bbox, det.bbox);
+                    if (IoU > highestIoU) {
+                        highestIoU = IoU;
+                        bestDetection = &det;
                     }
                 }
+
+                if (highestIoU > iouThresholdHigh) {
+                    track.bbox = bestDetection->bbox;
+                    track.confidence = bestDetection->confidence;
+
+                    track.killCount = 0;
+                    track.matched = true;
+                    bestDetection->matched = true;
+                }
+                
                 if (!track.matched) {
-                    // Step 2: Assign remaining unmatched tracks to low-confidence detections
+                    
+                    highestIoU = 0.0;
+                    // Step 2: Attempt to assign unmatched tracks to low-confidence detections
                     for (auto& det : lowConfDetections) {
-                        if (!det.matched && computeIoU(track.bbox, det.bbox) > iouThreshold) {
-                            track.killCount = 0;
-                            track.bbox = det.bbox;
-                            track.confidence = det.confidence;
-                            //track.color = det.color;
-                            track.matched = true;
-                            det.matched = true;
-                            break;
+                        float IoU = computeIoU(track.bbox, det.bbox);
+                        if (IoU > highestIoU) {
+                            highestIoU = IoU;
+                            bestDetection = &det;
                         }
+                    }
+                    if (highestIoU > iouThresholdLow) {
+                        track.bbox = bestDetection->bbox;
+                        track.confidence = bestDetection->confidence;
+    
+                        track.killCount = 0;
+                        track.matched = true;
+                        bestDetection->matched = true;
                     }
                 }
                 
             }
     
-            // Step 3:
+            // Step 3: Remove those who have been missing for longer than maxKillCount frames
             for (auto it = activeTracks.begin(); it != activeTracks.end(); ) {
                 auto& track = *it;
             
@@ -179,8 +156,6 @@ class ByteTrack {
         }
 
     };
-
-
 
 int main(int argc, char* argv[]) {
     std::string imagePath = "WIN_20250303_10_21_48_Pro.mp4";
@@ -230,7 +205,6 @@ int main(int argc, char* argv[]) {
     }
 
     ByteTrack tracker;
-
     
     while (true) {
         Mat frame;
@@ -241,7 +215,7 @@ int main(int argc, char* argv[]) {
 
         // Prepare input blob for YOLOv7
         Mat blob;
-        blobFromImage(frame, blob, 0.00392, Size(320, 320), Scalar(0, 0, 0), true, false);
+        blobFromImage(frame, blob, 0.00392, Size(640, 640), Scalar(0, 0, 0), true, false);
         net.setInput(blob);
 
         // Perform forward pass and get output layers
@@ -284,7 +258,7 @@ int main(int argc, char* argv[]) {
 
         // Apply Non-Maximum Suppression (NMS) to remove overlapping bounding boxes
         vector<int> indices;
-        dnn::NMSBoxes(boxes, confidences, 0.2, 0.2, indices);
+        dnn::NMSBoxes(boxes, confidences, 0.1, 0.65, indices);
 
         // Store final detections with unique IDs
         for (int i : indices) {
