@@ -73,7 +73,7 @@ Position averageVelocity(const std::vector<Position>& history, int frames) {
     int size = history.size();
     if (size < 2) return {0, 0}; // Need at least 2 positions to compute velocity
 
-    int count = std::min(size - 1, frames); // Up to last 5 intervals
+    int count = std::min(size - 1, frames); // Up to last "frames" intervals
     Position sumVelocity = {0, 0};
 
     // Sum up velocity differences over last `count` intervals
@@ -97,8 +97,8 @@ class Person {
         BoxSize size;
         vector<Position> history;
         int recentVelocity;
-        Position directionVector {0,0}; // The average velocity over a longer period of time
-        Position velocity {0,0};
+        Position directionVector; // The average velocity over a longer period of time
+        Position velocity;
         Scalar color;
         int killCount = 0;
         bool fromTop = false;
@@ -129,7 +129,7 @@ class Person {
         };
         void missingUpdate() {
             this->killCount += 1;
-            this->expectedPos = expectedPos + this->velocity;
+            this->expectedPos = expectedPos + velocity;
         };
         Rect getBoundingBox() {
             return Rect(
