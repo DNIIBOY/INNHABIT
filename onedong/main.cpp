@@ -1,3 +1,4 @@
+#include "opencv2/videoio.hpp"
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
@@ -109,9 +110,7 @@ class PeopleTracker {
                     closestPerson.update(pos, size);
                     newPerson=closestPerson;
                     people.erase(people.begin() + closestPersonIndex);
-                } else {
-                    people.push_back(newPerson);
-                }
+                } 
             }
             for (Person& missingPerson : people) {
                 missingPerson.killCount++;
@@ -191,7 +190,7 @@ int main() {
     }
 
     // Open the laptop camera (use 0 for default webcam)
-    VideoCapture cap(0, CAP_V4L2);
+    VideoCapture cap("WIN_20250303_10_21_48_Pro.mp4", cv::CAP_FFMPEG);
     if (!cap.isOpened()) {
         cerr << "Error: Cannot open webcam" << endl;
         return -1;
