@@ -1,6 +1,8 @@
+#include "opencv2/videoio.hpp"
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
+#include <opencv2/core/ocl.hpp>
 #include <iostream>
 #include <fstream>
 #include <curl/curl.h>
@@ -226,10 +228,25 @@ int main() {
     // Load YOLO model
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
     PeopleTracker tracker;
-
-    // Use GPU for processing
-    net.setPreferableBackend(DNN_BACKEND_CUDA);  // Set to CUDA backend
-    net.setPreferableTarget(DNN_TARGET_CUDA);    // Set to use GPU (CUDA)
+    // Set the backend and target
+    if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
+        // If CUDA is available, use it
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
+        cout << "Using CUDA backend" << endl;
+    } 
+    else if (cv::ocl::haveOpenCL()) {
+        // If OpenCL is available, use it
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_OPENCL);
+        cout << "Using OpenCL backend" << endl;
+    } 
+    else {
+        // Fall back to CPU if neither CUDA nor OpenCL is available
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+        cout << "Using CPU backend" << endl;
+    }
 
     vector<string> layerNames = net.getUnconnectedOutLayersNames();
 
@@ -242,7 +259,7 @@ int main() {
     }
 
     // Open the laptop camera (use 0 for default webcam)
-    VideoCapture cap(0, CAP_V4L2);
+    VideoCapture cap("WIN_20250303_10_21_48_Pro.mp4", cv::CAP_FFMPEG);
     if (!cap.isOpened()) {
         cerr << "Error: Cannot open webcam" << endl;
         return -1;
@@ -258,7 +275,7 @@ int main() {
 
         // Convert the frame to a blob (required by YOLO)
         Mat blob;
-        blobFromImage(frame, blob, 0.00392, Size(416, 416), Scalar(0, 0, 0), true, false);
+        blobFromImage(frame, blob, 0.00392, Size(320, 320), Scalar(0, 0, 0), true, false);
         net.setInput(blob);
         vector<Mat> outs;
         net.forward(outs, layerNames);
