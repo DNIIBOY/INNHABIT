@@ -52,13 +52,28 @@ struct Position{
     static Position average(const Position& p1, const Position& p2) {
         return { (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 };
     }
+
+    int magnitude() const {
+        return std::sqrt(x * x + y * y);
+    }
+
+    Position normalize() const {
+        int magnitude = std::sqrt(x * x + y * y);
+        if (magnitude == 0) return {0, 0}; // Avoid division by zero
+        return {x / magnitude, y / magnitude};
+    }
+
+    Position multiplyByScalar(int scalar) {
+        return {x * scalar, y * scalar};
+    }
+    
 };
 
-Position averageVelocity(const std::vector<Position>& history) {
+Position averageVelocity(const std::vector<Position>& history, int frames) {
     int size = history.size();
     if (size < 2) return {0, 0}; // Need at least 2 positions to compute velocity
 
-    int count = std::min(size - 1, 5); // Up to last 5 intervals
+    int count = std::min(size - 1, frames); // Up to last 5 intervals
     Position sumVelocity = {0, 0};
 
     // Sum up velocity differences over last `count` intervals
@@ -81,6 +96,8 @@ class Person {
         Position pos;
         BoxSize size;
         vector<Position> history;
+        int recentVelocity;
+        Position directionVector {0,0}; // The average velocity over a longer period of time
         Position velocity {0,0};
         Scalar color;
         int killCount = 0;
@@ -105,12 +122,14 @@ class Person {
             this->size = size;
             this->history.push_back(pos);
             this->killCount = 0;
-            this->velocity = averageVelocity(this->history);
+            this->recentVelocity = averageVelocity(this->history,5).magnitude();
+            this->directionVector = averageVelocity(this->history,20).normalize();
+            this->velocity = directionVector.multiplyByScalar(recentVelocity);
             
         };
         void missingUpdate() {
             this->killCount += 1;
-            this->expectedPos = expectedPos + velocity;
+            this->expectedPos = expectedPos + this->velocity;
         };
         Rect getBoundingBox() {
             return Rect(
@@ -157,7 +176,7 @@ class PeopleTracker {
             for (Person& missingPerson : peopleManifest) {
                 missingPerson.missingUpdate();
                 // if the character has not been missing for too long, keep it alive
-                if (missingPerson.killCount < 100) {
+                if (missingPerson.killCount < 30) {
                     peopleDetectedThisFrame.push_back(missingPerson);
                 } else { // If the person has been gone for too long, it is told to move
                     triggerMove(missingPerson);
@@ -224,7 +243,13 @@ class PeopleTracker {
         };
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+    std::string imagePath = "WIN_20250303_10_21_48_Pro.mp4";
+    if (argc > 1) {
+        imagePath = argv[1];
+        std::cout << "Received image path: " << imagePath << '\n';
+    }
+
     // Load YOLO model
     Net net = readNet("yolov7-tiny.weights", "yolov7-tiny.cfg");
     PeopleTracker tracker;
@@ -259,7 +284,7 @@ int main() {
     }
 
     // Open the laptop camera (use 0 for default webcam)
-    VideoCapture cap("WIN_20250303_10_21_48_Pro.mp4", cv::CAP_FFMPEG);
+    VideoCapture cap(imagePath, cv::CAP_FFMPEG);
     if (!cap.isOpened()) {
         cerr << "Error: Cannot open webcam" << endl;
         return -1;
