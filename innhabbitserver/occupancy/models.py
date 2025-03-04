@@ -3,6 +3,9 @@ from django.db import models
 class Entrance(models.Model):
     name = models.CharField(max_length=64)
 
+    def __str__(self) -> str:
+        return f"Entrance: {self.name}"
+
 class Event(models.Model):
     class Meta:
         abstract = True
@@ -25,4 +28,3 @@ class ExitEvent(Event):
         on_delete=models.CASCADE,
         related_name="exits"
     )
-    
