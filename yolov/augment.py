@@ -3,6 +3,62 @@ import cv2
 import os
 import zipfile
 import sys
+import numpy as np
+
+def random_brightness_contrast(frame):
+    """
+    Apply random brightness and contrast to the frame.
+    """
+    alpha = random.uniform(0.6, 1.4)  # Random contrast factor
+    beta = random.uniform(-40, 40)    # Random brightness factor
+    
+    # Apply the contrast and brightness
+    frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+    
+    return frame
+
+def random_saturation_hue(frame):
+    """
+    Apply random saturation and hue shift to the frame.
+    """
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # Convert to HSV space
+
+    # Random saturation (0.5 to 1.5)
+    saturation = random.uniform(0.5, 1.5)
+    hsv[..., 1] = np.clip(hsv[..., 1] * saturation, 0, 255)
+
+    # Random hue shift (-10 to 10 degrees)
+    hue_shift = random.randint(-15, 15)
+    
+    # Convert hue to signed int (int16) to handle negative values
+    hsv[..., 0] = hsv[..., 0].astype(np.int16)  # Convert to signed integer (int16)
+
+    # Apply hue shift and wrap the value within the 0-179 range
+    hsv[..., 0] = (hsv[..., 0].astype(np.int16) + hue_shift) % 180  # Hue is in range [0, 179]
+    
+    # Ensure the hue value stays within [0, 179]
+    hsv[..., 0] = np.clip(hsv[..., 0], 0, 179)
+
+    # Convert back to unsigned 8-bit (uint8)
+    hsv[..., 0] = hsv[..., 0].astype(np.uint8)
+
+    # Convert back to BGR
+    frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+    return frame
+
+def apply_random_color_transformations(frame):
+    """
+    Apply random color-related transformations to the frame.
+    """
+    # Randomly choose which transformation to apply
+    transformations = [random_brightness_contrast, random_saturation_hue]
+    chosen_transformation = random.choice(transformations)
+    
+    # Apply the chosen transformation
+    frame = chosen_transformation(frame)
+    
+    return frame
 
 def adjust_bounding_box_for_augmentation(bbox, image_shape, transformation):
     """
@@ -42,11 +98,34 @@ def adjust_bounding_box_for_augmentation(bbox, image_shape, transformation):
 
 def extract_zip(zip_path, extract_to_dir):
     """
-    Extract all files from the zip archive into a given directory.
+    Extract all files from the zip archive into a given directory without nesting.
     """
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_to_dir)
-    print(f"Extracted {zip_path} to {extract_to_dir}")
+        # List all the files in the zip archive
+        file_list = zip_ref.namelist()
+        
+        # Check if there's a single top-level directory in the zip
+        top_level_dir = file_list[0].split('/')[0] if file_list else ''
+        
+        # If the files are inside a single folder, adjust the extract_to_dir path
+        if top_level_dir:
+            # Remove top-level directory from the extraction path
+            for file_name in file_list:
+                # If it's a directory, create it
+                if file_name.endswith('/'):  # This indicates a directory
+                    new_path = os.path.join(extract_to_dir, file_name)
+                    os.makedirs(new_path, exist_ok=True)
+                else:
+                    # For files, extract and write them
+                    new_path = os.path.join(extract_to_dir, os.path.relpath(file_name, top_level_dir))
+                    os.makedirs(os.path.dirname(new_path), exist_ok=True)  # Create the parent directories
+                    with open(new_path, 'wb') as f_out:
+                        f_out.write(zip_ref.read(file_name))
+            print(f"Extracted {zip_path} contents to {extract_to_dir} without nesting.")
+        else:
+            # If no top-level folder exists, just extract to the provided directory
+            zip_ref.extractall(extract_to_dir)
+            print(f"Extracted {zip_path} to {extract_to_dir}")
 
 def augment_and_create_video_from_zip_mp4(video_path, zip_path, output_name):
     print(f"Starting augmentation process...")
@@ -73,9 +152,6 @@ def augment_and_create_video_from_zip_mp4(video_path, zip_path, output_name):
 
     # Extract the zip file content into a temporary folder
     extracted_folder = zip_path.rstrip('.zip')  # Remove the .zip extension for folder name
-    if not os.path.exists(extracted_folder):
-        os.makedirs(extracted_folder)
-    
     extract_zip(zip_path, extracted_folder)
 
     # Video writer to save the augmented video
@@ -96,7 +172,7 @@ def augment_and_create_video_from_zip_mp4(video_path, zip_path, output_name):
             transformation = "flip"
         else:
             transformation = "none"
-
+        frame = apply_random_color_transformations(frame)
         # Check if the corresponding label file exists in the extracted folder
         label_file = f"{extracted_folder}/frame_{frame_index:06d}.txt"
         print(f"Looking for label file: {label_file}")
