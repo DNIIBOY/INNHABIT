@@ -2,7 +2,7 @@ venv/
 **/venv/
 **/.env
 **/__pycache__/
-
+**/*.mp4
 onedong/*.weights
 onedong/*.cfg
 onedong/coco.names
@@ -14,4 +14,4 @@ onedong/main.o
 onedong/compile_commands.json
 onedong/.cache/
 onedong/*.mp4
-
+runs/
