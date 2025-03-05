@@ -15,3 +15,6 @@ onedong/compile_commands.json
 onedong/.cache/
 onedong/*.mp4
 runs/
+**/*.zip
+yolov/dataset/
+yolovbackup
