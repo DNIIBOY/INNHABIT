@@ -210,7 +210,7 @@ def train_model():
     model = load_model()  # Load the model (either best.pt, a fallback pt file, or the default YOLOv8 model)
     
     # Continue training or start fresh (you can adjust the params as necessary)
-    model.train(data="dataset/data.yaml", epochs=50, imgsz=640, patience=20)
+    model.train(data="dataset/data.yaml", epochs=20, imgsz=640, patience=20)
 
     # Run validation after training
     metrics = model.val()

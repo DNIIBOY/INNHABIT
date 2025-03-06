@@ -229,15 +229,16 @@ def augment_and_create_video_from_zip_mp4(video_path, zip_path, output_name):
 
     # Debugging: Check if label files are collected
     print(f"Total label files: {len(label_files)}")
-
-    # Create a zip file for the labels
     zip_file_name = f"{output_name}.zip"
+    folder_name_in_zip = f"{output_name}"  # Name of the folder you want inside the zip file
+
     if label_files:
         with zipfile.ZipFile(zip_file_name, 'w') as zipf:
             for label_file in label_files:
                 print(f"Adding {label_file} to zip")
-                zipf.write(label_file, os.path.basename(label_file))  # Add label file to zip with original name
-        print(f"Labels saved in {zip_file_name}.")
+                # Add the file inside a folder (folder_name_in_zip) in the zip
+                zipf.write(label_file, os.path.join(folder_name_in_zip, os.path.basename(label_file)))
+            print(f"Labels saved in {zip_file_name}.")
     else:
         print("No labels to save. The zip file will be empty.")
 
