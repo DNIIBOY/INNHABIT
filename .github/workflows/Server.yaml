@@ -1,12 +1,11 @@
 name: Python Server
 
 on:
-  push:
-    paths:
-      - "innhabitserver/**"
+  push
 
 jobs:
   black:
+    working-directory: innhabitserver
     runs-on: ubuntu-latest
 
     steps:
@@ -22,9 +21,10 @@ jobs:
         pip install "black<25"
     - name: Check code formatting with black
       run: |
-        black --diff --check $(git ls-files "innhabitserver/*.py")
+        black --diff --check $(git ls-files "*.py")
 
   isort:
+    working-directory: innhabitserver
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +33,7 @@ jobs:
           configuration: --check-only --diff --profile black
 
   pylint:
+    working-directory: innhabitserver
     runs-on: ubuntu-latest
 
     steps:
@@ -49,9 +50,10 @@ jobs:
 
     - name: Analyse the code with pylint
       run: |
-        pylint --rcfile=.pylintrc $(git ls-files "innhabitserver/*.py")
+        pylint --rcfile=.pylintrc $(git ls-files "*.py")
 
   mypy:
+    working-directory: innhabitserver
     needs: [black, isort, pylint]
     runs-on: ubuntu-latest
 
@@ -66,12 +68,13 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install -r innhabitserver/requirements.txt
+        python3 -m pip install -r requirements.txt
     - name: Static type checking with mypy
       run: |
           mypy innhabitserver
 
   unittests:
+    working-directory: innhabitserver
     needs: [black, isort, pylint]
     runs-on: ubuntu-latest
 
@@ -111,7 +114,7 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install -r innhabitserver/requirements.txt
+        python3 -m pip install -r requirements.txt
     - name: Run unittests
       run: |
         python3 manage.py test --no-input --shuffle
