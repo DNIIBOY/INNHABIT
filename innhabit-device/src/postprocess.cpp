@@ -1,3 +1,6 @@
+/*-------------------------------------------
+                Includes
+-------------------------------------------*/
 #include "postprocess.h"
 #include <math.h>
 #include <stdint.h>
@@ -7,6 +10,10 @@
 #include <set>
 #include <vector>
 
+
+/*-------------------------------------------
+                  COCO labels
+-------------------------------------------*/
 static const char* labels[] = {
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
     "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -152,13 +159,7 @@ static int process(T *input, int grid_h, int grid_w, int *anchor, int height, in
                         }
                     }
                     float obj_prob_f32 = (is_quantized ? deqnt_affine_to_f32(maxClassProbs, zp, scale) : maxClassProbs) * box_conf_f32;
-#ifdef DEBUG
-                    if (a == 0 && i == 0 && j == 0) {
-                        printf("Max class prob=%f (raw=%d), class=%d, obj_prob=%f, threshold=%f\n",
-                               is_quantized ? deqnt_affine_to_f32(maxClassProbs, zp, scale) : maxClassProbs,
-                               (int)maxClassProbs, maxClassId, obj_prob_f32, threshold);
-                    }
-#endif
+
                     if (obj_prob_f32 > threshold) {
                         objProbs.push_back(obj_prob_f32);
                         classId.push_back(maxClassId);
@@ -167,20 +168,11 @@ static int process(T *input, int grid_h, int grid_w, int *anchor, int height, in
                         boxes.push_back(box_y);
                         boxes.push_back(box_w);
                         boxes.push_back(box_h);
-#ifdef DEBUG
-                        if (validCount <= 5) {
-                            printf("Valid detection %d: class=%d, prob=%f, box=(%f,%f,%f,%f)\n",
-                                   validCount, maxClassId, objProbs.back(), box_x, box_y, box_w, box_h);
-                        }
-#endif
                     }
                 }
             }
         }
     }
-#ifdef DEBUG
-    printf("Valid detections for stride %d: %d\n", stride, validCount);
-#endif
     return validCount;
 }
 
@@ -188,11 +180,7 @@ static int process(T *input, int grid_h, int grid_w, int *anchor, int height, in
 int post_process(int8_t *input0, int8_t *input1, int8_t *input2, int model_in_h, int model_in_w, float conf_threshold,
                  float nms_threshold, float scale_w, float scale_h, std::vector<int32_t> &qnt_zps,
                  std::vector<float> &qnt_scales, detect_result_group_t *group, bool is_quantized) {
-    
-#ifdef DEBUG
-    printf("Post process");
-# endif
-    
+        
     memset(group, 0, sizeof(detect_result_group_t));
 
     std::vector<float> filterBoxes;

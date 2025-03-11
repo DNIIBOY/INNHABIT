@@ -31,28 +31,17 @@ public:
 
 protected:
     void initialize(const string& modelPath) override {
-#ifdef DEBUG
-        cout << "Initializing RK3588Detector with model: " << modelPath << endl;
-#endif
         string rknnModel = modelPath + "/yolov7-tiny.rknn";
         int ret = rknn_init(&ctx, (void*)rknnModel.c_str(), 0, 0, NULL);
         if (ret < 0) {
             cerr << "Error: RKNN init failed: " << ret << endl;
             throw runtime_error("RKNN initialization failed");
         }
-#ifdef DEBUG
-        cout << "RKNN context initialized." << endl;
-#endif
-
         ret = rknn_query(ctx, RKNN_QUERY_IN_OUT_NUM, &io_num, sizeof(io_num));
         if (ret < 0) {
             rknn_destroy(ctx);
             throw runtime_error("RKNN query failed");
         }
-#ifdef DEBUG
-        cout << "Queried IO: " << io_num.n_input << " inputs, " << io_num.n_output << " outputs" << endl;
-#endif
-
         input_attrs.resize(io_num.n_input);
         for (uint32_t i = 0; i < io_num.n_input; i++) {
             input_attrs[i].index = i;
@@ -61,11 +50,6 @@ protected:
                 rknn_destroy(ctx);
                 throw runtime_error("RKNN input query failed");
             }
-#ifdef DEBUG
-            cout << "Input " << i << ": " << input_attrs[i].dims[0] << "x" 
-                 << input_attrs[i].dims[1] << "x" << input_attrs[i].dims[2] 
-                 << " (fmt=" << input_attrs[i].fmt << ")" << endl;
-#endif
         }
 
         output_attrs.resize(io_num.n_output);
@@ -84,9 +68,6 @@ protected:
             outputs[i].want_float = 0;
             out_scales[i] = output_attrs[i].scale;
             out_zps[i] = output_attrs[i].zp;
-#ifdef DEBUG
-            cout << "Output " << i << ": scale=" << out_scales[i] << ", zp=" << out_zps[i] << endl;
-#endif
         }
 
         if (input_attrs[0].fmt == RKNN_TENSOR_NCHW) {
@@ -98,20 +79,10 @@ protected:
             width = input_attrs[0].dims[2];
             channel = input_attrs[0].dims[3];
         }
-#ifdef DEBUG
-        cout << "Model dimensions: " << width << "x" << height << "x" << channel << endl;
-#endif
-
         initialized = true;
-#ifdef DEBUG
-        cout << "RK3588Detector initialized successfully." << endl;
-#endif
     }
 
     DetectionOutput runInference(const Mat& input) override {
-#ifdef DEBUG
-        cout << "Running inference on input: " << input.cols << "x" << input.rows << endl;
-#endif
         rknn_input inputs[1];
         memset(inputs, 0, sizeof(inputs));
         inputs[0].index = 0;
@@ -119,42 +90,24 @@ protected:
         inputs[0].size = width * height * channel;
         inputs[0].fmt = RKNN_TENSOR_NHWC;
         inputs[0].buf = input.data;
-#ifdef DEBUG
-        cout << "Input set: size=" << inputs[0].size << ", format=NHWC" << endl;
-#endif
 
         int ret = rknn_inputs_set(ctx, 1, inputs);
         if (ret < 0) {
             cerr << "Error: RKNN inputs set failed: " << ret << endl;
             throw runtime_error("RKNN inputs set failed");
         }
-#ifdef DEBUG
-        cout << "Inputs set successfully." << endl;
-#endif
 
         ret = rknn_run(ctx, NULL);
         if (ret < 0) {
             cerr << "Error: RKNN run failed: " << ret << endl;
             throw runtime_error("RKNN run failed");
         }
-#ifdef DEBUG
-        cout << "Inference executed." << endl;
-#endif
 
         ret = rknn_outputs_get(ctx, io_num.n_output, outputs.data(), NULL);
         if (ret < 0) {
             cerr << "Error: RKNN outputs get failed: " << ret << endl;
             throw runtime_error("RKNN outputs get failed");
         }
-#ifdef DEBUG
-        cout << "Outputs retrieved: " << io_num.n_output << " tensors" << endl;
-        for (uint32_t i = 0; i < io_num.n_output; i++) {
-            cout << "Output " << i << " size: " << outputs[i].size << endl;
-            if (!outputs[i].buf) {
-                cerr << "Error: Output " << i << " buffer is null!" << endl;
-            }
-        }
-#endif
 
         DetectionOutput output;
         output.buffers.resize(io_num.n_output);
@@ -164,31 +117,16 @@ protected:
         for (uint32_t i = 0; i < io_num.n_output; i++) {
             output.buffers[i] = outputs[i].buf;
         }
-#ifdef DEBUG
-        cout << "Inference completed and buffers prepared for post-processing." << endl;
-#endif
         return output;  // Buffers will be released in releaseOutputs
     }
 
     void releaseOutputs(const DetectionOutput& output) override {
-#ifdef DEBUG
-        cout << "Releasing RKNN outputs..." << endl;
-#endif
         rknn_outputs_release(ctx, io_num.n_output, outputs.data());
-#ifdef DEBUG
-        cout << "RKNN outputs released." << endl;
-#endif
     }
 
     ~RK3588Detector() override {
-#ifdef DEBUG
-        cout << "Destroying RK3588Detector..." << endl;
-#endif
         if (initialized) {
             rknn_destroy(ctx);
-#ifdef DEBUG
-            cout << "RKNN context destroyed." << endl;
-#endif
         }
     }
 };
@@ -196,9 +134,6 @@ protected:
 #ifdef USE_RKNN
 Detector* createDetector(const string& modelPath, const vector<string>& targetClasses) {
     try {
-#ifdef DEBUG
-        cout << "Creating RK3588Detector..." << endl;
-#endif
         return new RK3588Detector(modelPath, targetClasses);
     } catch (const exception& e) {
         cerr << "Error creating RK3588 detector: " << e.what() << endl;
