@@ -16,9 +16,20 @@
         {% tailwind_css %}
     </head>
 
-    <body class="bg-gray-100">
-        {% component "navbar" %}{% endcomponent %}
-        {% block content %}
-        {% endblock %}
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex h-screen">
+        {% if request.user.is_authenticated %}
+            {% component "navbar" %}{% endcomponent %}
+        {% endif %}
+        <main class="p-4{% if request.user.is_authenticated %} ml-72 {% endif %}">
+            {% block content %}
+            {% endblock %}
+        </main>
+        {% if not request.user.is_authenticated %}
+            <div class="fixed bottom-6 right-6">
+                <a>Login</a>
+            </div>
+        {% endif %}
+    {% block js %}
+    {% endblock %}
     </body>
 </html>
