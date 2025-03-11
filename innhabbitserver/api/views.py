@@ -6,11 +6,11 @@ class EntranceViewset(viewsets.ModelViewSet):
     queryset = Entrance.objects.all()
     serializer_class = EntranceSerializer
 
-class EntryEventViewset(viewsets.ModelViewSet):
-    queryset = EntryEvent.objects.all()
+class EntryEventViewset(viewsets.ReadOnlyModelViewSet, viewsets.mixins.CreateModelMixin):
+    queryset = EntryEvent.objects.all() 
     serializer_class = EntryEventSerializer
 
-class ExitEventViewset(viewsets.ModelViewSet):
+class ExitEventViewset(viewsets.ReadOnlyModelViewSet, viewsets.mixins.CreateModelMixin):
     queryset = ExitEvent.objects.all()
     serializer_class = ExitEventSerializer
 
