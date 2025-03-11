@@ -9,16 +9,12 @@ class EntranceSerializer(serializers.ModelSerializer):
 
 
 class EntryEventSerializer(serializers.ModelSerializer):
-    entrance = EntranceSerializer()
-
     class Meta:
         model = EntryEvent
         exclude = []
 
 
 class ExitEventSerializer(serializers.ModelSerializer):
-    entrance = EntranceSerializer()
-
     class Meta:
         model = ExitEvent
         exclude = []
