@@ -77,7 +77,7 @@ endif()
 
 # Set output directory
 set_target_properties(object_detection PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
 # Print configuration status

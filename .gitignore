@@ -3,17 +3,19 @@ venv/
 **/.env
 **/__pycache__/
 **/*.mp4
-onedong/*.weights
-onedong/*.cfg
-onedong/coco.names
+innbahit-device/*.weights
+innbahit-device/*.cfg
+innbahit-device/coco.names
 
 
 .vscode/
-onedong/main
-onedong/main.o
-onedong/compile_commands.json
-onedong/.cache/
-onedong/*.mp4
+innbahit-device/main
+innbahit-device/main.o
+innbahit-device/compile_commands.json
+innbahit-device/.cache/
+innbahit-device/*.mp4
+innbahit-device/models
+innbahit-device/build
 runs/
 **/*.zip
 yolov/dataset/

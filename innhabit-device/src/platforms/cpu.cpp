@@ -30,17 +30,11 @@ public:
             cerr << "Error: Detector not properly initialized" << endl;
             return;
         }
-#ifdef DEBUG
-        cout << "Detecting on frame: " << frame.cols << "x" << frame.rows << endl;
-#endif
 
         Mat img;
         cvtColor(frame, img, COLOR_BGR2RGB);
         int img_width = img.cols;
         int img_height = img.rows;
-#ifdef DEBUG
-        cout << "Converted to RGB: " << img_width << "x" << img_height << endl;
-#endif
 
         Mat resized_img(height, width, CV_8UC3, Scalar(114, 114, 114));
         float scale = min(static_cast<float>(width) / img_width, static_cast<float>(height) / img_height);
@@ -48,17 +42,10 @@ public:
         int new_height = static_cast<int>(img_height * scale);
         int dx = (width - new_width) / 2;
         int dy = (height - new_height) / 2;
-#ifdef DEBUG
-        cout << "Resizing: scale=" << scale << ", new_size=" << new_width << "x" << new_height 
-             << ", offsets=" << dx << "," << dy << endl;
-#endif
 
         Mat resized_part;
         resize(img, resized_part, Size(new_width, new_height));
         resized_part.copyTo(resized_img(Rect(dx, dy, new_width, new_height)));
-#ifdef DEBUG
-        cout << "Image resized and letterboxed: " << resized_img.cols << "x" << resized_img.rows << endl;
-#endif
 
         // Direct OpenCV DNN processing for CPU
         Mat blob = blobFromImage(resized_img, 1/255.0, Size(width, height), Scalar(0,0,0), true, false);
@@ -67,13 +54,6 @@ public:
         vector<Mat> outs;
         net.forward(outs, net.getUnconnectedOutLayersNames());
         
-#ifdef DEBUG
-        cout << "Inference completed. Outputs: " << outs.size() << endl;
-        for (size_t i = 0; i < outs.size(); i++) {
-            cout << "Output " << i << " shape: " << outs[i].size() << endl;
-        }
-#endif
-
         // Process detections directly using OpenCV instead of the post_process function
         vector<Rect> boxes;
         vector<float> confidences;
@@ -108,11 +88,7 @@ public:
         // Apply non-maximum suppression
         vector<int> indices;
         NMSBoxes(boxes, confidences, BOX_THRESH, NMS_THRESH, indices);
-        
-#ifdef DEBUG
-        cout << "Post-processing done. Found " << indices.size() << " detections" << endl;
-#endif
-        
+                
         // Draw bounding boxes and labels
         for (size_t i = 0; i < indices.size(); ++i) {
             int idx = indices[i];
@@ -150,16 +126,10 @@ public:
             putText(frame, label, Point(box.x, box.y - baseLine), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
         }
         
-#ifdef DEBUG
-        cout << "Frame processing completed." << endl;
-#endif
     }
 
 protected:
     void initialize(const string& modelPath) override {
-#ifdef DEBUG
-        cout << "Initializing CPUDetector with modelPath: " << modelPath << endl;
-#endif
         string cfg = modelPath + "/yolov7-tiny.cfg";
         string weights = modelPath + "/yolov7-tiny.weights";
         
@@ -175,33 +145,18 @@ protected:
             classes.push_back(line);
         }
         
-#ifdef DEBUG
-        cout << "Loading model: cfg=" << cfg << ", weights=" << weights << endl;
-        cout << "Loaded " << classes.size() << " class names" << endl;
-#endif
         net = readNet(cfg, weights);
         net.setPreferableBackend(DNN_BACKEND_OPENCV);
         net.setPreferableTarget(DNN_TARGET_CPU);
-#ifdef DEBUG
-        cout << "Using OpenCV backend and CPU target." << endl;
-#endif
-        if (net.empty()) {
-#ifdef DEBUG
-            cerr << "Error: Neural network is empty after loading." << endl;
-#endif
-            throw runtime_error("Failed to load YOLOv7-tiny model for CPU");
-        }
-#ifdef DEBUG
-        cout << "Model loaded successfully." << endl;
-#endif
 
-        width = 416;  // Hardcoded for simplicity, adjust as needed
-        height = 416;
+        if (net.empty()) {
+            throw runtime_error("Failed to load YOLOv  model for CPU");
+        }
+
+        width = 640;  // Hardcoded for simplicity, adjust as needed
+        height = 640;
         channel = 3;
         initialized = true;
-#ifdef DEBUG
-        cout << "CPUDetector initialized. Dimensions: " << width << "x" << height << "x" << channel << endl;
-#endif
     }
 
     DetectionOutput runInference(const Mat& input) override {
@@ -212,9 +167,7 @@ protected:
     }
 
     ~CPUDetector() override {
-#ifdef DEBUG
-        cout << "Destroying CPUDetector..." << endl;
-#endif
+
     }
 };
 

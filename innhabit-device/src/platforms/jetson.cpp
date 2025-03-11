@@ -84,8 +84,8 @@ protected:
             throw runtime_error("Failed to load YOLOv7-tiny model");
         }
 
-        width = 320;
-        height = 320;
+        width = 640;
+        height = 640;
         channel = 3;
         initialized = true;
     }

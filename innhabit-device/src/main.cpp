@@ -61,6 +61,9 @@ void printUsage(const char* progName) {
     cout << "  (No arguments defaults to webcam)" << endl;
 }
 
+/*-------------------------------------------
+                  Main Functions
+-------------------------------------------*/
 int main(int argc, char** argv) {
     // Initialize curl
     curl_global_init(CURL_GLOBAL_ALL);
@@ -77,14 +80,16 @@ int main(int argc, char** argv) {
             videoFile = argv[++i];
         } else if (strcmp(argv[i], "--image") == 0 && i + 1 < argc) {
             imageFile = argv[++i];
+        } else if (strcmp(argv[i], "--model") == 0 && i + 1 < argc) {
+            modelPath = argv[++i];
         } else {
             cerr << "Unknown argument: " << argv[i] << endl;
-            printUsage(argv[0]);
-            if (curlHandle) curl_easy_cleanup(curlHandle);
-            curl_global_cleanup();
+            cerr << "Usage: ./people_tracker [--video <video_file>] [--image <image_file>] [--model <model_path>]" << endl;
             return -1;
         }
     }
+
+    classFile = modelPath + "/coco.names";
 
     // Validate arguments
     if (!videoFile.empty() && !imageFile.empty()) {
