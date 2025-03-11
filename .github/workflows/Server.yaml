@@ -1,7 +1,10 @@
 name: Python Server
 
 on:
-  push
+  push:
+    paths:
+      - ".github/workflows/server.yaml"
+      - "innhabitserver/**"
 
 jobs:
   black:
