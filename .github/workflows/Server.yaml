@@ -66,7 +66,7 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install -r requirements.txt
+        python3 -m pip install -r innhabbitserver/requirements.txt
     - name: Static type checking with mypy
       run: |
           mypy innhabbitserver
@@ -111,8 +111,7 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install -r requirements.txt
-
+        python3 -m pip install -r innhabbitserver/requirements.txt
     - name: Run unittests
       run: |
         python3 manage.py test --no-input --shuffle
