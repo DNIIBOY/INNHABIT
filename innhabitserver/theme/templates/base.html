@@ -1,0 +1,24 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>INNHABIT</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+        <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
+        <style>
+            body {
+                font-family: "Montserrat";
+            }
+        </style>
+        {% tailwind_css %}
+    </head>
+
+    <body class="bg-gray-100">
+        {% component "navbar" %}{% endcomponent %}
+        {% block content %}
+        {% endblock %}
+    </body>
+</html>

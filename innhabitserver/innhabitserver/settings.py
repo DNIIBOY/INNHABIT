@@ -15,6 +15,7 @@ from pathlib import Path
 
 import environ
 from django.core.management.utils import get_random_secret_key
+from django_components import ComponentsSettings
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,10 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
 ]
 
+INTERNAL_IPS = [
+    "127.0.0.1"
+]
+
 
 # Application definition
 
@@ -48,7 +53,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_browser_reload",
+    "tailwind",
+    "django_components",
     "rest_framework",
+    "theme",
     "api",
     "occupancy",
 ]
@@ -61,6 +69,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_browser_reload.middleware.BrowserReloadMiddleware"
 ]
 
 ROOT_URLCONF = "innhabitserver.urls"
@@ -69,7 +78,6 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -77,9 +85,24 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
+            "loaders": [
+                "django_components.template_loader.Loader",
+                "django.template.loaders.filesystem.Loader",
+                "django.template.loaders.app_directories.Loader",
+            ],
+            "builtins": [
+                "django_components.templatetags.component_tags",
+            ]
         },
     },
 ]
+
+COMPONENTS = ComponentsSettings(
+    reload_on_file_change=True,
+    dirs=[
+        BASE_DIR / "components",
+    ],
+)
 
 WSGI_APPLICATION = "innhabitserver.wsgi.application"
 
@@ -134,6 +157,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+TAILWIND_APP_NAME = "theme"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
