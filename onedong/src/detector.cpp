@@ -9,9 +9,6 @@ using namespace std;
 GenericDetector::GenericDetector(const string& modelPath, const vector<string>& targetClasses_) {
     targetClasses = targetClasses_;
     initialized = false;
-#ifdef DEBUG
-    cout << "GenericDetector constructed with modelPath: " << modelPath << endl;
-#endif
 }
 
 void GenericDetector::detect(Mat& frame) {
@@ -19,45 +16,22 @@ void GenericDetector::detect(Mat& frame) {
         cerr << "Error: Detector not properly initialized" << endl;
         return;
     }
-#ifdef DEBUG
-    cout << "Detecting on frame: " << frame.cols << "x" << frame.rows << endl;
-#endif
-
     Mat img;
     cvtColor(frame, img, COLOR_BGR2RGB);
     int img_width = img.cols;
     int img_height = img.rows;
-#ifdef DEBUG
-    cout << "Converted to RGB: " << img_width << "x" << img_height << endl;
-#endif
-
     Mat resized_img(height, width, CV_8UC3, Scalar(114, 114, 114));
     float scale = min(static_cast<float>(width) / img_width, static_cast<float>(height) / img_height);
     int new_width = static_cast<int>(img_width * scale);
     int new_height = static_cast<int>(img_height * scale);
     int dx = (width - new_width) / 2;
     int dy = (height - new_height) / 2;
-#ifdef DEBUG
-    cout << "Resizing: scale=" << scale << ", new_size=" << new_width << "x" << new_height 
-         << ", offsets=" << dx << "," << dy << endl;
-#endif
 
     Mat resized_part;
     resize(img, resized_part, Size(new_width, new_height));
     resized_part.copyTo(resized_img(Rect(dx, dy, new_width, new_height)));
-#ifdef DEBUG
-    cout << "Image resized and letterboxed: " << resized_img.cols << "x" << resized_img.rows << endl;
-#endif
 
     DetectionOutput output = runInference(resized_img);
-#ifdef DEBUG
-    cout << "Inference completed. Outputs: " << output.num_outputs << endl;
-    for (int i = 0; i < output.num_outputs; i++) {
-        if (!output.buffers[i]) {
-            cerr << "Error: Output buffer " << i << " is null!" << endl;
-        }
-    }
-#endif
 
     detect_result_group_t detect_result_group;
     post_process(
@@ -70,17 +44,6 @@ void GenericDetector::detect(Mat& frame) {
         output.zps, output.scales,
         &detect_result_group
     );
-
-#ifdef DEBUG
-    cout << "Post-processing done. Found " << detect_result_group.count << " detections" << endl;
-    for (int i = 0; i < detect_result_group.count; i++) {
-        detect_result_t* det = &detect_result_group.results[i];
-        cout << "Detection " << i << ": " << det->name << " (" 
-             << det->box.left << "," << det->box.top << ")-(" 
-             << det->box.right << "," << det->box.bottom << "), conf=" 
-             << det->prop << endl;
-    }
-#endif
 
     detections.clear();
     for (int i = 0; i < detect_result_group.count; i++) {
@@ -106,9 +69,6 @@ void GenericDetector::detect(Mat& frame) {
         y1 = max(0, min(y1, img_height - 1));
         x2 = max(0, min(x2, img_width - 1));
         y2 = max(0, min(y2, img_height - 1));
-#ifdef DEBUG
-        cout << "Drawing box: (" << x1 << "," << y1 << ")-(" << x2 << "," << y2 << ")" << endl;
-#endif
 
         // Save detection for tracker
         Detection det;
@@ -142,12 +102,8 @@ void GenericDetector::detect(Mat& frame) {
 
     // Release buffers if needed
     releaseOutputs(output);
-    
-#ifdef DEBUG
-    cout << "Frame processing completed with " << detections.size() << " relevant detections." << endl;
-#endif
 }
-
+    
 const std::vector<Detection>& GenericDetector::getDetections() const {
     return detections;
 }

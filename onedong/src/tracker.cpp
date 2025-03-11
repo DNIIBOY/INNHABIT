@@ -3,161 +3,188 @@
 #include <iostream>
 #include <cmath>
 
-using namespace cv;
-using namespace std;
+using namespace cv;  // Add OpenCV namespace
+using namespace std; // Add standard namespace
 
-PeopleTracker::PeopleTracker(int maxMissingFrames, float maxDistance, float topThreshold, float bottomThreshold)
-    : nextId(0), maxMissingFrames(maxMissingFrames), maxDistance(maxDistance),
-      topThreshold(topThreshold), bottomThreshold(bottomThreshold), movementCallback(nullptr) {
-#ifdef DEBUG
-    cout << "Tracker initialized with maxMissingFrames=" << maxMissingFrames 
-         << ", maxDistance=" << maxDistance << endl;
-#endif
+PeopleTracker::PeopleTracker(int maxMissingFrames_, float maxDistance_, float topThreshold_, float bottomThreshold_)
+    : nextId(0), maxMissingFrames(maxMissingFrames_), maxDistance(maxDistance_),
+      topThreshold(topThreshold_), bottomThreshold(bottomThreshold_) /* Fixed typo */, movementCallback(nullptr) {
 }
 
-void PeopleTracker::update(const vector<Detection>& detections, int frameHeight) {
-    vector<TrackedPerson> newPeople;
-    
-    // Process each detection
+float computeIoU(const cv::Rect& box1, const cv::Rect& box2) {
+    float intersection = (box1 & box2).area();
+    float unionArea = box1.area() + box2.area() - intersection;
+    return unionArea > 0 ? intersection / unionArea : 0;
+}
+
+void PeopleTracker::update(const std::vector<Detection>& detections, int frameHeight) {
+    std::vector<Detection> filteredDetections;
     for (const auto& det : detections) {
-        // Only track people
-        if (det.classId != "person") continue;
-        
-        // Convert detection to position and size
-        Position pos = {
-            det.box.x + det.box.width / 2,
-            det.box.y + det.box.height / 2
-        };
-        BoxSize size = {
-            det.box.width,
-            det.box.height
-        };
-        
-        // Find closest matching person
-        TrackedPerson closestPerson;
-        float minDistance = maxDistance + 1;  // Initialize to more than maximum
-        int closestPersonIndex = -1;
-        
-        for (size_t i = 0; i < people.size(); i++) {
-            const auto& person = people[i];
-            float distance = sqrt(pow(person.pos.x - pos.x, 2) + pow(person.pos.y - pos.y, 2));
-            
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestPersonIndex = i;
+        if (det.classId == "person") filteredDetections.push_back(det);  // Only track people
+    }
+
+    std::vector<Detection> highConfDetections;
+    std::vector<Detection> lowConfDetections;
+    std::vector<bool> trackMatched(people.size(), false);
+    std::vector<bool> detMatched(filteredDetections.size(), false);
+
+    // ByteTrack parameters
+    const float confThresholdHigh = 0.6f;
+    const float confThresholdLow = 0.1f;
+    const float iouThresholdHigh = 0.3f;
+    const float iouThresholdLow = 0.4f;
+
+    // Separate high and low-confidence detections
+    for (size_t i = 0; i < filteredDetections.size(); ++i) {
+        if (filteredDetections[i].confidence > confThresholdHigh) {
+            highConfDetections.push_back(filteredDetections[i]);
+        } else if (filteredDetections[i].confidence > confThresholdLow) {
+            lowConfDetections.push_back(filteredDetections[i]);
+        }
+    }
+
+    // Step 1: Match high-confidence detections to existing tracks
+    for (size_t t = 0; t < people.size(); ++t) {
+        float highestIoU = 0.0;
+        int bestDetIdx = -1;
+
+        for (size_t d = 0; d < highConfDetections.size(); ++d) {
+            if (detMatched[d]) continue;
+            float IoU = computeIoU(people[t].getBoundingBox(), highConfDetections[d].box);
+            if (IoU > highestIoU && IoU > iouThresholdHigh) {
+                highestIoU = IoU;
+                bestDetIdx = d;
             }
         }
-        
-        if (closestPersonIndex >= 0 && minDistance < maxDistance) {
-            // Update existing person
-            TrackedPerson updatedPerson = people[closestPersonIndex];
-            updatedPerson.update(pos, size, det.confidence);
-            
-            // Check for movements between zones
-            detectMovements(updatedPerson, frameHeight);
-            
-            newPeople.push_back(updatedPerson);
-            people.erase(people.begin() + closestPersonIndex);
+
+        if (bestDetIdx >= 0) {
+            Position pos = {
+                highConfDetections[bestDetIdx].box.x + highConfDetections[bestDetIdx].box.width / 2,
+                highConfDetections[bestDetIdx].box.y + highConfDetections[bestDetIdx].box.height / 2
+            };
+            BoxSize size = {
+                highConfDetections[bestDetIdx].box.width,
+                highConfDetections[bestDetIdx].box.height
+            };
+            people[t].update(pos, size, highConfDetections[bestDetIdx].confidence);
+            trackMatched[t] = true;
+            detMatched[bestDetIdx] = true;
+            detectMovements(people[t], frameHeight);
+        }
+    }
+
+    // Step 2: Match unmatched tracks to low-confidence detections
+    for (size_t t = 0; t < people.size(); ++t) {
+        if (trackMatched[t]) continue;
+
+        float highestIoU = 0.0;
+        int bestDetIdx = -1;
+
+        for (size_t d = 0; d < lowConfDetections.size(); ++d) {
+            if (detMatched[d + highConfDetections.size()]) continue;
+            float IoU = computeIoU(people[t].getBoundingBox(), lowConfDetections[d].box);
+            if (IoU > highestIoU && IoU > iouThresholdLow) {
+                highestIoU = IoU;
+                bestDetIdx = d;
+            }
+        }
+
+        if (bestDetIdx >= 0) {
+            Position pos = {
+                lowConfDetections[bestDetIdx].box.x + lowConfDetections[bestDetIdx].box.width / 2,
+                lowConfDetections[bestDetIdx].box.y + lowConfDetections[bestDetIdx].box.height / 2
+            };
+            BoxSize size = {
+                lowConfDetections[bestDetIdx].box.width,
+                lowConfDetections[bestDetIdx].box.height
+            };
+            people[t].update(pos, size, lowConfDetections[bestDetIdx].confidence);
+            trackMatched[t] = true;
+            detMatched[bestDetIdx + highConfDetections.size()] = true;
+            detectMovements(people[t], frameHeight);
+        }
+    }
+
+    // Step 3: Update missing frames and remove old tracks
+    std::vector<TrackedPerson> newPeople;
+    for (size_t t = 0; t < people.size(); ++t) {
+        if (!trackMatched[t]) {
+            people[t].missingFrames++;
+            if (people[t].missingFrames < maxMissingFrames) {
+                newPeople.push_back(people[t]);
+            } else {
+                detectMovements(people[t], frameHeight);  // Check movement before removal
+
+            }
         } else {
-            // Create new tracked person
-            TrackedPerson newPerson(nextId++, pos, size, det.confidence, frameHeight);
+            newPeople.push_back(people[t]);
+        }
+    }
+
+    // Step 4: Add new tracks for unmatched high-confidence detections
+    for (size_t d = 0; d < highConfDetections.size(); ++d) {
+        if (!detMatched[d]) {
+            Position pos = {
+                highConfDetections[d].box.x + highConfDetections[d].box.width / 2,
+                highConfDetections[d].box.y + highConfDetections[d].box.height / 2
+            };
+            BoxSize size = {
+                highConfDetections[d].box.width,
+                highConfDetections[d].box.height
+            };
+            TrackedPerson newPerson(nextId++, pos, size, highConfDetections[d].confidence, frameHeight);
             newPeople.push_back(newPerson);
         }
     }
-    
-    // Handle missing people (not matched with any detection)
-    for (auto& missingPerson : people) {
-        missingPerson.missingFrames++;
-        if (missingPerson.missingFrames < maxMissingFrames) {
-            newPeople.push_back(missingPerson);
-        } else {
-            // Person has disappeared - check if they crossed a boundary
-            detectMovements(missingPerson, frameHeight);
-#ifdef DEBUG
-            cout << "Person ID " << missingPerson.id << " has disappeared" << endl;
-#endif
-        }
-    }
-    
-    // Update the people list
+
     people = newPeople;
-    
-#ifdef DEBUG
-    cout << "Tracking updated: " << people.size() << " people tracked" << endl;
-#endif
 }
 
 void PeopleTracker::detectMovements(const TrackedPerson& person, int frameHeight) {
-    if (person.history.size() < 5) return;  // Need enough history to determine movement
-    
-    // Get first and last positions in history
+    if (person.history.size() < 5 || !movementCallback) return;
+
     const Position& start = person.history.front();
     const Position& end = person.history.back();
-    
+
     int startY = start.y;
     int endY = end.y;
-    
-    // Check if person moved from top to bottom
+
     if (person.fromTop && endY > frameHeight * bottomThreshold) {
-        if (movementCallback) {
-            movementCallback(person, "exit");
-        }
-#ifdef DEBUG
-        cout << "Person ID " << person.id << " moved from top to bottom" << endl;
-#endif
-    }
-    
-    // Check if person moved from bottom to top
-    if (person.fromBottom && endY < frameHeight * topThreshold) {
-        if (movementCallback) {
-            movementCallback(person, "enter");
-        }
-#ifdef DEBUG
-        cout << "Person ID " << person.id << " moved from bottom to top" << endl;
-#endif
+        movementCallback(person, "exit");
+    } else if (person.fromBottom && endY < frameHeight * topThreshold) {
+        movementCallback(person, "enter");
     }
 }
 
-void PeopleTracker::draw(Mat& frame) {
+void PeopleTracker::draw(cv::Mat& frame) {
     for (const auto& person : people) {
-        // Draw bounding box
-        rectangle(frame, person.getBoundingBox(), person.color, 2);
-        
-        // Draw ID and entry point
+        cv::Rect bbox = person.getBoundingBox();
+        cv::rectangle(frame, bbox, person.color, 2);
+
         string label = "ID: " + to_string(person.id);
-        if (person.fromTop) {
-            label += " (Top)";
-        } else if (person.fromBottom) {
-            label += " (Bottom)";
-        }
-        
-        int y = max(person.pos.y - person.size.height / 2 - 10, 15);
-        putText(frame, label, Point(person.pos.x - person.size.width / 2, y), 
-                FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
-                
-        // Draw movement trail/history
+        if (person.fromTop) label += " (Top)";
+        else if (person.fromBottom) label += " (Bottom)";
+        int y = max(bbox.y - 10, 15);
+        cv::putText(frame, label, cv::Point(bbox.x, y), cv::FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
+
+        // Draw movement trail
         if (person.history.size() > 1) {
-            for (size_t i = 1; i < person.history.size(); i++) {
-                // Make trail gradually fade
+            for (size_t i = 1; i < person.history.size(); ++i) {
                 float alpha = static_cast<float>(i) / person.history.size();
-                Scalar trailColor = person.color * alpha;
-                
-                circle(frame, Point(person.history[i-1].x, person.history[i-1].y), 2, trailColor, -1);
-                line(frame, Point(person.history[i-1].x, person.history[i-1].y),
-                     Point(person.history[i].x, person.history[i].y), trailColor, 1);
+                cv::Scalar trailColor = person.color * alpha;
+                cv::line(frame, cv::Point(person.history[i-1].x, person.history[i-1].y),
+                         cv::Point(person.history[i].x, person.history[i].y), trailColor, 1);
+                cv::circle(frame, cv::Point(person.history[i].x, person.history[i].y), 2, trailColor, -1);
             }
-            
-            // Draw current position
-            circle(frame, Point(person.history.back().x, person.history.back().y), 4, person.color, -1);
         }
     }
-    
-    // Draw entry/exit zones
+
+    // Draw entry/exit zones (optional)
     int topZoneY = frame.rows * topThreshold;
     int bottomZoneY = frame.rows * bottomThreshold;
 }
 
-const vector<TrackedPerson>& PeopleTracker::getTrackedPeople() const {
+const std::vector<TrackedPerson>& PeopleTracker::getTrackedPeople() const {
     return people;
 }
 

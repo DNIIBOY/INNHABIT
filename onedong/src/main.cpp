@@ -51,9 +51,6 @@ vector<string> loadClassNames(const string& filename) {
         if (!line.empty()) classNames.push_back(line);
     }
     file.close();
-#ifdef DEBUG
-    cout << "Loaded " << classNames.size() << " class names from " << filename << endl;
-#endif
     return classNames;
 }
 
@@ -98,13 +95,6 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-#ifdef DEBUG
-    cout << "Starting object detection and tracking program..." << endl;
-    if (!videoFile.empty()) cout << "Using video file: " << videoFile << endl;
-    else if (!imageFile.empty()) cout << "Using image file: " << imageFile << endl;
-    else cout << "Using webcam" << endl;
-#endif
-
     vector<string> allClassNames = loadClassNames(classFile);
     if (allClassNames.empty()) {
         cerr << "Failed to load class names. Exiting." << endl;
@@ -114,13 +104,7 @@ int main(int argc, char** argv) {
     }
     
     vector<string> targetClasses = {"person"};  // Track people by default
-    
-#ifdef DEBUG
-    cout << "Target classes: ";
-    for (const auto& cls : targetClasses) cout << cls << " ";
-    cout << endl;
-#endif
-    
+
     unique_ptr<Detector> detector(createDetector(modelPath, targetClasses));
     if (!detector) {
         cerr << "Error: Failed to initialize detector." << endl;
@@ -128,16 +112,9 @@ int main(int argc, char** argv) {
         curl_global_cleanup();
         return -1;
     }
-#ifdef DEBUG
-    cout << "Detector initialized successfully." << endl;
-#endif
-
     // Initialize tracker with reasonable parameters
     PeopleTracker tracker(10, 120.0f, 0.1f, 0.9f);
     tracker.setMovementCallback(onPersonMovement);
-#ifdef DEBUG
-    cout << "Tracker initialized." << endl;
-#endif
     
     Mat frame;
     VideoCapture cap;
@@ -205,7 +182,6 @@ int main(int argc, char** argv) {
         putText(frame, fpsText, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 0), 2);
 
         imshow("People Detection and Tracking", frame);
-        imwrite("output.jpg", frame);  // Save processed image
         waitKey(0);  // Wait for any key press
     } else {
         // Video or webcam processing

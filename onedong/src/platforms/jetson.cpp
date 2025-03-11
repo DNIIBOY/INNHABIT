@@ -38,10 +38,6 @@ public:
             cerr << "Error: Detector not properly initialized" << endl;
             return;
         }
-#ifdef DEBUG
-        cout << "Detecting on frame: " << frame.cols << "x" << frame.rows << endl;
-#endif
-
         Mat blob;
         preprocessFrame(frame, blob);
 
@@ -57,16 +53,10 @@ public:
         int dy = (height - new_height) / 2;
 
         postprocessDetections(outs, frame, scale, dx, dy);
-#ifdef DEBUG
-        cout << "Detected " << detections.size() << " objects" << endl;
-#endif
     }
 
 protected:
     void initialize(const string& modelPath) override {
-#ifdef DEBUG
-        cout << "Initializing JetsonDetector with modelPath: " << modelPath << endl;
-#endif
         string namesFile = modelPath + "/coco.names";
         ifstream ifs(namesFile);
         if (!ifs.is_open()) {
@@ -78,9 +68,6 @@ protected:
             if (!line.empty()) classNames.push_back(line);
         }
         ifs.close();
-#ifdef DEBUG
-        cout << "Loaded " << classNames.size() << " class names" << endl;
-#endif
 
         string cfg = modelPath + "/yolov7-tiny.cfg";
         string weights = modelPath + "/yolov7-tiny.weights";
@@ -88,15 +75,9 @@ protected:
 #ifdef USE_CUDA
         net.setPreferableBackend(DNN_BACKEND_CUDA);
         net.setPreferableTarget(DNN_TARGET_CUDA_FP16);
-#ifdef DEBUG
-        cout << "Using CUDA backend and FP16 target for Jetson" << endl;
-#endif
 #else
         net.setPreferableBackend(DNN_BACKEND_OPENCV);
         net.setPreferableTarget(DNN_TARGET_CPU);
-#ifdef DEBUG
-        cout << "Using CPU backend and target" << endl;
-#endif
 #endif
 
         if (net.empty()) {
@@ -107,9 +88,6 @@ protected:
         height = 320;
         channel = 3;
         initialized = true;
-#ifdef DEBUG
-        cout << "JetsonDetector initialized: " << width << "x" << height << endl;
-#endif
     }
 
     DetectionOutput runInference(const Mat& input) override {
@@ -119,9 +97,6 @@ protected:
     }
 
     ~JetsonDetector() override {
-#ifdef DEBUG
-        cout << "Destroying JetsonDetector..." << endl;
-#endif
     }
 };
 
@@ -150,19 +125,12 @@ void JetsonDetector::preprocessFrame(const Mat& frame, Mat& blob) {
     Mat resized_img;
     d_resized_img.download(resized_img);
     blob = blobFromImage(resized_img, 1.0 / 255.0, Size(width, height), Scalar(0, 0, 0), true, false);
-#ifdef DEBUG
-    cout << "Preprocessing completed, blob shape: " << blob.size[0] << "x" << blob.size[1] << "x" 
-         << blob.size[2] << "x" << blob.size[3] << endl;
-#endif
 }
 
 void JetsonDetector::runInferenceGPU(const Mat& blob, vector<Mat>& outs) {
     net.setInput(blob);
     vector<String> outNames = net.getUnconnectedOutLayersNames();
     net.forward(outs, outNames);
-#ifdef DEBUG
-    cout << "Inference completed. Outputs: " << outs.size() << endl;
-#endif
 }
 
 void JetsonDetector::postprocessDetections(const vector<Mat>& outs, Mat& frame, float scale, int dx, int dy) {
@@ -237,26 +205,12 @@ void JetsonDetector::postprocessDetections(const vector<Mat>& outs, Mat& frame, 
         det.confidence = confidences[idx];
         det.box = box;
         detections.push_back(det);
-
-#ifndef BENCHMARK
-        rectangle(frame, box, Scalar(0, 255, 0), 2);
-        string label = format("%s: %.1f%%", className.c_str(), confidences[idx] * 100);
-        int baseLine;
-        Size labelSize = getTextSize(label, FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
-        int y = max(box.y - labelSize.height - baseLine, 0);
-        rectangle(frame, Point(box.x, y), Point(box.x + labelSize.width, y + labelSize.height + baseLine),
-                  Scalar(255, 255, 255), FILLED);
-        putText(frame, label, Point(box.x, y + labelSize.height), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 0), 1);
-#endif
     }
 }
 
 #ifdef USE_CUDA
 Detector* createDetector(const string& modelPath, const vector<string>& targetClasses) {
     try {
-#ifdef DEBUG
-        cout << "Creating JetsonDetector..." << endl;
-#endif
         return new JetsonDetector(modelPath, targetClasses);
     } catch (const exception& e) {
         cerr << "Error creating Jetson detector: " << e.what() << endl;
