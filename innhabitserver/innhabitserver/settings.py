@@ -38,9 +38,7 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
 ]
 
-INTERNAL_IPS = [
-    "127.0.0.1"
-]
+INTERNAL_IPS = ["127.0.0.1"]
 
 
 # Application definition
@@ -69,7 +67,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_browser_reload.middleware.BrowserReloadMiddleware"
+    "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 
 ROOT_URLCONF = "innhabitserver.urls"
@@ -92,7 +90,7 @@ TEMPLATES = [
             ],
             "builtins": [
                 "django_components.templatetags.component_tags",
-            ]
+            ],
         },
     },
 ]
