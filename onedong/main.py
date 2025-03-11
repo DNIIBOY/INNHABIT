@@ -1,8 +1,9 @@
+from copy import deepcopy
+from dataclasses import dataclass
+from random import randint
+
 import cv2
 import numpy as np
-from dataclasses import dataclass
-from copy import deepcopy
-from random import randint
 
 # Load YOLO model
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
@@ -40,17 +41,11 @@ class BoundingBox:
 
     @property
     def xy(self):
-        return (
-            self.position.x,
-            self.position.y
-        )
+        return (self.position.x, self.position.y)
 
     @property
     def end_xy(self):
-        return (
-            self.position.x + self.size.width,
-            self.position.y + self.size.height
-        )
+        return (self.position.x + self.size.width, self.position.y + self.size.height)
 
 
 class Person:
@@ -78,7 +73,10 @@ class PersonTracker:
         self.people: dict[int, Person] = {}
 
     def get_distance(self, person1: Person, person2: Person) -> float:
-        return ((person1.position.x - person2.position.x) ** 2 + (person1.position.y - person2.position.y) ** 2) ** 0.5
+        return (
+            (person1.position.x - person2.position.x) ** 2
+            + (person1.position.y - person2.position.y) ** 2
+        ) ** 0.5
 
     def update(self, indexes, boxes) -> None:
         prev_people = deepcopy(self.people)
@@ -114,7 +112,9 @@ def main():
         height, width, channels = frame.shape
 
         # Convert the frame to a blob (required by YOLO)
-        blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+        blob = cv2.dnn.blobFromImage(
+            frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False
+        )
         net.setInput(blob)
         outs = net.forward(output_layers)
 

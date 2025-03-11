@@ -1,7 +1,8 @@
-import cv2
-import zipfile
-import os
 import sys
+import zipfile
+
+import cv2
+
 
 def load_labels_from_zip(zip_path):
     """
@@ -9,12 +10,14 @@ def load_labels_from_zip(zip_path):
     """
     labels = {}
     try:
-        with zipfile.ZipFile(zip_path, 'r') as zipf:
+        with zipfile.ZipFile(zip_path, "r") as zipf:
             print(f"Opened zip file {zip_path}")
             for file_name in zipf.namelist():
-                if file_name.endswith('.txt'):
+                if file_name.endswith(".txt"):
                     with zipf.open(file_name) as f:
-                        frame_id = file_name.split('/')[-1].replace('.txt', '')  # Get frame ID without extension
+                        frame_id = file_name.split("/")[-1].replace(
+                            ".txt", ""
+                        )  # Get frame ID without extension
                         labels[frame_id] = f.read().decode().splitlines()
                     print(f"Loaded labels for {frame_id}")
     except Exception as e:
@@ -22,13 +25,14 @@ def load_labels_from_zip(zip_path):
 
     return labels
 
+
 def preview_video_with_labels(video_path, zip_path):
     print(f"Starting preview for video: {video_path} and labels: {zip_path}")
-    
+
     # Load labels from zip file
     labels = load_labels_from_zip(zip_path)
     print(f"Loaded {len(labels)} label files from zip.")
-    
+
     # Open video
     video_capture = cv2.VideoCapture(video_path)
     if not video_capture.isOpened():
@@ -37,13 +41,13 @@ def preview_video_with_labels(video_path, zip_path):
 
     frame_index = 0
     success, frame = video_capture.read()
-    
+
     # Create a window only once
     cv2.namedWindow("Frame Preview", cv2.WINDOW_NORMAL)  # Create window once
 
     while success:
         print(f"Processing frame {frame_index:06d}...")
-        
+
         # Check if there's a corresponding label for the frame
         frame_id = f"frame_{frame_index:06d}"
         if frame_id in labels:
@@ -56,7 +60,7 @@ def preview_video_with_labels(video_path, zip_path):
                 y_center = float(parts[2])
                 width = float(parts[3])
                 height = float(parts[4])
-                
+
                 # Convert bounding box from normalized to pixel coordinates
                 h, w, _ = frame.shape
                 x_center_pixel = int(x_center * w)
@@ -80,18 +84,19 @@ def preview_video_with_labels(video_path, zip_path):
         # Display the frame with bounding boxes in the same window
         cv2.imshow("Frame Preview", frame)
         cv2.waitKey(0)
-        
+
         # Wait for key press to move to next frame or quit
         key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):  # Press 'q' to quit
+        if key == ord("q"):  # Press 'q' to quit
             print("Quitting preview...")
             break
-        
+
         frame_index += 1
         success, frame = video_capture.read()
 
     video_capture.release()
     cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     # Get arguments
@@ -100,5 +105,5 @@ if __name__ == "__main__":
     else:
         video_path = sys.argv[1]
         zip_path = sys.argv[2]
-        
+
         preview_video_with_labels(video_path, zip_path)

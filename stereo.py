@@ -1,6 +1,7 @@
+import sys
+
 import cv2
 import numpy as np
-import sys
 
 # Constants
 LEFT_CAMERA_ID = 0  # Adjust if needed
@@ -25,7 +26,7 @@ if not (leftCam.isOpened() and rightCam.isOpened()):
     sys.exit()
 
 # Create stereo matcher
-stereoMatcher = cv2.StereoBM_create(numDisparities=16*5, blockSize=15)
+stereoMatcher = cv2.StereoBM_create(numDisparities=16 * 5, blockSize=15)
 
 while True:
     # Capture frames
