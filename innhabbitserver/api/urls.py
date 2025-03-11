@@ -1,5 +1,5 @@
-from rest_framework import routers
 from api.views import EntranceViewset, EntryEventViewset, ExitEventViewset
+from rest_framework import routers
 
 router = routers.SimpleRouter()
 router.register("entrances", EntranceViewset)

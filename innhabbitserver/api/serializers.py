@@ -1,5 +1,6 @@
-from rest_framework import serializers
 from occupancy.models import Entrance, EntryEvent, ExitEvent
+from rest_framework import serializers
+
 
 class EntranceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,14 +9,16 @@ class EntranceSerializer(serializers.ModelSerializer):
 
 
 class EntryEventSerializer(serializers.ModelSerializer):
+    entrance = EntranceSerializer()
+
     class Meta:
         model = EntryEvent
         exclude = []
-    
-    
+
+
 class ExitEventSerializer(serializers.ModelSerializer):
+    entrance = EntranceSerializer()
+
     class Meta:
         model = ExitEvent
         exclude = []
-    
-    

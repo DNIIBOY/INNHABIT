@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 # Re-create the plot with adjustments to avoid overlap between "Danish Environment Agency" and "Danish Road Directorate".
 
 fig, ax = plt.subplots(figsize=(8, 8))
@@ -33,14 +34,53 @@ stakeholders = [
 
 # Plot each stakeholder in the matrix
 for x, y, label, ha, va in stakeholders:
-    ax.text(x, y, label, ha=ha, va=va, fontsize=12,
-            bbox=dict(facecolor="lightblue", edgecolor="black", boxstyle="round,pad=0.3"))
+    ax.text(
+        x,
+        y,
+        label,
+        ha=ha,
+        va=va,
+        fontsize=12,
+        bbox=dict(facecolor="lightblue", edgecolor="black", boxstyle="round,pad=0.3"),
+    )
 
 # Label the quadrants
-ax.text(2.5, 9.5, "High Complicity\nLow Influence", ha="center", va="center", fontsize=12, color="grey")
-ax.text(7.5, 9.5, "High Complicity\nHigh Influence", ha="center", va="center", fontsize=12, color="grey")
-ax.text(2.5, 0.5, "Low Complicity\nLow Influence", ha="center", va="center", fontsize=12, color="grey")
-ax.text(7.5, 0.5, "Low Complicity\nHigh Influence", ha="center", va="center", fontsize=12, color="grey")
+ax.text(
+    2.5,
+    9.5,
+    "High Complicity\nLow Influence",
+    ha="center",
+    va="center",
+    fontsize=12,
+    color="grey",
+)
+ax.text(
+    7.5,
+    9.5,
+    "High Complicity\nHigh Influence",
+    ha="center",
+    va="center",
+    fontsize=12,
+    color="grey",
+)
+ax.text(
+    2.5,
+    0.5,
+    "Low Complicity\nLow Influence",
+    ha="center",
+    va="center",
+    fontsize=12,
+    color="grey",
+)
+ax.text(
+    7.5,
+    0.5,
+    "Low Complicity\nHigh Influence",
+    ha="center",
+    va="center",
+    fontsize=12,
+    color="grey",
+)
 
 # Display the plot
 plt.grid(False)

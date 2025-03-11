@@ -17,7 +17,7 @@ jtop
 
 To enable GPGPU support in opencv
 OpenCV needs to be build with CUDA & OPENCL using following scripts.  3.5 hours to compile on Jetson Nano
-https://github.com/Qengineering/Install-OpenCV-Jetson-Nano 
+https://github.com/Qengineering/Install-OpenCV-Jetson-Nano
 
 
 # Models

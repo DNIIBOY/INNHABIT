@@ -59,13 +59,13 @@ class ByteTrack {
         float iouThresholdHigh = 0.3;
         float confThresholdHigh = 0.6; // Threshold for high-confidence detections
         float confThresholdLow = 0.1;  // Threshold for low-confidence detections
-    
+
     public:
         vector<Detection> update(vector<Detection>& detections) {
             vector<Detection> highConfDetections;
             vector<Detection> lowConfDetections;
             vector<Detection> unmatchedTracks;
-    
+
             // Separate high and low-confidence detections
             for (auto& det : detections) {
                 if (det.confidence > confThresholdHigh) {
@@ -74,7 +74,7 @@ class ByteTrack {
                     lowConfDetections.push_back(det);
                 }
             }
-    
+
             // Step 1: Match high-confidence detections to existing tracks
             for (auto& track : activeTracks) {
                 track.matched = false; // Set all of the classes tracks to be unmatched
@@ -97,9 +97,9 @@ class ByteTrack {
                     track.matched = true;
                     bestDetection->matched = true;
                 }
-                
+
                 if (!track.matched) {
-                    
+
                     highestIoU = 0.0;
                     // Step 2: Attempt to assign unmatched tracks to low-confidence detections
                     for (auto& det : lowConfDetections) {
@@ -112,22 +112,22 @@ class ByteTrack {
                     if (highestIoU > iouThresholdLow) {
                         track.bbox = bestDetection->bbox;
                         track.confidence = bestDetection->confidence;
-    
+
                         track.killCount = 0;
                         track.matched = true;
                         bestDetection->matched = true;
                     }
                 }
-                
+
             }
-    
+
             // Step 3: Remove those who have been missing for longer than maxKillCount frames
             for (auto it = activeTracks.begin(); it != activeTracks.end(); ) {
                 auto& track = *it;
-            
+
                 if (!track.matched) {
                     track.killCount++;
-                    
+
                     // If the track has been unmatched for too long, remove it
                     if (track.killCount > maxKillCount) {
                         // Track should be removed from activeTracks, so we erase it
@@ -141,8 +141,8 @@ class ByteTrack {
                     ++it;
                 }
             }
-            
-    
+
+
             // Step 4: Create new tracks for unmatched high-confidence detections
             for (auto& det : highConfDetections) {
                 if (!det.matched) {
@@ -151,7 +151,7 @@ class ByteTrack {
                     activeTracks.push_back(det);
                 }
             }
-    
+
             return activeTracks;
         }
 
@@ -173,13 +173,13 @@ int main(int argc, char* argv[]) {
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
         cout << "Using CUDA backend" << endl;
-    } 
+    }
     else if (cv::ocl::haveOpenCL()) {
         // If OpenCL is available, use it
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_OPENCL);
         cout << "Using OpenCL backend" << endl;
-    } 
+    }
     else {
         // Fall back to CPU if neither CUDA nor OpenCL is available
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
     }
 
     ByteTrack tracker;
-    
+
     while (true) {
         Mat frame;
         cap >> frame;
@@ -233,21 +233,21 @@ int main(int argc, char* argv[]) {
                 vector<float> scores(data + 5, data + output.cols);
                 int classId = max_element(scores.begin(), scores.end()) - scores.begin();
                 float confidence = scores[classId];; // Confidence score for each detected object
-    
+
                 if (confidence > 0.1 && classId == 0) {
                     // The data format depends on YOLO model
                     // YOLOv7 has 4 values for bbox (x_center, y_center, width, height) followed by class scores
-    
+
                     int centerX = static_cast<int>(data[0] * frame.cols);
                     int centerY = static_cast<int>(data[1] * frame.rows);
                     int width = static_cast<int>(data[2] * frame.cols);
                     int height = static_cast<int>(data[3] * frame.rows);
-    
+
                     // Create a Rect bounding box around the detected object
                     int x = centerX - width / 2;
                     int y = centerY - height / 2;
                     Rect box(x, y, width, height);
-    
+
                     // Push detected class IDs, confidence, and bounding box coordinates
                     confidences.push_back(confidence);
                     boxes.push_back(box);
@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
         vector<Detection> trackedObjects = tracker.update(detections);
 
         for (const auto& obj : trackedObjects) {
-            
+
             rectangle(frame, obj.bbox, obj.color, 2);
             putText(frame, "ID: " + to_string(obj.id), obj.bbox.tl(), FONT_HERSHEY_SIMPLEX, 0.5, obj.color, 2);
         }

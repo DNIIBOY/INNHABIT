@@ -1,5 +1,6 @@
-import cv2
 import os
+
+import cv2
 
 # Camera IDs (adjust if necessary)
 LEFT_CAMERA_ID = 0
