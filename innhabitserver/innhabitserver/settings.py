@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django_components",
     "rest_framework",
     "accounts",
+    "dashboard",
     "theme",
     "api",
     "occupancy",

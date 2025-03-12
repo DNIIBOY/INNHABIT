@@ -43,7 +43,13 @@ module.exports = {
         // '../../**/*.py'
     ],
     theme: {
-        extend: {},
+        extend: {
+            colors: {
+                "aau": "#201950",
+                "aau-light": "#4066B2",
+                "aau-gray": "#435A69",
+            }
+        },
     },
     plugins: [
         /**
