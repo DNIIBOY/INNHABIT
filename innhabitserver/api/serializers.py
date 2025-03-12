@@ -5,16 +5,16 @@ from rest_framework import serializers
 class EntranceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Entrance
-        exclude = []
+        exclude: list[str] = []
 
 
 class EntryEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = EntryEvent
-        exclude = []
+        exclude: list[str] = []
 
 
 class ExitEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExitEvent
-        exclude = []
+        exclude: list[str] = []

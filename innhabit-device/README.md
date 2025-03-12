@@ -139,5 +139,3 @@ Example: Process a video file
 - Ensure all required model files are placed in the `models/` directory.
 - Use the appropriate target platform flag when building.
 - For additional optimizations, adjust platform-specific code in the `src/platforms` directory.
-
-

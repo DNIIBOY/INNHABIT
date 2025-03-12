@@ -17,14 +17,14 @@ class EmailUserManager(UserManager):
         return user
 
     def create_user(
-        self, email: str, password: str = None, **extra_fields: Any
+        self, email: str, password: str | None = None, **extra_fields: Any
     ) -> "User":
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(
-        self, email: str, password: str = None, **extra_fields: Any
+        self, email: str, password: str | None = None, **extra_fields: Any
     ) -> "User":
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
@@ -41,5 +41,5 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS: list[str] = []
     objects = EmailUserManager()
