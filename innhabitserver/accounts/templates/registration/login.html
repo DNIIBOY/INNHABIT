@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 
-
-<h2>Moin</h2>
-<form method="post">
-    {% csrf_token %}
-    <div>
-        <label for="username">Email</label>
-        <input type="text" name="username" placeholder="eksempel@student.aau.dk">
+    <div class="flex items-center justify-center min-h-screen">
+        <form method="post" class="max-w-md w-full bg-aau p-8 rounded-lg shadow-lg">
+            {% csrf_token %}
+            <div class="flex justify-center gap-3 flex-col text-2xl p-3 text-white font-bold mb-4">
+                <label for="username">Email:</label>
+                <input type="text" name="username" placeholder="eksempel@student.aau.dk" class="text-black p-2 rounded">
+            </div>
+            <div class="flex justify-center gap-3 flex-col text-2xl p-3 text-white font-bold mb-4">
+                <label for="password">Kodeord:</label>
+                <input type="password" name="password" placeholder="***********" class="text-black p-2 rounded">
+            </div>
+            <div class="text-xl text-white font-bold mb-4">
+                <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="hover:underline">Har du glemt din adgangskode stupid?</a>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="bg-white text-aau text-xl font-bold py-2 px-4 rounded hover:bg-blue-100">Log ind</button>
+            </div>
+        </form>
     </div>
-    <div>
-        <label for="password">Kodeord</label>
-        <input type="password" name="password" placeholder="***********">
-    </div>
-    <div>
-      <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Har du glemt din adgangskode???</a>
-    </div>
-    <button type="submit">Log ind</button>
-</form>
-
-
 {% endblock %}
