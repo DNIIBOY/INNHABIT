@@ -1,4 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Hejsa</h2>
+
+
+<h2>Moin</h2>
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <label for="username">Email</label>
+        <input type="text" name="username" placeholder="eksempel@student.aau.dk">
+    </div>
+    <div>
+        <label for="password">Kodeord</label>
+        <input type="password" name="password" placeholder="***********">
+    </div>
+    <div>
+      <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Har du glemt din adgangskode???</a>
+    </div>
+    <button type="submit">Log ind</button>
+</form>
+
+
 {% endblock %}
