@@ -41,13 +41,6 @@
                 <a href="{% url 'login' %}">Login</a>
             </div>
         {% endif %}
-        <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            htmx.extendConfig({
-                extensions: ["morphdom-swap"]
-            });
-        });
-        </script>
     {% block js %}
     {% endblock %}
     </body>
