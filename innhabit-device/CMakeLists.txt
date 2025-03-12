@@ -57,9 +57,10 @@ endif()
 if(USE_CUDA)
     list(APPEND PLATFORM_SOURCES src/platforms/jetson.cpp)
 endif()
-# Always include CPU support as fallback/default
-list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)
-
+if(NOT USE_CUDA AND NOT USE_RKNN)
+    list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)
+    # Always include CPU support as fallback/default
+endif()
 # Add executable
 add_executable(object_detection
     ${COMMON_SOURCES}
