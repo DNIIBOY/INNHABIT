@@ -9,7 +9,10 @@ find_package(OpenCV REQUIRED)
 # Find CURL
 find_package(CURL REQUIRED)
 
+# Include directories (assuming common.h is in include/)
 include_directories(${OpenCV_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include)
+# If common.h is in src/, add: ${CMAKE_SOURCE_DIR}/src
+# If common.h is in src/include/, add: ${CMAKE_SOURCE_DIR}/src/include
 
 # Options for platform support
 option(USE_CUDA "Enable CUDA support for Jetson" OFF)
@@ -38,7 +41,7 @@ if(USE_RKNN)
     include_directories(/usr/local/include)
 endif()
 
-# Define source files
+# Define common source files
 set(COMMON_SOURCES
     src/main.cpp
     src/detector.cpp
@@ -46,19 +49,21 @@ set(COMMON_SOURCES
     src/tracker.cpp
 )
 
-# Select platform-specific source
+# Define platform-specific source files
+set(PLATFORM_SOURCES "")
 if(USE_RKNN)
-    set(PLATFORM_SOURCE src/platforms/rk3588.cpp)
-elseif(USE_CUDA)
-    set(PLATFORM_SOURCE src/platforms/jetson.cpp)
-else()
-    set(PLATFORM_SOURCE src/platforms/cpu.cpp)
+    list(APPEND PLATFORM_SOURCES src/platforms/rk3588.cpp)
 endif()
+if(USE_CUDA)
+    list(APPEND PLATFORM_SOURCES src/platforms/jetson.cpp)
+endif()
+# Always include CPU support as fallback/default
+list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)
 
 # Add executable
 add_executable(object_detection
     ${COMMON_SOURCES}
-    ${PLATFORM_SOURCE}
+    ${PLATFORM_SOURCES}
 )
 
 # Link libraries
@@ -86,5 +91,5 @@ message(STATUS "  - OpenCV: ${OpenCV_VERSION}")
 message(STATUS "  - CURL: ${CURL_VERSION_STRING}")
 message(STATUS "  - USE_CUDA: ${USE_CUDA}")
 message(STATUS "  - USE_RKNN: ${USE_RKNN}")
-message(STATUS "  - Platform source: ${PLATFORM_SOURCE}")
+message(STATUS "  - Platform sources: ${PLATFORM_SOURCES}")
 message(STATUS "  - Build type: ${CMAKE_BUILD_TYPE}")
