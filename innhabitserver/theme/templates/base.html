@@ -20,7 +20,7 @@
         {% if request.user.is_authenticated %}
             {% component "navbar" %}{% endcomponent %}
         {% endif %}
-        <main class="p-4{% if request.user.is_authenticated %} ml-72 {% endif %}">
+        <main class="p-4 w-full flex justify-center{% if request.user.is_authenticated %} ml-72 {% endif %}">
             {% block content %}
             {% endblock %}
         </main>
