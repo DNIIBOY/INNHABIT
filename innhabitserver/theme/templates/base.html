@@ -35,7 +35,7 @@
         </main>
         {% if not request.user.is_authenticated and request.path != insights_url and request.path != login_url %}
             <div class="fixed bottom-6 right-6">
-                <a>Login</a>
+                <a href="{% url 'login' %}">Login</a>
             </div>
         {% endif %}
     {% block js %}

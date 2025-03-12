@@ -103,6 +103,7 @@ COMPONENTS = ComponentsSettings(
     dirs=[
         BASE_DIR / "components",
     ],
+    app_dirs=["components"],
 )
 
 WSGI_APPLICATION = "innhabitserver.wsgi.application"
