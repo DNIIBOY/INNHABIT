@@ -40,6 +40,7 @@ ALLOWED_HOSTS = [
 
 INTERNAL_IPS = ["127.0.0.1"]
 
+AUTH_USER_MODEL = "accounts.User"
 
 # Application definition
 
@@ -54,6 +55,7 @@ INSTALLED_APPS = [
     "tailwind",
     "django_components",
     "rest_framework",
+    "accounts",
     "theme",
     "api",
     "occupancy",
