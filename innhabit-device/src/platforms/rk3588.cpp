@@ -1,12 +1,6 @@
 #include "detector.h"
+#include "common.h"
 #include <rknn_api.h>
-#include <opencv2/opencv.hpp>
-#include <vector>
-#include <string>
-#include <iostream>
-
-using namespace cv;
-using namespace std;
 
 class RK3588Detector : public GenericDetector {
 private:
@@ -24,24 +18,18 @@ public:
         initialize(modelPath);
     }
 
-    void detect(Mat& frame) override {
-        GenericDetector::detect(frame);  // Call base class detect
-        // Buffers are released in releaseOutputs after post_process
-    }
-
 protected:
     void initialize(const string& modelPath) override {
         string rknnModel = modelPath + "/yolov7-tiny.rknn";
         int ret = rknn_init(&ctx, (void*)rknnModel.c_str(), 0, 0, NULL);
-        if (ret < 0) {
-            cerr << "Error: RKNN init failed: " << ret << endl;
-            throw runtime_error("RKNN initialization failed");
-        }
+        if (ret < 0) throw runtime_error("RKNN initialization failed: " + to_string(ret));
+
         ret = rknn_query(ctx, RKNN_QUERY_IN_OUT_NUM, &io_num, sizeof(io_num));
         if (ret < 0) {
             rknn_destroy(ctx);
             throw runtime_error("RKNN query failed");
         }
+
         input_attrs.resize(io_num.n_input);
         for (uint32_t i = 0; i < io_num.n_input; i++) {
             input_attrs[i].index = i;
@@ -79,12 +67,12 @@ protected:
             width = input_attrs[0].dims[2];
             channel = input_attrs[0].dims[3];
         }
+
         initialized = true;
     }
 
     DetectionOutput runInference(const Mat& input) override {
-        rknn_input inputs[1];
-        memset(inputs, 0, sizeof(inputs));
+        rknn_input inputs[1] = {0};
         inputs[0].index = 0;
         inputs[0].type = RKNN_TENSOR_UINT8;
         inputs[0].size = width * height * channel;
@@ -92,22 +80,13 @@ protected:
         inputs[0].buf = input.data;
 
         int ret = rknn_inputs_set(ctx, 1, inputs);
-        if (ret < 0) {
-            cerr << "Error: RKNN inputs set failed: " << ret << endl;
-            throw runtime_error("RKNN inputs set failed");
-        }
+        if (ret < 0) throw runtime_error("RKNN inputs set failed: " + to_string(ret));
 
         ret = rknn_run(ctx, NULL);
-        if (ret < 0) {
-            cerr << "Error: RKNN run failed: " << ret << endl;
-            throw runtime_error("RKNN run failed");
-        }
+        if (ret < 0) throw runtime_error("RKNN run failed: " + to_string(ret));
 
         ret = rknn_outputs_get(ctx, io_num.n_output, outputs.data(), NULL);
-        if (ret < 0) {
-            cerr << "Error: RKNN outputs get failed: " << ret << endl;
-            throw runtime_error("RKNN outputs get failed");
-        }
+        if (ret < 0) throw runtime_error("RKNN outputs get failed: " + to_string(ret));
 
         DetectionOutput output;
         output.buffers.resize(io_num.n_output);
@@ -117,29 +96,23 @@ protected:
         for (uint32_t i = 0; i < io_num.n_output; i++) {
             output.buffers[i] = outputs[i].buf;
         }
-        return output;  // Buffers will be released in releaseOutputs
+        return output;
     }
 
-    void releaseOutputs(const DetectionOutput& output) override {
+    void releaseOutputs(const DetectionOutput&) override {
         rknn_outputs_release(ctx, io_num.n_output, outputs.data());
     }
 
     ~RK3588Detector() override {
-        if (initialized) {
-            rknn_destroy(ctx);
-        }
+        if (initialized) rknn_destroy(ctx);
     }
 };
 
-#ifdef USE_RKNN
 Detector* createDetector(const string& modelPath, const vector<string>& targetClasses) {
     try {
         return new RK3588Detector(modelPath, targetClasses);
     } catch (const exception& e) {
-        cerr << "Error creating RK3588 detector: " << e.what() << endl;
+        ERROR("Error creating RK3588 detector: " << e.what());
         return nullptr;
     }
 }
-#else
-Detector* createDetector(const string&, const vector<string>&) { return nullptr; }
-#endif

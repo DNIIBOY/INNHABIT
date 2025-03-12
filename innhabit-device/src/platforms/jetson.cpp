@@ -1,31 +1,12 @@
 #include "detector.h"
+#include "common.h"
 #include <opencv2/dnn.hpp>
-#include <opencv2/cudawarping.hpp>  // For cuda::resize
-#include <opencv2/cudaimgproc.hpp>  // For cuda::cvtColor
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-
-using namespace cv;
-using namespace cv::dnn;
-using namespace std;
-
-#ifndef BOX_THRESH
-#define BOX_THRESH 0.25
-#endif
-#ifndef NMS_THRESH
-#define NMS_THRESH 0.45
-#endif
+#include <opencv2/cudawarping.hpp>
+#include <opencv2/cudaimgproc.hpp>
 
 class JetsonDetector : public GenericDetector {
 private:
-    Net net;
-    vector<string> classNames;
-
-    void preprocessFrame(const Mat& frame, Mat& blob);
-    void runInferenceGPU(const Mat& blob, vector<Mat>& outs);
-    void postprocessDetections(const vector<Mat>& outs, Mat& frame, float scale, int dx, int dy);
+    cv::dnn::Net net;
 
 public:
     JetsonDetector(const string& modelPath, const vector<string>& targetClasses_)
@@ -35,188 +16,107 @@ public:
 
     void detect(Mat& frame) override {
         if (!initialized) {
-            cerr << "Error: Detector not properly initialized" << endl;
+            ERROR("Detector not properly initialized");
             return;
         }
-        Mat blob;
-        preprocessFrame(frame, blob);
 
+        float scale;
+        int dx, dy;
+        Mat resized_img = preprocessImage(frame, width, height, scale, dx, dy);
+        Mat blob = cv::dnn::blobFromImage(resized_img, 1.0 / 255.0, Size(width, height), Scalar(0, 0, 0), true, false);
+
+        net.setInput(blob);
         vector<Mat> outs;
-        runInferenceGPU(blob, outs);
+        net.forward(outs, net.getUnconnectedOutLayersNames());
 
-        int img_width = frame.cols;
-        int img_height = frame.rows;
-        float scale = min(static_cast<float>(width) / img_width, static_cast<float>(height) / img_height);
-        int new_width = static_cast<int>(img_width * scale);
-        int new_height = static_cast<int>(img_height * scale);
-        int dx = (width - new_width) / 2;
-        int dy = (height - new_height) / 2;
-
-        postprocessDetections(outs, frame, scale, dx, dy);
+        detections.clear();
+        processDetections(outs, frame, scale, dx, dy);
+        drawDetections(frame, detections);
     }
 
 protected:
     void initialize(const string& modelPath) override {
-        string namesFile = modelPath + "/coco.names";
-        ifstream ifs(namesFile);
-        if (!ifs.is_open()) {
-            cerr << "Error: Could not open " << namesFile << endl;
-            throw runtime_error("Failed to load class names");
-        }
-        string line;
-        while (getline(ifs, line)) {
-            if (!line.empty()) classNames.push_back(line);
-        }
-        ifs.close();
-
         string cfg = modelPath + "/yolov7-tiny.cfg";
         string weights = modelPath + "/yolov7-tiny.weights";
-        net = readNet(cfg, weights);
-#ifdef USE_CUDA
-        net.setPreferableBackend(DNN_BACKEND_CUDA);
-        net.setPreferableTarget(DNN_TARGET_CUDA_FP16);
-#else
-        net.setPreferableBackend(DNN_BACKEND_OPENCV);
-        net.setPreferableTarget(DNN_TARGET_CPU);
-#endif
+        net = cv::dnn::readNet(cfg, weights);
+        
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
 
-        if (net.empty()) {
-            throw runtime_error("Failed to load YOLOv7-tiny model");
-        }
-
-        width = 640;
-        height = 640;
-        channel = 3;
+        if (net.empty()) throw runtime_error("Failed to load YOLOv7-tiny model");
         initialized = true;
     }
 
-    DetectionOutput runInference(const Mat& input) override {
-        DetectionOutput output;
-        output.num_outputs = 0;
-        return output;
+    void processDetections(const vector<Mat>& outs, Mat& frame, float scale, int dx, int dy) {
+        vector<Rect> boxes;
+        vector<float> confidences;
+        vector<int> classIds;
+
+        for (const auto& out : outs) {
+            float* data = (float*)out.data;
+            for (int j = 0; j < out.rows; ++j) {
+                float confidence = data[j * out.cols + 4];
+                if (confidence > BOX_THRESH) {
+                    Mat scores = out.row(j).colRange(5, out.cols);
+                    Point classIdPoint;
+                    double maxScore;
+                    minMaxLoc(scores, 0, &maxScore, 0, &classIdPoint);
+
+                    float totalConfidence = confidence * maxScore;
+                    if (totalConfidence > BOX_THRESH) {
+                        float centerX = data[j * out.cols + 0] * width;
+                        float centerY = data[j * out.cols + 1] * height;
+                        float w = data[j * out.cols + 2] * width;
+                        float h = data[j * out.cols + 3] * height;
+
+                        int left = (centerX - w / 2 - dx) / scale;
+                        int top = (centerY - h / 2 - dy) / scale;
+                        int boxWidth = w / scale;
+                        int boxHeight = h / scale;
+
+                        boxes.push_back(Rect(left, top, boxWidth, boxHeight));
+                        confidences.push_back(totalConfidence);
+                        classIds.push_back(classIdPoint.x);
+                    }
+                }
+            }
+        }
+
+        vector<int> indices;
+        cv::dnn::NMSBoxes(boxes, confidences, BOX_THRESH, NMS_THRESH, indices);
+
+        int img_width = frame.cols;
+        int img_height = frame.rows;
+        for (size_t i = 0; i < indices.size(); ++i) {
+            int idx = indices[i];
+            // Use COCO_LABELS from common.h instead of generic "class_" prefix
+            string className = classIds[idx] < 80 ? COCO_LABELS[classIds[idx]] : "unknown";
+            if (!targetClasses.empty() && find(targetClasses.begin(), targetClasses.end(), className) == targetClasses.end()) continue;
+
+            Detection det;
+            det.classId = className;
+            det.confidence = confidences[idx];
+            det.box = boxes[idx];
+            det.box.x = clamp(det.box.x, 0, img_width - 1);
+            det.box.y = clamp(det.box.y, 0, img_height - 1);
+            det.box.width = clamp(det.box.width, 0, img_width - det.box.x);
+            det.box.height = clamp(det.box.height, 0, img_height - det.box.y);
+            detections.push_back(det);
+        }
     }
 
-    ~JetsonDetector() override {
+    DetectionOutput runInference(const Mat&) override { return DetectionOutput(); } // Not used
+
+    void releaseOutputs(const DetectionOutput&) override {
+        // No-op: JetsonDetector doesn't use DetectionOutput buffers
     }
 };
 
-void JetsonDetector::preprocessFrame(const Mat& frame, Mat& blob) {
-    // Upload frame to GPU
-    cuda::GpuMat d_frame(frame);
-    cuda::GpuMat d_img, d_resized_img, d_resized_part;
-
-    // Convert to RGB on GPU
-    cuda::cvtColor(d_frame, d_img, COLOR_BGR2RGB);
-
-    // Resize with letterboxing on GPU
-    int img_width = d_img.cols;
-    int img_height = d_img.rows;
-    float scale = min(static_cast<float>(width) / img_width, static_cast<float>(height) / img_height);
-    int new_width = static_cast<int>(img_width * scale);
-    int new_height = static_cast<int>(img_height * scale);
-    int dx = (width - new_width) / 2;
-    int dy = (height - new_height) / 2;
-
-    d_resized_img = cuda::GpuMat(height, width, CV_8UC3, Scalar(114, 114, 114));
-    cuda::resize(d_img, d_resized_part, Size(new_width, new_height));
-    d_resized_part.copyTo(d_resized_img(Rect(dx, dy, new_width, new_height)));
-
-    // Download to CPU and create 4D blob
-    Mat resized_img;
-    d_resized_img.download(resized_img);
-    blob = blobFromImage(resized_img, 1.0 / 255.0, Size(width, height), Scalar(0, 0, 0), true, false);
-}
-
-void JetsonDetector::runInferenceGPU(const Mat& blob, vector<Mat>& outs) {
-    net.setInput(blob);
-    vector<String> outNames = net.getUnconnectedOutLayersNames();
-    net.forward(outs, outNames);
-}
-
-void JetsonDetector::postprocessDetections(const vector<Mat>& outs, Mat& frame, float scale, int dx, int dy) {
-    int img_width = frame.cols;
-    int img_height = frame.rows;
-
-    vector<Rect> boxes;
-    vector<float> confidences;
-    vector<int> classIds;
-
-    for (size_t i = 0; i < outs.size(); ++i) {
-        float* data = (float*)outs[i].data;
-        int rows = outs[i].rows;
-        int cols = outs[i].cols;
-
-        for (int j = 0; j < rows; ++j) {
-            float confidence = data[j * cols + 4];
-            if (confidence > BOX_THRESH) {
-                Mat scores = outs[i].row(j).colRange(5, cols);
-                Point classIdPoint;
-                double maxScore;
-                minMaxLoc(scores, 0, &maxScore, 0, &classIdPoint);
-
-                float totalConfidence = confidence * maxScore;
-                if (totalConfidence > BOX_THRESH) {
-                    float centerX = data[j * cols + 0] * width;
-                    float centerY = data[j * cols + 1] * height;
-                    float w = data[j * cols + 2] * width;
-                    float h = data[j * cols + 3] * height;
-
-                    int left = (centerX - w / 2 - dx) / scale;
-                    int top = (centerY - h / 2 - dy) / scale;
-                    int boxWidth = w / scale;
-                    int boxHeight = h / scale;
-
-                    left = max(0, min(left, img_width - 1));
-                    top = max(0, min(top, img_height - 1));
-                    boxWidth = min(boxWidth, img_width - left);
-                    boxHeight = min(boxHeight, img_height - top);
-
-                    boxes.push_back(Rect(left, top, boxWidth, boxHeight));
-                    confidences.push_back(totalConfidence);
-                    classIds.push_back(classIdPoint.x);
-                }
-            }
-        }
-    }
-
-    vector<int> indices;
-    NMSBoxes(boxes, confidences, BOX_THRESH, NMS_THRESH, indices);
-
-    detections.clear();
-    for (size_t i = 0; i < indices.size(); ++i) {
-        int idx = indices[i];
-        int classId = classIds[idx];
-        string className = (classId >= 0 && classId < classNames.size()) ? classNames[classId] : "unknown";
-
-        if (!targetClasses.empty()) {
-            bool isTarget = false;
-            for (const auto& target : targetClasses) {
-                if (className == target) {
-                    isTarget = true;
-                    break;
-                }
-            }
-            if (!isTarget) continue;
-        }
-
-        Rect box = boxes[idx];
-        Detection det;
-        det.classId = className;
-        det.confidence = confidences[idx];
-        det.box = box;
-        detections.push_back(det);
-    }
-}
-
-#ifdef USE_CUDA
 Detector* createDetector(const string& modelPath, const vector<string>& targetClasses) {
     try {
         return new JetsonDetector(modelPath, targetClasses);
     } catch (const exception& e) {
-        cerr << "Error creating Jetson detector: " << e.what() << endl;
+        ERROR("Error creating Jetson detector: " << e.what());
         return nullptr;
     }
 }
-#else
-Detector* createDetector(const string&, const vector<string>&) { return nullptr; }
-#endif

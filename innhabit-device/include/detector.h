@@ -5,47 +5,55 @@
 #include <vector>
 #include <string>
 
-// Forward declaration
-struct Detection;
+using namespace cv;
+using namespace std;
 
-struct DetectionOutput {
-    std::vector<void*> buffers;
-    std::vector<float> scales;
-    std::vector<int32_t> zps;
-    int num_outputs;
+struct Detection {
+    string classId;
+    float confidence;
+    Rect box;
 };
 
-// Structure to hold detection information
-struct Detection {
-    std::string classId;
-    float confidence;
-    cv::Rect box;
+struct DetectionOutput {
+    vector<void*> buffers;
+    vector<float> scales;
+    vector<int32_t> zps;
+    int num_outputs;
 };
 
 class Detector {
 public:
     virtual ~Detector() {}
-    virtual void detect(cv::Mat& frame) = 0;
-    virtual const std::vector<Detection>& getDetections() const = 0;
+    virtual void detect(Mat& frame) = 0;
+    virtual const vector<Detection>& getDetections() const = 0;
+
 protected:
-    std::vector<std::string> targetClasses;
-    int width, height, channel;
-    bool initialized;
+    virtual void initialize(const string& modelPath) = 0;
+    virtual DetectionOutput runInference(const Mat& input) = 0;
+    virtual void releaseOutputs(const DetectionOutput& output) = 0;
 };
 
 class GenericDetector : public Detector {
+protected:
+    vector<string> targetClasses;
+    bool initialized;
+    int width;
+    int height;
+    int channel;
+    vector<Detection> detections;
+
 public:
-    GenericDetector(const std::string& modelPath, const std::vector<std::string>& targetClasses_);
-    void detect(cv::Mat& frame) override;
-    const std::vector<Detection>& getDetections() const override;
+    GenericDetector(const string& modelPath, const vector<string>& targetClasses_);
+    void detect(Mat& frame) override;
+    const vector<Detection>& getDetections() const override;
+    int clamp(int val, int min_val, int max_val); // Add clamp declaration
 
 protected:
-    std::vector<Detection> detections;
-    virtual void initialize(const std::string& modelPath) = 0;
-    virtual DetectionOutput runInference(const cv::Mat& input) = 0;
-    virtual void releaseOutputs(const DetectionOutput& output) {}  // Optional for platforms needing cleanup
+    void initialize(const string& modelPath) override = 0;
+    virtual DetectionOutput runInference(const Mat& input) override = 0;
+    virtual void releaseOutputs(const DetectionOutput& output) override = 0;
 };
 
-Detector* createDetector(const std::string& modelPath, const std::vector<std::string>& targetClasses);
+extern "C" Detector* createDetector(const string& modelPath, const vector<string>& targetClasses);
 
 #endif // DETECTOR_H

@@ -2,6 +2,7 @@
                 Includes
 -------------------------------------------*/
 #include "postprocess.h"
+#include "common.h"  // Updated to use COCO_LABELS from common.h
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,22 +11,9 @@
 #include <set>
 #include <vector>
 
-
 /*-------------------------------------------
-                  COCO labels
+                  Constants
 -------------------------------------------*/
-static const char* labels[] = {
-    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
-    "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
-    "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
-    "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
-    "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
-    "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
-    "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
-    "hair drier", "toothbrush"
-};
-
 const int anchor0[6] = {10, 13, 16, 30, 33, 23};
 const int anchor1[6] = {30, 61, 62, 45, 59, 119};
 const int anchor2[6] = {116, 90, 156, 198, 373, 326};
@@ -243,7 +231,7 @@ int post_process(int8_t *input0, int8_t *input1, int8_t *input2, int model_in_h,
         group->results[last_count].box.right = (int)(clamp(x2, 0, model_in_w) / scale_w);
         group->results[last_count].box.bottom = (int)(clamp(y2, 0, model_in_h) / scale_h);
         group->results[last_count].prop = obj_conf;
-        const char *label = labels[id];
+        const char *label = id < 80 ? COCO_LABELS[id] : "unknown";  // Use COCO_LABELS from common.h
         strncpy(group->results[last_count].name, label, OBJ_NAME_MAX_SIZE);
 
         last_count++;
