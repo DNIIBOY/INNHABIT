@@ -18,8 +18,9 @@
         {% tailwind_css %}
     </head>
 
-    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex h-screen">
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex h-screen w-full">
         {% url "insights-dashboard" as insights_url %}
+        {% url "login" as login_url %}
         {% if request.user.is_authenticated and request.path != insights_url %}
             {% component "navbar" %}{% endcomponent %}
         {% endif %}
@@ -32,7 +33,7 @@
             {% block content %}
             {% endblock %}
         </main>
-        {% if not request.user.is_authenticated %}
+        {% if not request.user.is_authenticated and request.path != insights_url and request.path != login_url %}
             <div class="fixed bottom-6 right-6">
                 <a>Login</a>
             </div>
