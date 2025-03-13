@@ -89,20 +89,10 @@ int main(int argc, char** argv) {
         }
     }
 
-    classFile = modelPath + "/coco.names";
-
     // Validate arguments
     if (!videoFile.empty() && !imageFile.empty()) {
         cerr << "Error: Cannot specify both --video and --image" << endl;
         printUsage(argv[0]);
-        if (curlHandle) curl_easy_cleanup(curlHandle);
-        curl_global_cleanup();
-        return -1;
-    }
-
-    vector<string> allClassNames = loadClassNames(classFile);
-    if (allClassNames.empty()) {
-        cerr << "Failed to load class names. Exiting." << endl;
         if (curlHandle) curl_easy_cleanup(curlHandle);
         curl_global_cleanup();
         return -1;

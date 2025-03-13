@@ -12,10 +12,10 @@ using namespace cv;
 
 // Detection threshold constants (configurable via defines or runtime if needed)
 #ifndef BOX_THRESH
-#define BOX_THRESH 0.5
+#define BOX_THRESH 0.25f
 #endif
 #ifndef NMS_THRESH
-#define NMS_THRESH 0.45
+#define NMS_THRESH 0.45f
 #endif
 
 // Default image dimensions (can be overridden by specific detectors)
