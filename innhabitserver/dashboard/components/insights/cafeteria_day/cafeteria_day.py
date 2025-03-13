@@ -28,6 +28,11 @@ class CafeteriaDay(Component):
             .order_by("-count")
             .first()
         )
+        if not top_day:
+            return {
+                "weekday": "Ingen data",
+                "count": 0,
+            }
 
         days = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"]
         return {

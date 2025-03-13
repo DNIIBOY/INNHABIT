@@ -28,8 +28,8 @@
             {% component "navbar" %}{% endcomponent %}
         {% endif %}
         <main
-            class="p-4 w-full flex justify-center
-            {% if request.path == insights_url %} bg-aau {% endif %}
+            class="p-4 w-full h-full flex justify-center
+            {% if request.path == insights_url %} bg-aau {% else %} bg-slate-200 {% endif %}
             {% if request.user.is_authenticated and request.path != insights_url %} ml-72 {% endif %}
             "
         >
