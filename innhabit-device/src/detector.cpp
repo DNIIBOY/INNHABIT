@@ -1,72 +1,49 @@
 #include "detector.h"
-#include "postprocess.h"
 #include "common.h"
 #include <algorithm>
 
+// Default constructor for the GenericDetector
 GenericDetector::GenericDetector(const string& modelPath, const vector<string>& targetClasses_)
     : targetClasses(targetClasses_), initialized(false), width(DETECTOR_WIDTH), height(DETECTOR_HEIGHT), channel(DETECTOR_CHANNELS) {
+    // Implementation moved to initialize() which is called by derived classes
 }
 
+// Main detection function - common for all platforms
 void GenericDetector::detect(Mat& frame) {
     if (!initialized) {
         ERROR("Detector not properly initialized");
         return;
     }
 
+    // Common preprocessing
     float scale;
     int dx, dy;
     Mat resized_img = preprocessImage(frame, width, height, scale, dx, dy);
+    
+    // Platform-specific inference (implemented by derived classes)
     DetectionOutput output = runInference(resized_img);
-
-    detect_result_group_t detect_result_group;
-    post_process(
-        static_cast<int8_t*>(output.buffers[0]),
-        static_cast<int8_t*>(output.buffers[1]),
-        static_cast<int8_t*>(output.buffers[2]),
-        height, width,
-        BOX_THRESH, NMS_THRESH,
-        scale, scale,
-        output.zps, output.scales,
-        &detect_result_group
-    );
-
-    detections.clear();
-    int img_width = frame.cols;
-    int img_height = frame.rows;
-
-    for (int i = 0; i < detect_result_group.count; i++) {
-        detect_result_t* det_result = &detect_result_group.results[i];
-
-        if (!targetClasses.empty() && 
-            find(targetClasses.begin(), targetClasses.end(), det_result->name) == targetClasses.end()) {
-            continue;
-        }
-
-        int x1 = clamp(static_cast<int>((det_result->box.left - dx) / scale), 0, img_width - 1);
-        int y1 = clamp(static_cast<int>((det_result->box.top - dy) / scale), 0, img_height - 1);
-        int x2 = clamp(static_cast<int>((det_result->box.right - dx) / scale), 0, img_width - 1);
-        int y2 = clamp(static_cast<int>((det_result->box.bottom - dy) / scale), 0, img_height - 1);
-
-        Detection det;
-        det.classId = det_result->name;
-        det.confidence = det_result->prop;
-        det.box = Rect(x1, y1, x2 - x1, y2 - y1);
-        detections.push_back(det);
-    }
-
+    
+    // Process detections (each platform will implement this)
+    processDetections(output, frame, scale, dx, dy);
+    
+    // Draw detection boxes (common for all platforms)
     drawDetections(frame, detections);
+    
+    // Cleanup (platform-specific)
     releaseOutputs(output);
 }
 
+// Return the current detections
 const vector<Detection>& GenericDetector::getDetections() const {
     return detections;
 }
 
+// Helper function to clamp values
 int GenericDetector::clamp(int val, int min_val, int max_val) {
     return max(min_val, min(val, max_val));
 }
 
-// Utility function implementations
+// Common preprocessing function - moved from detector.cpp to implementation
 Mat preprocessImage(const Mat& frame, int targetWidth, int targetHeight, float& scale, int& dx, int& dy) {
     Mat img;
     cvtColor(frame, img, COLOR_BGR2RGB);
@@ -87,6 +64,7 @@ Mat preprocessImage(const Mat& frame, int targetWidth, int targetHeight, float& 
     return resized_img;
 }
 
+// Common drawing function - moved from detector.cpp to implementation
 void drawDetections(Mat& frame, const vector<Detection>& detections) {
     for (const auto& det : detections) {
         rectangle(frame, det.box, Scalar(0, 255, 0), 2);
@@ -110,6 +88,8 @@ void drawDetections(Mat& frame, const vector<Detection>& detections) {
     }
 }
 
-void printUsage(const string& programName) {
-    cerr << "Usage: " << programName << " [--video <video_file>] [--image <image_file>] [--model <model_path>]" << endl;
+// Generic implementation of processDetections that can be overridden by platform-specific code
+void GenericDetector::processDetections(const DetectionOutput& output, Mat& frame, float scale, int dx, int dy) {
+    // Default implementation does nothing
+    // Platform-specific implementations should override this
 }
