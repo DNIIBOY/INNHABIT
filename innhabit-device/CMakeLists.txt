@@ -45,7 +45,6 @@ endif()
 set(COMMON_SOURCES
     src/main.cpp
     src/detector.cpp
-    src/postprocess.cpp
     src/tracker.cpp
 )
 

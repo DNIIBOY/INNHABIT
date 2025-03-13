@@ -13,26 +13,6 @@ public:
         initialize(modelPath);
     }
 
-    void detect(Mat& frame) override {
-        if (!initialized) {
-            ERROR("Detector not properly initialized");
-            return;
-        }
-
-        float scale;
-        int dx, dy;
-        Mat resized_img = preprocessImage(frame, width, height, scale, dx, dy);
-        Mat blob = cv::dnn::blobFromImage(resized_img, 1/255.0, Size(width, height), Scalar(0,0,0), true, false);
-        net.setInput(blob);
-        
-        vector<Mat> outs;
-        net.forward(outs, net.getUnconnectedOutLayersNames());
-
-        detections.clear();
-        processDetections(outs, frame, scale, dx, dy);
-        drawDetections(frame, detections);
-    }
-
 protected:
     void initialize(const string& modelPath) override {
         string cfg = modelPath + "/yolov7-tiny.cfg";
@@ -45,12 +25,23 @@ protected:
         initialized = true;
     }
 
-    void processDetections(const vector<Mat>& outs, Mat& frame, float scale, int dx, int dy) {
+    DetectionOutput runInference(const Mat& input) override {
+        Mat blob = cv::dnn::blobFromImage(input, 1/255.0, Size(width, height), Scalar(0,0,0), true, false);
+        net.setInput(blob);
+        
+        DetectionOutput output;
+        net.forward(output.outputs, net.getUnconnectedOutLayersNames());
+        output.num_outputs = output.outputs.size();
+        
+        return output;
+    }
+
+    void processDetections(const DetectionOutput& output, Mat& frame, float scale, int dx, int dy) override {
         vector<Rect> boxes;
         vector<float> confidences;
         vector<int> classIds;
 
-        for (const auto& out : outs) {
+        for (const auto& out : output.outputs) {
             float* data = (float*)out.data;
             for (int j = 0; j < out.rows; ++j) {
                 Mat scores = out.row(j).colRange(5, out.cols);
@@ -76,11 +67,12 @@ protected:
         vector<int> indices;
         cv::dnn::NMSBoxes(boxes, confidences, BOX_THRESH, NMS_THRESH, indices);
 
+        detections.clear();
         int img_width = frame.cols;
         int img_height = frame.rows;
         for (size_t i = 0; i < indices.size(); ++i) {
             int idx = indices[i];
-            string className = classIds[idx] < 80 ? COCO_LABELS[classIds[idx]] : "unknown";  // Use COCO_LABELS from common.h
+            string className = classIds[idx] < 80 ? COCO_LABELS[classIds[idx]] : "unknown";
             if (!targetClasses.empty() && find(targetClasses.begin(), targetClasses.end(), className) == targetClasses.end()) continue;
 
             Detection det;
@@ -95,10 +87,8 @@ protected:
         }
     }
 
-    DetectionOutput runInference(const Mat&) override { return DetectionOutput(); } // Not used
-
-    void releaseOutputs(const DetectionOutput&) override {
-        // No-op: CPUDetector doesn't manage DetectionOutput buffers
+    void releaseOutputs(const DetectionOutput& output) override {
+        // No-op: CPU detector doesn't need to release memory
     }
 };
 
