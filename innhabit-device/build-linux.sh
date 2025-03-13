@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # Default values
-TARGET="rk3588"
+TARGET="cpu"
 BUILD_TYPE="Release"
 
 # Function to display usage
 usage() {
     echo "Usage: $0 [-t TARGET] [-b BUILD_TYPE]"
-    echo "  -t TARGET: Set the target platform (rk3588, cuda, cpu)"
+    echo "  -t TARGET: Set the target platform (rk3588, cuda, tensorrt, cpu)"
     echo "  -b BUILD_TYPE: Set the build type (Release, Debug)"
-    echo "Example: $0 -t rk3588 -b Debug"
+    echo "Example: $0 -t tensorrt -b Debug"
     exit 1
 }
 
@@ -29,30 +29,18 @@ if [[ "$BUILD_TYPE" != "Release" && "$BUILD_TYPE" != "Debug" ]]; then
     usage
 fi
 
-# Detect platform if not specified
-if [ -z "$TARGET" ]; then
-    PLATFORM=$(uname -m)
-    echo "Target not specified, auto-detecting platform: $PLATFORM"
-    if [ "$PLATFORM" = "x86_64" ] || [ "$PLATFORM" = "aarch64" ]; then
-        if [ -f /usr/lib/librknnrt.so ] || [ -f /usr/local/lib/librknnrt.so ]; then
-            TARGET="rk3588"
-        elif [ -d /usr/local/cuda ]; then
-            TARGET="cuda"
-        else
-            TARGET="cpu"
-        fi
-    else
-        echo "Unsupported platform: $PLATFORM"
-        exit 1
-    fi
-else
-    echo "Target specified: $TARGET"
-fi
-
 # Check for OpenCV
 if ! pkg-config --exists opencv4; then
     echo "Error: OpenCV not found. Install with 'sudo apt-get install libopencv-dev'."
     exit 1
+fi
+
+# Check for TensorRT if targeting tensorrt
+if [ "$TARGET" = "tensorrt" ]; then
+    if ! ldconfig -p | grep -q libnvinfer.so; then
+        echo "Error: TensorRT not found. Install TensorRT for your architecture."
+        exit 1
+    fi
 fi
 
 # Set up build directory
@@ -68,8 +56,12 @@ case $TARGET in
         cmake -DUSE_RKNN=ON -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ..
         ;;
     "cuda")
-        echo "Configuring for Jetson with CUDA..."
+        echo "Configuring for CUDA (OpenCV DNN)..."
         cmake -DUSE_CUDA=ON -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ..
+        ;;
+    "tensorrt")
+        echo "Configuring for TensorRT..."
+        cmake -DUSE_TENSORRT=ON -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ..
         ;;
     "cpu")
         echo "Configuring for generic CPU..."
@@ -77,7 +69,7 @@ case $TARGET in
         ;;
     *)
         echo "Error: Unsupported target: $TARGET"
-        echo "Valid targets: rk3588, cuda, cpu"
+        echo "Valid targets: rk3588, cuda, tensorrt, cpu"
         exit 1
         ;;
 esac
@@ -85,8 +77,8 @@ esac
 # Build
 make -j$(nproc)
 if [ $? -eq 0 ]; then
-    echo "Build complete (Type: $BUILD_TYPE, Target: $TARGET)."
-    echo "Run './bin/object_detection' for camera or './bin/object_detection --image' for sample.jpg."
+    echo "Build completed successfully (Type: $BUILD_TYPE, Target: $TARGET)."
+    echo "Run './object_detection' for camera or './object_detection --image sample.jpg' for an image."
 else
     echo "Build failed. Check errors above."
     exit 1

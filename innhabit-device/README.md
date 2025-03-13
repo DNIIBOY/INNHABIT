@@ -3,7 +3,9 @@
 This project implements object detection using YOLO models on Orange Pi 5 (RK3588 NPU) and NVIDIA Jetson Nano (CUDA), with a portable codebase supporting multiple platforms.
 
 ## Prerequisites
-
+https://github.com/hamdiboukamcha/Yolo-V11-cpp-TensorRT/tree/master
+https://github.com/cyrusbehr/YOLOv8-TensorRT-CPP
+https://github.com/SihabSahariar/Yolov11-ONNX-Object-Detection/tree/main/yolov11
 ### Hardware Requirements
 
 - **Orange Pi 5**: Install RKNN Toolkit and place `yolov5s-640-640.rknn` in the `models/` directory.
