@@ -4,6 +4,7 @@ from django.urls import include, path
 urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
     path("", include("occupancy.urls")),
+    path("", include("django_components.urls")),
     path("accounts/", include("django.contrib.auth.urls")),
     path("admin/", admin.site.urls),
     path("api/v1/", include("api.urls")),
