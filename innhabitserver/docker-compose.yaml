@@ -1,7 +1,7 @@
 services:
-  db:
+  innhabit_db:
     image: postgres:latest
-    container_name: db
+    container_name: innhabit_db
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:

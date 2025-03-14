@@ -19,4 +19,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /code/
 
-CMD ["gunicorn", "--bind", ":8000", "--workers", "2", "foodprices.wsgi:application"]
+CMD ["gunicorn", "--bind", ":8000", "--workers", "2", "innhabitserver.wsgi:application"]
