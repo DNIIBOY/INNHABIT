@@ -1,0 +1,8 @@
+{
+    "DeviceName": "Indgang A",
+    "ServerIP": "127.0.0.1",
+    "ServerPort": "8000",
+    "EntranceZone": {
+        "zone1": [400, 0, 1000, 200]
+    }
+}
