@@ -34,11 +34,13 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = [
+    "innhabit.sigmaboy.dk",
     "localhost",
     "127.0.0.1",
 ]
 
 INTERNAL_IPS = ["127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = ["https://innhabit.sigmaboy.dk"]
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -162,6 +164,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = "/var/www/innhabit/static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
