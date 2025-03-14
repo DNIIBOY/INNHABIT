@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block head %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.0.2/chart.min.js" integrity="sha512-dnUg2JxjlVoXHVdSMWDYm2Y5xcIrJg1N+juOuRi0yLVkku/g26rwHwysJDAMwahaDfRpr1AxFz43ktuMPr/l1A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {% endblock %}
 {% block content %}
 <div class="w-full px-6 py-6 mx-auto">
@@ -70,22 +69,8 @@
             {% component "busiest_days" %}{% endcomponent %}
         </div>
         <div class="w-full max-w-full px-3 mt-0 lg:w-7/12 lg:flex-none">
-            <div class="border-black/12.5 shadow-soft-xl relative z-20 flex min-w-0 flex-col break-words rounded-2xl border-0 border-solid bg-white bg-clip-border">
-                <div class="border-black/12.5 mb-0 rounded-t-2xl border-b-0 border-solid bg-white p-6 pb-0">
-                    <h6>Sales overview</h6>
-                    <p class="leading-normal text-size-sm">
-                        <i class="fa fa-arrow-up text-lime-500"></i>
-                        <span class="font-semibold">4% more</span> in 2021
-                    </p>
-                </div>
-                <div class="flex-auto p-4">
-                    <div>
-                        <canvas id="chart-line" height="900" style="display: block; box-sizing: border-box; height: 300px; width: 714px;" width="2142"></canvas>
-                    </div>
-                </div>
-            </div>
+            {% component "comparison_plot" %}{% endcomponent %}
         </div>
     </div>
 </div>
-<script src="https://appsrv1-147a1.kxcdn.com/soft-dashboard-tailwind/js/chart-2.js" async=""></script>
 {% endblock %}

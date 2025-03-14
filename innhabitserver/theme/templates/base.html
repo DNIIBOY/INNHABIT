@@ -1,4 +1,4 @@
-{% load static tailwind_tags django_htmx %}
+{% load static tailwind_tags django_htmx component_tags %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -6,7 +6,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
-        <script src="https://unpkg.com/htmx.org"></script>
+        <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
         {% django_htmx_script %}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
