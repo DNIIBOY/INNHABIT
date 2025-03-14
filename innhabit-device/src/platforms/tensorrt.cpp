@@ -66,9 +66,12 @@ protected:
 
         // Verify binding names and indices
         for (int i = 0; i < engine->getNbBindings(); ++i) {
-            std::cout << "Binding " << i << ": " << engine->getBindingName(i) << " ("
-                      << (engine->bindingIsInput(i) ? "Input" : "Output")
-                      << ")" << std::endl;
+            Dims dims = engine->getBindingDimensions(i);
+            std::cout << "Binding " << i << " (" << engine->getBindingName(i) << "): ";
+            for (int j = 0; j < dims.nbDims; ++j) {
+                std::cout << dims.d[j] << " ";
+            }
+            std::cout << std::endl;
         }
 
         // Get binding indices by name
@@ -84,7 +87,11 @@ protected:
                 size *= dims.d[j];
             }
             size *= sizeof(float);  // Assuming FP32 data type
-            cudaMalloc(&buffers[i], size);
+
+            cudaError_t err = cudaMalloc(&buffers[i], size);
+            if (err != cudaSuccess) {
+                throw std::runtime_error("Failed to allocate CUDA memory for binding " + std::to_string(i) + ": " + std::string(cudaGetErrorString(err)));
+            }
         }
 
         cudaStreamCreate(&stream);
@@ -94,14 +101,38 @@ protected:
 
     DetectionOutput runInference(const Mat& input) override {
         Mat blob = cv::dnn::blobFromImage(input, 1.0 / 255.0, Size(width, height), Scalar(0, 0, 0), true, false);
-        cudaMemcpyAsync(buffers[inputIndex], blob.ptr<float>(), width * height * channel * sizeof(float), cudaMemcpyHostToDevice, stream);
 
-        context->enqueueV2(buffers.data(), stream, nullptr);
+        // Copy input data to GPU
+        cudaError_t err = cudaMemcpyAsync(buffers[inputIndex], blob.ptr<float>(), width * height * channel * sizeof(float), cudaMemcpyHostToDevice, stream);
+        if (err != cudaSuccess) {
+            throw std::runtime_error("Failed to copy input data to GPU: " + std::string(cudaGetErrorString(err)));
+        }
 
+        // Run inference
+        if (!context->enqueueV2(buffers.data(), stream, nullptr)) {
+            throw std::runtime_error("Failed to run inference");
+        }
+
+        // Copy output data from GPU
         DetectionOutput output;
         output.outputs.resize(1);
-        output.outputs[0].create(height, width, CV_32F);
-        cudaMemcpyAsync(output.outputs[0].ptr<float>(), buffers[outputIndex], width * height * sizeof(float), cudaMemcpyDeviceToHost, stream);
+
+        // Get output dimensions
+        Dims outputDims = engine->getBindingDimensions(outputIndex);
+        size_t outputSize = 1;
+        for (int i = 0; i < outputDims.nbDims; ++i) {
+            outputSize *= outputDims.d[i];
+        }
+
+        // Allocate output buffer
+        output.outputs[0].create(outputDims.d[1], outputDims.d[2], CV_32F);  // Adjust dimensions as needed
+
+        err = cudaMemcpyAsync(output.outputs[0].ptr<float>(), buffers[outputIndex], outputSize * sizeof(float), cudaMemcpyDeviceToHost, stream);
+        if (err != cudaSuccess) {
+            throw std::runtime_error("Failed to copy output data from GPU: " + std::string(cudaGetErrorString(err)));
+        }
+
+        // Synchronize the stream
         cudaStreamSynchronize(stream);
 
         output.num_outputs = 1;
@@ -113,26 +144,40 @@ protected:
         vector<float> confidences;
         vector<int> classIds;
 
-        for (int i = 0; i < output.outputs[0].rows; ++i) {
-            const float* data = output.outputs[0].ptr<float>(i);  // Use const float*
+        int img_width = frame.cols;
+        int img_height = frame.rows;
+
+        // Process the correct output binding (e.g., binding index 4)
+        const Mat& detectionsOutput = output.outputs[0];  // Index 0 corresponds to the first output binding
+
+        for (int i = 0; i < detectionsOutput.rows; ++i) {
+            const float* data = detectionsOutput.ptr<float>(i);  // Use const float*
             float confidence = data[4];
             if (confidence > BOX_THRESH) {
-                Mat scores = output.outputs[0].row(i).colRange(5, output.outputs[0].cols);
+                Mat scores = detectionsOutput.row(i).colRange(5, detectionsOutput.cols);
                 Point classIdPoint;
                 double maxScore;
                 minMaxLoc(scores, 0, &maxScore, 0, &classIdPoint);
 
                 float totalConfidence = confidence * maxScore;
                 if (totalConfidence > BOX_THRESH) {
-                    float centerX = data[0] * width;
-                    float centerY = data[1] * height;
-                    float w = data[2] * width;
-                    float h = data[3] * height;
+                    // Normalized coordinates from the model
+                    float centerX = data[0];  // Normalized center x
+                    float centerY = data[1];  // Normalized center y
+                    float w = data[2];       // Normalized width
+                    float h = data[3];       // Normalized height
 
-                    int left = (centerX - w / 2 - dx) / scale;
-                    int top = (centerY - h / 2 - dy) / scale;
-                    int boxWidth = w / scale;
-                    int boxHeight = h / scale;
+                    // Scale coordinates to the original image dimensions
+                    int left = static_cast<int>((centerX - w / 2) * img_width);
+                    int top = static_cast<int>((centerY - h / 2) * img_height);
+                    int boxWidth = static_cast<int>(w * img_width);
+                    int boxHeight = static_cast<int>(h * img_height);
+
+                    // Clamp coordinates to ensure they are within the image boundaries
+                    left = clamp(left, 0, img_width - 1);
+                    top = clamp(top, 0, img_height - 1);
+                    boxWidth = clamp(boxWidth, 0, img_width - left);
+                    boxHeight = clamp(boxHeight, 0, img_height - top);
 
                     boxes.push_back(Rect(left, top, boxWidth, boxHeight));
                     confidences.push_back(totalConfidence);
@@ -145,8 +190,6 @@ protected:
         cv::dnn::NMSBoxes(boxes, confidences, BOX_THRESH, NMS_THRESH, indices);
 
         detections.clear();
-        int img_width = frame.cols;
-        int img_height = frame.rows;
         for (size_t i = 0; i < indices.size(); ++i) {
             int idx = indices[i];
             string className = classIds[idx] < 80 ? COCO_LABELS[classIds[idx]] : "unknown";
@@ -156,12 +199,6 @@ protected:
             det.classId = className;
             det.confidence = confidences[idx];
             det.box = boxes[idx];
-            
-            det.box.x = clamp(det.box.x, 0, img_width - 1);
-            det.box.y = clamp(det.box.y, 0, img_height - 1);
-            det.box.width = clamp(det.box.width, 0, img_width - det.box.x);
-            det.box.height = clamp(det.box.height, 0, img_height - det.box.y);
-            
             detections.push_back(det);
         }
     }

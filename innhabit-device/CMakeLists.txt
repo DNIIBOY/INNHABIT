@@ -64,6 +64,7 @@ set(COMMON_SOURCES
     src/main.cpp
     src/detector.cpp
     src/tracker.cpp
+    src/api_handler.cpp
 )
 
 # Define platform-specific source files
@@ -72,7 +73,7 @@ if(USE_RKNN)
     list(APPEND PLATFORM_SOURCES src/platforms/rk3588.cpp)
 endif()
 if(USE_CUDA)
-    list(APPEND PLATFORM_SOURCES src/platforms/jetson.cpp)
+    list(APPEND PLATFORM_SOURCES src/platforms/cuda.cpp)
 endif()
 if(USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/jetson_tensorrt.cpp)
