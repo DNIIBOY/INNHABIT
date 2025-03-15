@@ -76,7 +76,7 @@ if(USE_CUDA)
     list(APPEND PLATFORM_SOURCES src/platforms/cuda.cpp)
 endif()
 if(USE_TENSORRT)
-    list(APPEND PLATFORM_SOURCES src/platforms/jetson_tensorrt.cpp)
+    list(APPEND PLATFORM_SOURCES src/platforms/tensorrt.cpp)
 endif()
 if(NOT USE_CUDA AND NOT USE_RKNN AND NOT USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)  # Default to CPU if no other target

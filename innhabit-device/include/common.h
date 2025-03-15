@@ -61,8 +61,12 @@ struct BoxZone {
 // Structure for configuration
 struct Config {
     std::string deviceName;
+    std::string DeviceLokation;
     std::string serverIP;
     std::string serverPort;
+    std::string ServerEventAPI;
+    std::string ServerEntryEndpoint;
+    std::string ServerExitEndpoint;
     std::vector<BoxZone> entranceZones;  // Vector of box zones
 };
 
@@ -81,6 +85,10 @@ inline Config loadConfig(const std::string& configFilePath) {
     config.deviceName = j["DeviceName"].get<std::string>();
     config.serverIP = j["ServerIP"].get<std::string>();
     config.serverPort = j["ServerPort"].get<std::string>();
+    config.ServerEventAPI = j["ServerEventAPI"].get<std::string>();
+    config.ServerEntryEndpoint = j["ServerEntryEndpoint"].get<std::string>();
+    config.ServerExitEndpoint = j["ServerExitEndpoint"].get<std::string>();
+
 
     auto entranceZone = j["EntranceZone"];
     for (auto it = entranceZone.begin(); it != entranceZone.end(); ++it) {

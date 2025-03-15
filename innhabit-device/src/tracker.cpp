@@ -171,14 +171,14 @@ void PeopleTracker::detectMovements(const TrackedPerson& person, int frameHeight
 
         // Entry event: Person spawned in zone and moved out
         if (person.spawnedInZone && !currInZone && PersonRemoved) {
-            movementCallback(mutablePerson, "enter_zone_" + to_string(i));
+            movementCallback(mutablePerson, "entered");
             mutablePerson.wasInZone = false; // Reset after event
             return;
         }
 
         // Exit event: Person is removed while in zone
         if (PersonRemoved && mutablePerson.wasInZone && prevInZone) {
-            movementCallback(mutablePerson, "exit_zone_" + to_string(i));
+            movementCallback(mutablePerson, "exited");
             mutablePerson.wasInZone = false;
             return;
         }

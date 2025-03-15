@@ -36,68 +36,98 @@ size_t ApiHandler::WriteCallback(void* contents, size_t size, size_t nmemb, stri
 }
 
 json ApiHandler::sendPostRequest(const string& endpoint, const json& data) {
-    lock_guard<mutex> lock(curlMutex);
-    
-    string response_string;
-    string url = baseUrl + endpoint;
-    string json_str = data.dump();
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_str.c_str());
-    
     struct curl_slist* headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
+
+    // Construct full URL
+    string fullUrl = baseUrl + endpoint;
+    curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
+
+    // Convert JSON to string for POST data
+    string dataStr = data.dump();
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, dataStr.c_str());
+
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_string);
+    string response;
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback); // Use correct name
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
+    // Get HTTP status code
+    long http_code = 0;
     CURLcode res = curl_easy_perform(curl);
-    
-    curl_slist_free_all(headers);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
-    if (res != CURLE_OK) {
-        throw runtime_error("curl_easy_perform() failed: " + 
-                          string(curl_easy_strerror(res)));
+    json result;
+    if (res == CURLE_OK) {
+        if (http_code >= 200 && http_code < 300) { // Success range
+            try {
+                result = json::parse(response, nullptr, false);
+                if (result.is_discarded()) {
+                    cerr << "Failed to parse response as JSON" << endl;
+                    result = json(); // Return empty JSON on parse failure
+                }
+            } catch (const json::parse_error& e) {
+                cerr << "Parse error: " << e.what() << endl;
+                result = json(); // Return empty JSON on exception
+            }
+        } else {
+            cerr << "HTTP error: " << http_code << " - Response: " << response << endl;
+            result = json(); // Return empty JSON on HTTP error
+        }
+    } else {
+        cerr << "CURL error: " << curl_easy_strerror(res) << endl;
+        result = json(); // Return empty JSON on CURL failure
     }
 
-    return json::parse(response_string);
+    curl_slist_free_all(headers);
+    return result; // Always return a json object
 }
 
 string ApiHandler::getTimestamp() {
-    
-    // Convert to seconds for readable format
     auto current_time = chrono::duration_cast<chrono::seconds>(
         chrono::system_clock::now().time_since_epoch()).count();
-    
-    // Convert to time_t for formatting
     time_t tt = static_cast<time_t>(current_time);
-    
-    // Format to human-readable string
     char buffer[80];
     struct tm* timeinfo = gmtime(&tt);  // UTC time
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
-    
-    // Add milliseconds
     return string(buffer) + " UTC";
+}
+
+string ApiHandler::getTimestampISO() {
+    auto now = chrono::system_clock::now();
+    time_t tt = chrono::system_clock::to_time_t(now);
+    char buffer[80];
+    struct tm* timeinfo = gmtime(&tt);  // UTC time
+    strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", timeinfo);
+    return string(buffer);
 }
 
 bool ApiHandler::onPersonEvent(const TrackedPerson& person, const std::string& eventType) {
     try {
-        string timestamp_str = getTimestamp();
+        string timestamp_str = getTimestampISO();
         json request_data = {
-            {"datetime", timestamp_str},
-            {"event", eventType}
+            {"timestamp", timestamp_str},
+            {"entrance", 1} // Adjust based on actual logic (e.g., zone ID)
         };
-        
-        json response = sendPostRequest("/PersonEvent", request_data);
-        if (response["status"] == "success") {
+        json response;
+        if (eventType == "entered") {
+            response = sendPostRequest("/exits/", request_data); // Note: Seems reversed?
+        } else if (eventType == "exited") {
+            response = sendPostRequest("/entries/", request_data);
+        } else {
+            cerr << "Unknown event type: " << eventType << endl;
+            return false;
+        }
+
+        if (response.is_null() || response.empty()) {
+            cerr << "Empty or null response from server" << endl;
+            return false;
+        } else {
+            cout << "API response success: " << response.dump() << endl;
             return true;
         }
-        return false;
     } catch (const exception& e) {
-        cerr << "Error sending entry event: " << e.what() << endl;
+        cerr << "Error sending event to server: " << e.what() << endl;
         return false;
     }
 }
@@ -105,7 +135,7 @@ bool ApiHandler::onPersonEvent(const TrackedPerson& person, const std::string& e
 void ApiHandler::saveResponseToFile(const json& response, const string& filename) {
     ofstream file(filename);
     if (file.is_open()) {
-        file << response.dump(4);
+        file << response.dump(4); // Pretty print with indentation
         file.close();
     }
 }

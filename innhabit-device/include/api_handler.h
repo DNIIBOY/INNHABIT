@@ -18,6 +18,7 @@ private:
     void Initialize();
     // Private method returning only datetime string
     std::string getTimestamp();
+    std::string getTimestampISO();
 
 public:
     ApiHandler(const std::string& url = "http://localhost:8000");

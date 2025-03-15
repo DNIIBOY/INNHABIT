@@ -8,8 +8,14 @@ This project implements object detection using YOLO models on Orange Pi 5 (RK358
 * systemd Service
 
 ## Prerequisites
+### rk3588
+https://github.com/Qengineering/YoloV5-NPU-Multithread
+
+### jetson
+https://github.com/JardinRyu/Jetson_Nano_People_Counting
 https://github.com/hamdiboukamcha/Yolo-V11-cpp-TensorRT/tree/master
 https://github.com/cyrusbehr/YOLOv8-TensorRT-CPP
+https://github.com/Qengineering/YoloV8-TensorRT-Jetson_Nano/tree/main?tab=readme-ov-file
 https://github.com/SihabSahariar/Yolov11-ONNX-Object-Detection/tree/main/yolov11
 ### Hardware Requirements
 

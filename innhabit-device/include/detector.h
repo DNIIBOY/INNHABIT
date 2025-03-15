@@ -22,8 +22,19 @@ struct DetectionOutput {
     vector<int32_t> zps;     // Zero points for quantized outputs
     int num_outputs;         // Number of output tensors
     vector<Mat> outputs;     // For OpenCV DNN outputs
-    
+
+    // Default constructor
     DetectionOutput() : num_outputs(0) {}
+
+    // Clear all data
+    void clear() const {
+        // Clear all vectors
+        const_cast<vector<void*>&>(buffers).clear();
+        const_cast<vector<float>&>(scales).clear();
+        const_cast<vector<int32_t>&>(zps).clear();
+        const_cast<int&>(num_outputs) = 0;
+        const_cast<vector<Mat>&>(outputs).clear();
+    }
 };
 
 // Abstract base class for all detectors
