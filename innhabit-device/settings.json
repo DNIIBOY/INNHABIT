@@ -1,7 +1,11 @@
 {
-    "DeviceName": "Indgang A",
+    "DeviceName": "Jetson Nano 1",
+    "DeviceLokation": "Indgang A",
     "ServerIP": "127.0.0.1",
-    "ServerPort": "8000",
+    "ServerPort": "8080",
+    "ServerEventAPI": "https://innhabit.dk/api/v1/events",
+    "ServerEntryEndpoint": "/entries",
+    "ServerExitEndpoint": "/exits",
     "EntranceZone": {
         "zone1": [400, 0, 1000, 200]
     }

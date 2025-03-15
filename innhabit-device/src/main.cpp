@@ -12,8 +12,8 @@ std::unique_ptr<ApiHandler> apiHandler;
 void movementEventCallback(const TrackedPerson& person, const std::string& eventType) {
     if (apiHandler) {
         apiHandler->onPersonEvent(person, eventType);
+
         // Optionally log the specific zone event
-        cout << "Person " << person.id << " " << eventType << endl;
     }
 }
 
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    string apiUrl = "http://" + config.serverIP + ":" + config.serverPort;
+    string apiUrl = config.ServerEventAPI;
     cout << "API URL: " << apiUrl << endl;
     
     PeopleTracker tracker;
