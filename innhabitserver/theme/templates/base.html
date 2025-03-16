@@ -22,7 +22,7 @@
         {% tailwind_css %}
     </head>
 
-    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex h-screen w-full">
+    <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex w-full">
         {% url "insights-dashboard" as insights_url %}
         {% url "login" as login_url %}
         {% if request.user.is_authenticated and request.path != insights_url %}
