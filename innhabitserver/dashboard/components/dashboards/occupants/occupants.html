@@ -1,8 +1,8 @@
-<div class="flex-auto py-4 px-6">
+<div class="py-4 px-6">
     <div class="flex flex-row justify-between">
         <div class="flex-none w-2/3 max-w-full">
             <div>
-                <p class="font-semibold">Nuværende population</p>
+                <h4 class="font-semibold">Nuværende population</h4>
                 <h5 class="font-bold flex text-lg items-center gap-4">
                     {{ current_occupancy }}
                     {% if comparison_occupancy > 0 %}
@@ -18,7 +18,7 @@
                 </h5>
             </div>
         </div>
-        <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-slate-200">
+        <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-aau-light/90 to-aau-light/70 text-slate-100">
             <i class="bi-people text-4xl"></i>
         </div>
     </div>
