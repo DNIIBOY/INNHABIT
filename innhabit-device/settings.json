@@ -7,6 +7,7 @@
     "ServerEntryEndpoint": "/entries",
     "ServerExitEndpoint": "/exits",
     "EntranceZone": {
-        "zone1": [400, 0, 1000, 200]
+
     }
 }
+        //"zone1": [400, 0, 1000, 200]

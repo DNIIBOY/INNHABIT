@@ -15,10 +15,10 @@ using json = nlohmann::json;
 
 // Detection threshold constants
 #ifndef BOX_THRESH
-#define BOX_THRESH 0.25f
+#define BOX_THRESH 0.1f
 #endif
 #ifndef NMS_THRESH
-#define NMS_THRESH 0.45f
+#define NMS_THRESH 0.1f
 #endif
 
 // Default image dimensions
