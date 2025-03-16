@@ -15,7 +15,7 @@ gradientStroke2.addColorStop(0, "rgba(20,23,39,0)"); //purple colors
 new Chart(ctx2, {
   type: "line",
   data: {
-    labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    labels: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "00"],
     datasets: [
       {
         label: "Mobile apps",
@@ -26,7 +26,7 @@ new Chart(ctx2, {
         borderWidth: 3,
         backgroundColor: gradientStroke1,
         fill: true,
-        data: [50, 40, 300, 220, 500, 250, 400, 230, 500],
+        data: [50, 40, 300, 220, 500, 250, 400, 230, 600],
         maxBarThickness: 6,
       },
       {
@@ -38,7 +38,7 @@ new Chart(ctx2, {
         borderWidth: 3,
         backgroundColor: gradientStroke2,
         fill: true,
-        data: [30, 90, 40, 140, 290, 290, 340, 230, 400],
+        data: [30, 90, 40, 140, 290, 290, 340, 230, 400, 200, 300, 200, 100, 300, 200, 100, 200, 100, 300, 200, 400, 200, 300, 100],
         maxBarThickness: 6,
       },
     ],
