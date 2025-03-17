@@ -27,12 +27,7 @@ float computeIoU(const cv::Rect& box1, const cv::Rect& box2) {
     return unionArea > 0 ? intersection / unionArea : 0;
 }
 
-void PeopleTracker::update(const std::vector<Detection>& detections, int frameHeight) {
-    std::vector<Detection> filteredDetections;
-    for (const auto& det : detections) {
-        if (det.classId == "person") filteredDetections.push_back(det);  // Only track people
-    }
-
+void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int frameHeight) {
     std::vector<Detection> highConfDetections;
     std::vector<Detection> lowConfDetections;
     std::vector<bool> trackMatched(people.size(), false);

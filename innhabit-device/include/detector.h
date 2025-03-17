@@ -66,6 +66,7 @@ public:
     void detect(Mat& frame) override;
     const vector<Detection>& getDetections() const override;
     int clamp(int val, int min_val, int max_val);
+    bool isInitialized() const { return initialized; } // New public getter
 };
 
 // Factory function to create the appropriate detector

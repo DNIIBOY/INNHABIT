@@ -102,7 +102,7 @@ public:
         processDetections(output, frame, scale, dx, dy);
 
         // Draw detections (common code from GenericDetector)
-        drawDetections(frame, detections);
+        //drawDetections(frame, detections);
 
         // Release outputs
         releaseOutputs(output);
