@@ -8,18 +8,16 @@
 </div>
 <div class="p-6 px-0 pb-2">
     <div class="overflow-x-auto">
-        <table class="items-center w-full mb-0 align-top border-gray-200 text-slate-500">
-            <thead class="border-b border-b-solid border-b-gray-200 text-slate-400 uppercase font-bold opacity-70">
-                <tr>
-                    <th class="px-6 py-3 text-left">Dag</th>
-                    <th class="px-6 py-3 text-center">Dato</th>
-                    <th class="px-6 py-3 text-center">Gæster</th>
-                </tr>
-            </thead>
-            <tbody class="[&_tr:not(:last-child)]:border-b">
+        {% component "table" %}
+            {% fill "head" %}
+                <th class="text-left">Dag</th>
+                <th>Dato</th>
+                <th>Gæster</th>
+            {% endfill %}
+            {% fill "body" %}
                 {% for day in days %}
                     <tr>
-                        <td class="p-2">
+                        <td>
                             <div class="flex px-2 py-1">
                                 <div>
                                 <p class="inline-flex items-center justify-center mr-4 h-9 w-9 text-xl">{{ forloop.counter }}.</p>
@@ -33,15 +31,15 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="p-2 text-center">
+                        <td>
                             <span class="font-semibold">{{ day.date }}</span>
                         </td>
-                        <td class="p-2 text-center">
+                        <td>
                             <span class="font-semibold">{{ day.entry_count }}</span>
                         </td>
                     </tr>
                 {% endfor %}
-            </tbody>
-        </table>
+            {% endfill %}
+        {% endcomponent %}
     </div>
 </div>
