@@ -1,0 +1,10 @@
+<table class="items-center w-full mb-0 align-top border-gray-200 text-slate-500">
+    <thead class="border-b border-b-solid border-b-gray-200 text-slate-400 uppercase font-bold opacity-70 [&_tr_th]:px-6 [&_tr_th]:py-3 text-center">
+        {% slot "head" %}
+        {% endslot %}
+    </thead>
+    <tbody class="[&_tr:not(:last-child)]:border-b [&_tr_td:not(:first-child)]:p-2 text-center">
+        {% slot "body" %}
+        {% endslot %}
+    </tbody>
+</table>
