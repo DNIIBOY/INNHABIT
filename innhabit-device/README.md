@@ -150,3 +150,28 @@ Example: Process a video file
 - Ensure all required model files are placed in the `models/` directory.
 - Use the appropriate target platform flag when building.
 - For additional optimizations, adjust platform-specific code in the `src/platforms` directory.
+
+[INFO] Postprocessing - Frame size: 1280x720
+[INFO] Found 10 boxes above threshold 0.1
+[INFO] Postprocess: 1 detections after NMS
+[INFO] Detect Timing (ms):
+[INFO]   Preprocess: 19.1639
+[INFO]   H2D Copy: 0.089062
+[INFO]   Inference: 54.3678
+[INFO]   D2H Copy: 0.07875
+[INFO]   Sync: 0.04599
+[INFO]   Postprocess: 1.50042
+[INFO]   Draw: 0.134896
+[INFO]   Total: 76.131
+[INFO] Postprocessing - Frame size: 1280x720
+[INFO] Found 10 boxes above threshold 0.1
+[INFO] Postprocess: 1 detections after NMS
+[INFO] Detect Timing (ms):
+[INFO]   Preprocess: 19.1259
+[INFO]   H2D Copy: 0.08276
+[INFO]   Inference: 54.3921
+[INFO]   D2H Copy: 0.076562
+[INFO]   Sync: 0.044948
+[INFO]   Postprocess: 1.52729
+[INFO]   Draw: 0.142344
+[INFO]   Total: 76.1747

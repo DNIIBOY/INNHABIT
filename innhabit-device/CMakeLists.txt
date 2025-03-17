@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(ObjectDetection)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find OpenCV
@@ -30,7 +30,7 @@ if(USE_CUDA OR USE_TENSORRT)  # CUDA is required for both CUDA and TensorRT targ
         message(FATAL_ERROR "CUDA is required for USE_CUDA or USE_TENSORRT but was not found!")
     endif()
     include_directories(${CUDA_INCLUDE_DIRS})
-    link_directories(${CUDA_LIBRARY_DIRS})
+    link_directories(${CUDA_LIBRARY_DIRS} "${CUDA_TOOLKIT_ROOT_DIR}/targets/aarch64-linux/lib/libcudart.so")
 endif()
 
 if(USE_CUDA)
@@ -96,7 +96,7 @@ target_link_libraries(object_detection PRIVATE
 
 if(USE_CUDA OR USE_TENSORRT)
     # Explicitly link CUDA runtime library
-    find_library(CUDART_LIBRARY cudart HINTS ${CUDA_LIBRARY_DIRS})
+    find_library(CUDART_LIBRARY cudart HINTS ${CUDA_LIBRARY_DIRS} PATHS /usr/local/cuda-10.2/targets/aarch64-linux/lib)
     if(NOT CUDART_LIBRARY)
         message(FATAL_ERROR "CUDA runtime library (libcudart.so) not found!")
     endif()

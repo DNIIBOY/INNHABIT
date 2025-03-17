@@ -3,14 +3,14 @@
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
 #include <cuda_runtime_api.h>
+#include <cuda_fp16.h>  // Added for FP16 support
 #include <fstream>
 #include <memory>
 #include <algorithm>
 #include <iostream>
-#include <cmath>  // For std::exp
-
-#define LOG(msg) std::cout << "[DEBUG] " << msg << std::endl
-#define ERROR(msg) std::cerr << "[ERROR] " << msg << std::endl
+#include <cmath>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/cudawarping.hpp>
 
 class Logger : public nvinfer1::ILogger {
 public:
@@ -72,15 +72,14 @@ private:
     std::string inputName;
     std::string outputName;
 
-    void checkCudaStatus(const char* operation) {
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) {
-            ERROR(operation << " failed: " << cudaGetErrorString(err));
+    void checkCudaStatus(cudaError_t status, const char* operation) {
+        if (status != cudaSuccess) {
+            ERROR(operation << " failed: " << cudaGetErrorString(status));
         }
     }
 
     void printDetections(const std::vector<Detection>& detections) const {
-        for (size_t i = 0; i < std::min<size_t>(detections.size(), 3); ++i) {  // Print up to 3 detections
+        for (size_t i = 0; i < std::min<size_t>(detections.size(), 3); ++i) {
             const Detection& det = detections[i];
             std::cout << "  Detection " << i + 1 << ":" << std::endl;
             std::cout << "    Class: " << det.classId << std::endl;
@@ -93,108 +92,114 @@ private:
         }
     }
     
-    bool buildEngine(const std::string& onnxFilePath, const std::string& engineFilePath) {
-        LOG("Starting engine build process");
-        LOG("ONNX path: " << onnxFilePath);
-        LOG("Engine path: " << engineFilePath);
-        
-        std::ifstream engineFile(engineFilePath, std::ios::binary);
-        if (engineFile.good()) {
-            LOG("Found existing engine file");
-            engineFile.seekg(0, std::ios::end);
-            size_t size = engineFile.tellg();
-            engineFile.seekg(0, std::ios::beg);
-            std::vector<char> engineData(size);
-            engineFile.read(engineData.data(), size);
-            
-            runtime.reset(nvinfer1::createInferRuntime(gLogger));
-            if (!runtime) {
-                ERROR("Runtime creation failed - check CUDA installation");
-                return false;
-            }
-            engine.reset(runtime->deserializeCudaEngine(engineData.data(), size));
-            if (!engine) {
-                ERROR("Engine deserialization failed - possibly corrupted file or wrong TensorRT version");
-                return false;
-            }
-            LOG("Successfully loaded existing engine");
-            return true;
-        }
-        
-        LOG("Building new engine from ONNX");
-        TRTUniquePtr<nvinfer1::IBuilder> builder(nvinfer1::createInferBuilder(gLogger));
-        if (!builder) {
-            ERROR("Builder creation failed - check TensorRT installation");
-            return false;
-        }
-        LOG("Builder created successfully");
-        
-        const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-        TRTUniquePtr<nvinfer1::INetworkDefinition> network(builder->createNetworkV2(explicitBatch));
-        if (!network) {
-            ERROR("Failed to create TensorRT network definition");
-            return false;
-        }
-        LOG("Network definition created");
-        
-        TRTUniquePtr<nvonnxparser::IParser> parser(nvonnxparser::createParser(*network, gLogger));
-        if (!parser) {
-            ERROR("Failed to create ONNX parser");
-            return false;
-        }
-        LOG("ONNX parser created");
-        
-        std::ifstream onnxFile(onnxFilePath, std::ios::binary);
-        if (!onnxFile.good()) {
-            ERROR("Failed to open ONNX file: " << onnxFilePath);
-            return false;
-        }
-        onnxFile.seekg(0, std::ios::end);
-        size_t size = onnxFile.tellg();
-        onnxFile.seekg(0, std::ios::beg);
-        std::vector<char> onnxData(size);
-        onnxFile.read(onnxData.data(), size);
-        
-        if (!parser->parse(onnxData.data(), size)) {
-            ERROR("Failed to parse ONNX model");
-            return false;
-        }
-        LOG("ONNX model parsed successfully");
-        
-        TRTUniquePtr<nvinfer1::IBuilderConfig> config(builder->createBuilderConfig());
-        if (!config) {
-            ERROR("Failed to create builder config");
-            return false;
-        }
-        config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, 1ULL << 30);
-        
-        TRTUniquePtr<nvinfer1::IHostMemory> serializedEngine(builder->buildSerializedNetwork(*network, *config));
-        if (!serializedEngine) {
-            ERROR("Failed to build serialized engine");
-            return false;
-        }
-        LOG("Engine built successfully");
-        
-        std::ofstream engineOutput(engineFilePath, std::ios::binary);
-        if (!engineOutput.good()) {
-            ERROR("Failed to open engine file for writing: " << engineFilePath);
-            return false;
-        }
-        engineOutput.write(static_cast<const char*>(serializedEngine->data()), serializedEngine->size());
+ bool buildEngine(const std::string& onnxFilePath, const std::string& engineFilePath) {
+    LOG("Starting engine build process");
+    LOG("ONNX path: " << onnxFilePath);
+    LOG("Engine path: " << engineFilePath);
+    
+    std::ifstream engineFile(engineFilePath, std::ios::binary);
+    if (engineFile.good()) {
+        LOG("Found existing engine file");
+        engineFile.seekg(0, std::ios::end);
+        size_t size = engineFile.tellg();
+        engineFile.seekg(0, std::ios::beg);
+        std::vector<char> engineData(size);
+        engineFile.read(engineData.data(), size);
         
         runtime.reset(nvinfer1::createInferRuntime(gLogger));
         if (!runtime) {
-            ERROR("Failed to create TensorRT runtime");
+            ERROR("Runtime creation failed - check CUDA installation");
             return false;
         }
-        engine.reset(runtime->deserializeCudaEngine(serializedEngine->data(), serializedEngine->size()));
+        engine.reset(runtime->deserializeCudaEngine(engineData.data(), size));
         if (!engine) {
-            ERROR("Failed to deserialize CUDA engine");
+            ERROR("Engine deserialization failed");
             return false;
         }
-        LOG("Engine deserialized successfully");
+        LOG("Successfully loaded existing engine");
+        for (int i = 0; i < engine->getNbBindings(); i++) {
+            LOG("Binding " << i << " data type: " << static_cast<int>(engine->getBindingDataType(i)));
+        }
         return true;
     }
+    
+    LOG("Building new engine from ONNX");
+    TRTUniquePtr<nvinfer1::IBuilder> builder(nvinfer1::createInferBuilder(gLogger));
+    if (!builder) {
+        ERROR("Builder creation failed - check TensorRT installation");
+        return false;
+    }
+    
+    const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+    TRTUniquePtr<nvinfer1::INetworkDefinition> network(builder->createNetworkV2(explicitBatch));
+    if (!network) {
+        ERROR("Failed to create TensorRT network definition");
+        return false;
+    }
+    
+    TRTUniquePtr<nvonnxparser::IParser> parser(nvonnxparser::createParser(*network, gLogger));
+    if (!parser) {
+        ERROR("Failed to create ONNX parser");
+        return false;
+    }
+    
+    std::ifstream onnxFile(onnxFilePath, std::ios::binary);
+    if (!onnxFile.good()) {
+        ERROR("Failed to open ONNX file: " << onnxFilePath);
+        return false;
+    }
+    onnxFile.seekg(0, std::ios::end);
+    size_t size = onnxFile.tellg();
+    onnxFile.seekg(0, std::ios::beg);
+    std::vector<char> onnxData(size);
+    onnxFile.read(onnxData.data(), size);
+    
+    if (!parser->parse(onnxData.data(), size)) {
+        ERROR("Failed to parse ONNX model");
+        return false;
+    }
+    
+    TRTUniquePtr<nvinfer1::IBuilderConfig> config(builder->createBuilderConfig());
+    if (!config) {
+        ERROR("Failed to create builder config");
+        return false;
+    }
+    config->setMaxWorkspaceSize(1ULL << 30);  // 1GB workspace
+    config->setFlag(nvinfer1::BuilderFlag::kFP16);  // Enable FP16 precision
+    config->clearFlag(nvinfer1::BuilderFlag::kTF32);  // Disable TensorFloat-32
+    if (!builder->platformHasFastFp16()) {
+        ERROR("Platform does not support fast FP16 - falling back to FP32 might occur");
+    }
+
+    TRTUniquePtr<nvinfer1::IHostMemory> serializedEngine(builder->buildSerializedNetwork(*network, *config));
+    if (!serializedEngine) {
+        ERROR("Failed to build serialized engine");
+        return false;
+    }
+    
+    std::ofstream engineOutput(engineFilePath, std::ios::binary);
+    if (!engineOutput.good()) {
+        ERROR("Failed to open engine file for writing: " << engineFilePath);
+        return false;
+    }
+    engineOutput.write(static_cast<const char*>(serializedEngine->data()), serializedEngine->size());
+    
+    runtime.reset(nvinfer1::createInferRuntime(gLogger));
+    if (!runtime) {
+        ERROR("Failed to create TensorRT runtime");
+        return false;
+    }
+    engine.reset(runtime->deserializeCudaEngine(serializedEngine->data(), serializedEngine->size()));
+    if (!engine) {
+        ERROR("Failed to deserialize CUDA engine");
+        return false;
+    }
+    LOG("Engine deserialized successfully");
+    for (int i = 0; i < engine->getNbBindings(); i++) {
+        LOG("Binding " << i << " data type: " << static_cast<int>(engine->getBindingDataType(i)));
+    }
+    return true;
+}
     
     bool initializeBuffers() {
         LOG("Initializing buffers");
@@ -202,12 +207,12 @@ private:
             ERROR("CUDA stream creation failed - check CUDA runtime");
             return false;
         }
-        LOG("CUDA stream created");
         
         int numBindings = engine->getNbBindings();
         LOG("Number of bindings: " << numBindings);
         if (numBindings < 2) {
             ERROR("Invalid number of bindings - expected at least 1 input and 1 output");
+            return false;
         }
         
         bufferManager.deviceBuffers.resize(numBindings);
@@ -227,12 +232,15 @@ private:
             for (int j = 0; j < dims.nbDims; j++) {
                 size *= dims.d[j];
             }
-            switch (dtype) {
-                case nvinfer1::DataType::kFLOAT: size *= sizeof(float); break;
-                case nvinfer1::DataType::kHALF: size *= sizeof(int16_t); break;
-                case nvinfer1::DataType::kINT8: size *= sizeof(int8_t); break;
-                case nvinfer1::DataType::kINT32: size *= sizeof(int32_t); break;
-                default: ERROR("Unsupported data type"); return false;
+            if (dtype == nvinfer1::DataType::kHALF) {
+                size *= sizeof(__half);  // FP16
+                LOG("  Data type: FP16");
+            } else if (dtype == nvinfer1::DataType::kFLOAT) {
+                size *= sizeof(float);  // FP32
+                LOG("  Data type: FP32");
+            } else {
+                ERROR("Unsupported data type: " << static_cast<int>(dtype));
+                return false;
             }
             bufferManager.sizes[i] = size;
             LOG("  Size in bytes: " << size);
@@ -261,92 +269,151 @@ private:
         return true;
     }
     
-    void preprocessImage(const cv::Mat& frame, float* inputBuffer) {
-        cv::Mat resized;
-        cv::resize(frame, resized, cv::Size(width, height));
-        cv::Mat floatImage;
-        resized.convertTo(floatImage, CV_32FC3, 1.0/255.0);
-        cv::Mat rgbImage;
-        cv::cvtColor(floatImage, rgbImage, cv::COLOR_BGR2RGB);
-        std::vector<cv::Mat> channels(3);
-        cv::split(rgbImage, channels);
-        int channelSize = width * height;
-        for (int c = 0; c < 3; c++) {
-            memcpy(inputBuffer + c * channelSize, channels[c].data, channelSize * sizeof(float));
+    void preprocess(const cv::Mat& frame, void* inputBuffer) {  // Use void* to handle both FP16 and FP32
+        const cv::Scalar PADDING_COLOR(114, 114, 114);
+        cv::cuda::GpuMat gpu_frame, gpu_rgb, gpu_resized_part, gpu_output;
+        cv::cuda::Stream cvStream;
+
+        gpu_frame.upload(frame, cvStream);
+        cv::cuda::cvtColor(gpu_frame, gpu_rgb, cv::COLOR_BGR2RGB, 0, cvStream);
+
+        const int img_width = frame.cols;
+        const int img_height = frame.rows;
+        float scale = std::min(static_cast<float>(width) / img_width, static_cast<float>(height) / img_height);
+        const int new_width = static_cast<int>(img_width * scale);
+        const int new_height = static_cast<int>(img_height * scale);
+        const int dx = (width - new_width) / 2;
+        const int dy = (height - new_height) / 2;
+
+        cv::cuda::resize(gpu_rgb, gpu_resized_part, cv::Size(new_width, new_height), 0, 0, cv::INTER_LINEAR, cvStream);
+        gpu_output.create(height, width, CV_8UC3);
+        gpu_output.setTo(PADDING_COLOR, cvStream);
+        gpu_resized_part.copyTo(gpu_output(cv::Rect(dx, dy, new_width, new_height)), cvStream);
+
+        // Convert based on engine data type
+        cv::Mat cpu_float;
+        const int channelSize = width * height;
+        nvinfer1::DataType dtype = engine->getBindingDataType(0);  // Assuming binding 0 is input
+        if (dtype == nvinfer1::DataType::kHALF) {
+            cv::cuda::GpuMat gpu_half;
+            gpu_output.convertTo(gpu_half, CV_16F, 1.0 / 255.0, 0, cvStream);
+            gpu_half.download(cpu_float, cvStream);
+            cvStream.waitForCompletion();
+            std::vector<cv::Mat> channels(3);
+            cv::split(cpu_float, channels);
+            __half* ptr = static_cast<__half*>(inputBuffer);
+            for (int i = 0; i < 3; ++i) {
+                std::vector<__half> channelData(channelSize);
+                for (int j = 0; j < channelSize; ++j) {
+                    channelData[j] = __float2half(channels[i].at<float>(j));
+                }
+                checkCudaStatus(cudaMemcpyAsync(ptr + i * channelSize, channelData.data(),
+                                                channelSize * sizeof(__half), cudaMemcpyHostToDevice,
+                                                bufferManager.stream), "Channel upload");
+            }
+        } else {  // FP32
+            cv::cuda::GpuMat gpu_float;
+            gpu_output.convertTo(gpu_float, CV_32F, 1.0 / 255.0, 0, cvStream);
+            gpu_float.download(cpu_float, cvStream);
+            cvStream.waitForCompletion();
+            std::vector<cv::Mat> channels(3);
+            cv::split(cpu_float, channels);
+            float* ptr = static_cast<float*>(inputBuffer);
+            for (int i = 0; i < 3; ++i) {
+                checkCudaStatus(cudaMemcpyAsync(ptr + i * channelSize, channels[i].data,
+                                                channelSize * sizeof(float), cudaMemcpyHostToDevice,
+                                                bufferManager.stream), "Channel upload");
+            }
         }
+
+        checkCudaStatus(cudaStreamSynchronize(bufferManager.stream), "Stream sync in preprocess");
     }
     
-    void postprocessDetections(const float* outputBuffer, cv::Mat& frame, std::vector<Detection>& detections) {
+    void postprocess(const void* outputBuffer, cv::Mat& frame, std::vector<Detection>& detections) {
         const int frameWidth = frame.cols;
         const int frameHeight = frame.rows;
         const float widthScale = static_cast<float>(frameWidth) / 640;
         const float heightScale = static_cast<float>(frameHeight) / 640;
         const int numBboxes = 8400;
-        const int numElements = 5;  // x, y, w, h, score
-        
-        // Transpose on CPU: (5, 8400) -> (8400, 5)
+        const int numElements = 5;
+
+        LOG("Postprocessing - Frame size: " << frameWidth << "x" << frameHeight);
+        if (!outputBuffer) {
+            ERROR("Output buffer is null");
+            return;
+        }
+
         std::vector<float> transposed(numBboxes * numElements);
-        for (int i = 0; i < numBboxes; i++) {
-            for (int j = 0; j < numElements; j++) {
-                transposed[i * numElements + j] = outputBuffer[j * numBboxes + i];
+        nvinfer1::DataType dtype = engine->getBindingDataType(4);  // Assuming binding 4 is 'outputs'
+        if (dtype == nvinfer1::DataType::kHALF) {
+            const __half* halfBuffer = static_cast<const __half*>(outputBuffer);
+            for (int i = 0; i < numBboxes; i++) {
+                for (int j = 0; j < numElements; j++) {
+                    transposed[i * numElements + j] = __half2float(halfBuffer[j * numBboxes + i]);
+                }
+            }
+        } else {  // FP32
+            const float* floatBuffer = static_cast<const float*>(outputBuffer);
+            for (int i = 0; i < numBboxes; i++) {
+                for (int j = 0; j < numElements; j++) {
+                    transposed[i * numElements + j] = floatBuffer[j * numBboxes + i];
+                }
             }
         }
-    
+
+        // Rest of the postprocessing logic remains unchanged
         std::vector<cv::Rect> boxes;
         std::vector<float> confidences;
         std::vector<int> classIds;
-        float minConf = 1.0f, maxConf = 0.0f;
-        int aboveThreshold = 0;
-    
+
+        int validDetections = 0;
         for (int i = 0; i < numBboxes; i++) {
             float centerX = transposed[i * numElements];
             float centerY = transposed[i * numElements + 1];
             float boxWidth = transposed[i * numElements + 2];
             float boxHeight = transposed[i * numElements + 3];
-            float rawScore = transposed[i * numElements + 4];
-            float confidence = rawScore;  // Test direct value
-            // float confidence = 1.0f / (1.0f + std::exp(-rawScore));  // Uncomment to test sigmoid
-            
-            confidence = std::min(1.0f, std::max(0.0f, confidence));
-            minConf = std::min(minConf, confidence);
-            maxConf = std::max(maxConf, confidence);
-            
+            float confidence = transposed[i * numElements + 4];
+
             if (confidence > confidenceThreshold) {
-                aboveThreshold++;
+                validDetections++;
                 float scaledCenterX = centerX * widthScale;
                 float scaledCenterY = centerY * heightScale;
                 float scaledWidth = boxWidth * widthScale;
                 float scaledHeight = boxHeight * heightScale;
-                
+
                 int x = static_cast<int>(scaledCenterX - (scaledWidth / 2));
                 int y = static_cast<int>(scaledCenterY - (scaledHeight / 2));
                 int w = static_cast<int>(scaledWidth);
                 int h = static_cast<int>(scaledHeight);
-                
+
                 w = std::max(w, 10);
                 h = std::max(h, 10);
-                x = std::max(0, std::min(x, frameWidth - 1));
-                y = std::max(0, std::min(y, frameHeight - 1));
-                w = std::min(w, frameWidth - x);
-                h = std::min(h, frameHeight - y);
-                
+                x = std::max(0, std::min(x, frameWidth - w));
+                y = std::max(0, std::min(y, frameHeight - h));
+
                 boxes.push_back(cv::Rect(x, y, w, h));
                 confidences.push_back(confidence);
                 classIds.push_back(0);
             }
         }
-        
+
+        LOG("Found " << validDetections << " boxes above threshold " << confidenceThreshold);
+
         std::vector<int> indices;
-        cv::dnn::NMSBoxes(boxes, confidences, confidenceThreshold, iouThreshold, indices);
-        
+        cv::dnn::NMSBoxes(boxes, confidences, NMS_THRESH, BOX_THRESH, indices);
+
         detections.clear();
-        for (int idx : indices) {
+        detections.reserve(indices.size());
+        for (size_t i = 0; i < indices.size(); ++i) {
+            int idx = indices[i];
             Detection det;
-            det.classId = classIds[idx];
+            det.classId = 0 <= classIds[idx] && classIds[idx] < numClasses ? targetClasses[classIds[idx]] : "unknown";
             det.confidence = confidences[idx];
             det.box = boxes[idx];
             detections.push_back(det);
         }
+
+        LOG("Postprocess: " << detections.size() << " detections after NMS");
     }
 public:
     TensorRTDetector(const std::string& modelPath, const std::vector<std::string>& targetClasses_)
@@ -385,41 +452,98 @@ public:
 
     void detect(cv::Mat& frame) override {
         if (!initialized) {
-            ERROR("Detector not properly initialized");
+            ERROR("Detector not initialized");
+            return;
+        }
+
+        if (frame.empty()) {
+            ERROR("Input frame is empty");
             return;
         }
 
         detections.clear();
-        float* inputBuffer = static_cast<float*>(bufferManager.hostBuffers[0]);
-        preprocessImage(frame, inputBuffer);
-        
-        if (cudaMemcpyAsync(bufferManager.deviceBuffers[0], bufferManager.hostBuffers[0], 
-            bufferManager.sizes[0], cudaMemcpyHostToDevice, bufferManager.stream) != cudaSuccess) {
-            ERROR("Failed to copy input data to device");
-            checkCudaStatus("cudaMemcpyAsync input");
-            return;
-        }
-        
-        if (!context->enqueueV2(bufferManager.deviceBuffers.data(), bufferManager.stream, nullptr)) {
-            ERROR("Failed to execute TensorRT inference");
+        if (bufferManager.hostBuffers.size() < 5) {
+            ERROR("Insufficient host buffers: " << bufferManager.hostBuffers.size());
             return;
         }
 
-        // Use correct output binding (index 4 for 'outputs')
-        int outputIndex = 4;  // Binding 4 is 'outputs'
-        float* outputBuffer = static_cast<float*>(bufferManager.hostBuffers[outputIndex]);
-        if (cudaMemcpyAsync(bufferManager.hostBuffers[outputIndex], bufferManager.deviceBuffers[outputIndex], 
-            bufferManager.sizes[outputIndex], cudaMemcpyDeviceToHost, bufferManager.stream) != cudaSuccess) {
-            ERROR("Failed to copy output data to host");
-            checkCudaStatus("cudaMemcpyAsync output");
+        void* inputBuffer = bufferManager.hostBuffers[0];  // Changed to __half
+        void* outputBuffer = bufferManager.hostBuffers[4];  // Changed to __half
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        preprocess(frame, inputBuffer);
+        auto t2 = std::chrono::high_resolution_clock::now();
+
+        cudaEvent_t event, infStart, infStop;
+        checkCudaStatus(cudaEventCreate(&event), "Event create");
+        checkCudaStatus(cudaEventCreate(&infStart), "InfStart create");
+        checkCudaStatus(cudaEventCreate(&infStop), "InfStop create");
+
+        auto t3 = std::chrono::high_resolution_clock::now();
+        checkCudaStatus(cudaMemcpyAsync(bufferManager.deviceBuffers[0], inputBuffer,
+                bufferManager.sizes[0], cudaMemcpyHostToDevice, bufferManager.stream),
+                "Input copy");
+        auto t4 = std::chrono::high_resolution_clock::now();
+        
+        auto t5 = std::chrono::high_resolution_clock::now();
+        checkCudaStatus(cudaEventRecord(infStart, bufferManager.stream), "InfStart record");
+        if (!context->enqueueV2(bufferManager.deviceBuffers.data(), bufferManager.stream, nullptr)) {
+            ERROR("Inference failed");
+            cudaEventDestroy(event);
+            cudaEventDestroy(infStart);
+            cudaEventDestroy(infStop);
             return;
         }
-        
-        cudaStreamSynchronize(bufferManager.stream);
-        checkCudaStatus("cudaStreamSynchronize");
-        
-        postprocessDetections(outputBuffer, frame, detections);
+        checkCudaStatus(cudaEventRecord(infStop, bufferManager.stream), "InfStop record");
+        checkCudaStatus(cudaEventSynchronize(infStop), "InfStop sync");
+        float inferenceMs;
+        checkCudaStatus(cudaEventElapsedTime(&inferenceMs, infStart, infStop), "Elapsed time");
+        auto t6 = std::chrono::high_resolution_clock::now();
+
+        auto t7 = std::chrono::high_resolution_clock::now();
+        checkCudaStatus(cudaMemcpyAsync(outputBuffer, bufferManager.deviceBuffers[4],
+                bufferManager.sizes[4], cudaMemcpyDeviceToHost, bufferManager.stream),
+                "Output copy");
+        auto t8 = std::chrono::high_resolution_clock::now();
+
+        auto t9 = std::chrono::high_resolution_clock::now();
+        checkCudaStatus(cudaEventRecord(event, bufferManager.stream), "Event record");
+        checkCudaStatus(cudaEventSynchronize(event), "Event sync");
+        cudaEventDestroy(event);
+        cudaEventDestroy(infStart);
+        cudaEventDestroy(infStop);
+        auto t10 = std::chrono::high_resolution_clock::now();
+
+        auto t11 = std::chrono::high_resolution_clock::now();
+        postprocess(outputBuffer, frame, detections);
+        auto t12 = std::chrono::high_resolution_clock::now();
+
+        auto t13 = std::chrono::high_resolution_clock::now();
         drawDetections(frame, detections);
+        auto t14 = std::chrono::high_resolution_clock::now();
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        double preprocessTime = std::chrono::duration<double, std::milli>(t2 - t1).count();
+        double h2dTime = std::chrono::duration<double, std::milli>(t4 - t3).count();
+        double inferenceTime = static_cast<double>(inferenceMs);
+        double d2hTime = std::chrono::duration<double, std::milli>(t8 - t7).count();
+        double syncTime = std::chrono::duration<double, std::milli>(t10 - t9).count();
+        double postprocessTime = std::chrono::duration<double, std::milli>(t12 - t11).count();
+        double drawTime = std::chrono::duration<double, std::milli>(t14 - t13).count();
+        double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
+
+        LOG("Detect Timing (ms):");
+        LOG("  Preprocess: " << preprocessTime);
+        LOG("  H2D Copy: " << h2dTime);
+        LOG("  Inference: " << inferenceTime);
+        LOG("  D2H Copy: " << d2hTime);
+        LOG("  Sync: " << syncTime);
+        LOG("  Postprocess: " << postprocessTime);
+        LOG("  Draw: " << drawTime);
+        LOG("  Total: " << totalTime);
     }
 
 protected:
