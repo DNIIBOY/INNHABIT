@@ -5,17 +5,17 @@
 </div>
 <div class="px-0 pb-2">
     <div class="overflow-x-auto">
-        <table class="items-center w-full mb-0 align-top border-gray-200 text-slate-500">
-            <thead class="border-b border-b-solid border-b-gray-200 text-slate-400 uppercase opacity-70 font-bold">
+        {% component "table" %}
+            {% fill "head" %}
                 <tr>
                     <th class="px-6 py-3 text-left">Indgang</th>
                     <th class="px-6 py-3 text-center">Tidspunkt</th>
                     <th class="px-6 py-3 text-center">Retning</th>
                 </tr>
-            </thead>
-            <tbody class="[&_tr:not(:last-child)]:border-b">
+            {% endfill %}
+            {% fill "body" %}
                 {% for event in events %}
-                    <tr class="p-2">
+                    <tr>
                         <td class="pl-6 text-left">
                             <h6>{{ event.entrance.name }}</h6>
                         </td>
@@ -31,7 +31,7 @@
                         </td>
                     </tr>
                 {% endfor %}
-            </tbody>
-        </table>
+            {% endfill %}
+        {% endcomponent %}
     </div>
 </div>
