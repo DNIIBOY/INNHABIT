@@ -9,6 +9,7 @@
                 {% fill "head" %}
                     <th class="text-left">Navn</th>
                     <th>Email</th>
+                    <th>Last Login</th>
                 {% endfill %}
                 {% fill "body" %}
                     {% for user in users %}
@@ -23,6 +24,13 @@
                             <td>
                                 <span class="font-semibold">{{ user.email }}</span>
                             </td>
+                            <td>
+                                <span>{{ user.last_login|date:"H:i, d/m/Y" }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'user' user.id %}" class="bi-eye bg-green-400 px-1 text-white align-middle flex rounded-lg"></a>
+                            </td>
+                            
                         </tr>
                     {% endfor %}
                 {% endfill %}
@@ -30,4 +38,9 @@
         {% endfill %}
     {% endcomponent %}
 </div>
+
+<div>
+    <a href="" class="text-6xl inline-flex ">+</a>
+</div>
+
 {% endblock %}

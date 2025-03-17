@@ -14,7 +14,9 @@ User = get_user_model()
 @permission_required("accounts.view_user")
 def users(request: HttpRequest) -> HttpResponse:
     users_objects = User.objects.all()
-    context = {"users": users_objects}
+    context = {
+        "users": users_objects,
+    }
     return render(request, "manage_users.html", context)
 
 
