@@ -4,12 +4,16 @@ project(ObjectDetection)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find OpenCV
+# Find OpenCV (ensure CUDA support is enabled)
 find_package(OpenCV REQUIRED)
+if(NOT OpenCV_CUDA_VERSION)
+    message(WARNING "OpenCV was not built with CUDA support. GPU acceleration may be limited.")
+endif()
+
 # Find CURL
 find_package(CURL REQUIRED)
 
-# Include directories (assuming common.h is in include/)
+# Include directories
 include_directories(${OpenCV_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include)
 
 # Options for platform support
@@ -24,13 +28,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Platform-specific configurations
-if(USE_CUDA OR USE_TENSORRT)  # CUDA is required for both CUDA and TensorRT targets
+if(USE_CUDA OR USE_TENSORRT)
     find_package(CUDA REQUIRED)
     if(NOT CUDA_FOUND)
         message(FATAL_ERROR "CUDA is required for USE_CUDA or USE_TENSORRT but was not found!")
     endif()
     include_directories(${CUDA_INCLUDE_DIRS})
-    link_directories(${CUDA_LIBRARY_DIRS} "${CUDA_TOOLKIT_ROOT_DIR}/targets/aarch64-linux/lib/libcudart.so")
+    link_directories(${CUDA_LIBRARY_DIRS})
 endif()
 
 if(USE_CUDA)
@@ -77,10 +81,21 @@ if(USE_CUDA)
 endif()
 if(USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/tensorrt.cpp)
+    # Add CUDA kernel source file
+    #set(CUDA_KERNEL_SOURCES src/platforms/preprocess.cu)
 endif()
 if(NOT USE_CUDA AND NOT USE_RKNN AND NOT USE_TENSORRT)
-    list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)  # Default to CPU if no other target
+    list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)  # Default to CPU
 endif()
+
+# Compile CUDA kernels if TensorRT is enabled
+#if(USE_TENSORRT)
+#    cuda_add_library(cuda_kernels STATIC ${CUDA_KERNEL_SOURCES})
+#    set_target_properties(cuda_kernels PROPERTIES
+#        CUDA_SEPARABLE_COMPILATION ON
+#        POSITION_INDEPENDENT_CODE ON
+#    )
+#endif()
 
 # Add executable
 add_executable(object_detection
@@ -95,8 +110,7 @@ target_link_libraries(object_detection PRIVATE
 )
 
 if(USE_CUDA OR USE_TENSORRT)
-    # Explicitly link CUDA runtime library
-    find_library(CUDART_LIBRARY cudart HINTS ${CUDA_LIBRARY_DIRS} PATHS /usr/local/cuda-10.2/targets/aarch64-linux/lib)
+    find_library(CUDART_LIBRARY cudart HINTS ${CUDA_LIBRARY_DIRS} PATHS /usr/local/cuda/lib64)
     if(NOT CUDART_LIBRARY)
         message(FATAL_ERROR "CUDA runtime library (libcudart.so) not found!")
     endif()
@@ -108,7 +122,11 @@ if(USE_RKNN)
 endif()
 
 if(USE_TENSORRT)
-    target_link_libraries(object_detection PRIVATE ${TENSORRT_LIBRARY} ${TENSORRT_ONNX_LIBRARY})
+    target_link_libraries(object_detection PRIVATE 
+        ${TENSORRT_LIBRARY}
+        ${TENSORRT_ONNX_LIBRARY}
+        #cuda_kernels  # Link the CUDA kernels library
+    )
 endif()
 
 # Set output directory
@@ -118,11 +136,12 @@ set_target_properties(object_detection PROPERTIES
 
 # Print configuration status
 message(STATUS "Building ObjectDetection with:")
-message(STATUS "  - OpenCV: ${OpenCV_VERSION}")
+message(STATUS "  - OpenCV: ${OpenCV_VERSION} (CUDA: ${OpenCV_CUDA_VERSION})")
 message(STATUS "  - CURL: ${CURL_VERSION_STRING}")
 message(STATUS "  - USE_CUDA: ${USE_CUDA}")
 message(STATUS "  - USE_RKNN: ${USE_RKNN}")
 message(STATUS "  - USE_TENSORRT: ${USE_TENSORRT}")
 message(STATUS "  - Platform sources: ${PLATFORM_SOURCES}")
+message(STATUS "  - CUDA Kernel sources: ${CUDA_KERNEL_SOURCES}")
 message(STATUS "  - Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  - CUDA Library: ${CUDART_LIBRARY}")

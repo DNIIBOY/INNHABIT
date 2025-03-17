@@ -12,6 +12,12 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/cudawarping.hpp>
 
+// Define whether to use FP16 precision
+#define isFP16 true
+
+// Define whether to perform model warmup
+#define warmup true
+
 class Logger : public nvinfer1::ILogger {
 public:
     void log(Severity severity, const char* msg) noexcept override {
@@ -65,8 +71,6 @@ private:
         }
     } bufferManager;
     
-    float confidenceThreshold;
-    float iouThreshold;
     int numClasses;
     int numBoxes;
     std::string inputName;
@@ -107,15 +111,7 @@ private:
         engineFile.read(engineData.data(), size);
         
         runtime.reset(nvinfer1::createInferRuntime(gLogger));
-        if (!runtime) {
-            ERROR("Runtime creation failed - check CUDA installation");
-            return false;
-        }
         engine.reset(runtime->deserializeCudaEngine(engineData.data(), size));
-        if (!engine) {
-            ERROR("Engine deserialization failed");
-            return false;
-        }
         LOG("Successfully loaded existing engine");
         for (int i = 0; i < engine->getNbBindings(); i++) {
             LOG("Binding " << i << " data type: " << static_cast<int>(engine->getBindingDataType(i)));
@@ -125,24 +121,11 @@ private:
     
     LOG("Building new engine from ONNX");
     TRTUniquePtr<nvinfer1::IBuilder> builder(nvinfer1::createInferBuilder(gLogger));
-    if (!builder) {
-        ERROR("Builder creation failed - check TensorRT installation");
-        return false;
-    }
     
     const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
     TRTUniquePtr<nvinfer1::INetworkDefinition> network(builder->createNetworkV2(explicitBatch));
-    if (!network) {
-        ERROR("Failed to create TensorRT network definition");
-        return false;
-    }
-    
-    TRTUniquePtr<nvonnxparser::IParser> parser(nvonnxparser::createParser(*network, gLogger));
-    if (!parser) {
-        ERROR("Failed to create ONNX parser");
-        return false;
-    }
-    
+
+    TRTUniquePtr<nvonnxparser::IParser> parser(nvonnxparser::createParser(*network, gLogger));    
     std::ifstream onnxFile(onnxFilePath, std::ios::binary);
     if (!onnxFile.good()) {
         ERROR("Failed to open ONNX file: " << onnxFilePath);
@@ -153,17 +136,9 @@ private:
     onnxFile.seekg(0, std::ios::beg);
     std::vector<char> onnxData(size);
     onnxFile.read(onnxData.data(), size);
-    
-    if (!parser->parse(onnxData.data(), size)) {
-        ERROR("Failed to parse ONNX model");
-        return false;
-    }
-    
+        
     TRTUniquePtr<nvinfer1::IBuilderConfig> config(builder->createBuilderConfig());
-    if (!config) {
-        ERROR("Failed to create builder config");
-        return false;
-    }
+
     config->setMaxWorkspaceSize(1ULL << 30);  // 1GB workspace
     config->setFlag(nvinfer1::BuilderFlag::kFP16);  // Enable FP16 precision
     config->clearFlag(nvinfer1::BuilderFlag::kTF32);  // Disable TensorFloat-32
@@ -172,32 +147,13 @@ private:
     }
 
     TRTUniquePtr<nvinfer1::IHostMemory> serializedEngine(builder->buildSerializedNetwork(*network, *config));
-    if (!serializedEngine) {
-        ERROR("Failed to build serialized engine");
-        return false;
-    }
     
     std::ofstream engineOutput(engineFilePath, std::ios::binary);
-    if (!engineOutput.good()) {
-        ERROR("Failed to open engine file for writing: " << engineFilePath);
-        return false;
-    }
     engineOutput.write(static_cast<const char*>(serializedEngine->data()), serializedEngine->size());
     
     runtime.reset(nvinfer1::createInferRuntime(gLogger));
-    if (!runtime) {
-        ERROR("Failed to create TensorRT runtime");
-        return false;
-    }
+
     engine.reset(runtime->deserializeCudaEngine(serializedEngine->data(), serializedEngine->size()));
-    if (!engine) {
-        ERROR("Failed to deserialize CUDA engine");
-        return false;
-    }
-    LOG("Engine deserialized successfully");
-    for (int i = 0; i < engine->getNbBindings(); i++) {
-        LOG("Binding " << i << " data type: " << static_cast<int>(engine->getBindingDataType(i)));
-    }
     return true;
 }
     
@@ -332,92 +288,59 @@ private:
     void postprocess(const void* outputBuffer, cv::Mat& frame, std::vector<Detection>& detections) {
         const int frameWidth = frame.cols;
         const int frameHeight = frame.rows;
-        const float widthScale = static_cast<float>(frameWidth) / 640;
-        const float heightScale = static_cast<float>(frameHeight) / 640;
+        const float widthScale = static_cast<float>(frameWidth) / 640.0f; // Assuming 640x640 input
+        const float heightScale = static_cast<float>(frameHeight) / 640.0f;
         const int numBboxes = 8400;
-        const int numElements = 5;
-
-        LOG("Postprocessing - Frame size: " << frameWidth << "x" << frameHeight);
-        if (!outputBuffer) {
-            ERROR("Output buffer is null");
-            return;
-        }
-
-        std::vector<float> transposed(numBboxes * numElements);
-        nvinfer1::DataType dtype = engine->getBindingDataType(4);  // Assuming binding 4 is 'outputs'
-        if (dtype == nvinfer1::DataType::kHALF) {
-            const __half* halfBuffer = static_cast<const __half*>(outputBuffer);
-            for (int i = 0; i < numBboxes; i++) {
-                for (int j = 0; j < numElements; j++) {
-                    transposed[i * numElements + j] = __half2float(halfBuffer[j * numBboxes + i]);
-                }
-            }
-        } else {  // FP32
-            const float* floatBuffer = static_cast<const float*>(outputBuffer);
-            for (int i = 0; i < numBboxes; i++) {
-                for (int j = 0; j < numElements; j++) {
-                    transposed[i * numElements + j] = floatBuffer[j * numBboxes + i];
-                }
-            }
-        }
-
-        // Rest of the postprocessing logic remains unchanged
+    
+        const cv::Mat detection_output(5, numBboxes, CV_32F, const_cast<float*>(static_cast<const float*>(outputBuffer)));
         std::vector<cv::Rect> boxes;
         std::vector<float> confidences;
         std::vector<int> classIds;
-
-        int validDetections = 0;
-        for (int i = 0; i < numBboxes; i++) {
-            float centerX = transposed[i * numElements];
-            float centerY = transposed[i * numElements + 1];
-            float boxWidth = transposed[i * numElements + 2];
-            float boxHeight = transposed[i * numElements + 3];
-            float confidence = transposed[i * numElements + 4];
-
-            if (confidence > confidenceThreshold) {
-                validDetections++;
+    
+        for (int i = 0; i < detection_output.cols; i++) {
+            float confidence = detection_output.at<float>(4, i); // Objectness score
+            if (confidence > BOX_THRESH) {
+                // extract bounding box coordinates from output
+                float centerX = detection_output.at<float>(0, i);
+                float centerY = detection_output.at<float>(1, i);
+                float boxWidth = detection_output.at<float>(2, i);
+                float boxHeight = detection_output.at<float>(3, i);
+                // Scale bounding box input size of video or image
                 float scaledCenterX = centerX * widthScale;
                 float scaledCenterY = centerY * heightScale;
                 float scaledWidth = boxWidth * widthScale;
                 float scaledHeight = boxHeight * heightScale;
-
+                // Calculate bounding box coordinates
                 int x = static_cast<int>(scaledCenterX - (scaledWidth / 2));
                 int y = static_cast<int>(scaledCenterY - (scaledHeight / 2));
                 int w = static_cast<int>(scaledWidth);
                 int h = static_cast<int>(scaledHeight);
-
-                w = std::max(w, 10);
-                h = std::max(h, 10);
-                x = std::max(0, std::min(x, frameWidth - w));
-                y = std::max(0, std::min(y, frameHeight - h));
-
+        
                 boxes.push_back(cv::Rect(x, y, w, h));
                 confidences.push_back(confidence);
-                classIds.push_back(0);
+                classIds.push_back(0); // Default to class 0 (single-class assumption)
             }
         }
-
-        LOG("Found " << validDetections << " boxes above threshold " << confidenceThreshold);
-
+    
         std::vector<int> indices;
         cv::dnn::NMSBoxes(boxes, confidences, NMS_THRESH, BOX_THRESH, indices);
-
+    
         detections.clear();
         detections.reserve(indices.size());
-        for (size_t i = 0; i < indices.size(); ++i) {
-            int idx = indices[i];
+        for (int i = 0; i < indices.size(); i++) {
             Detection det;
-            det.classId = 0 <= classIds[idx] && classIds[idx] < numClasses ? targetClasses[classIds[idx]] : "unknown";
+            int idx = indices[i];
+            det.classId = classIds[idx];
             det.confidence = confidences[idx];
             det.box = boxes[idx];
             detections.push_back(det);
         }
-
+    
         LOG("Postprocess: " << detections.size() << " detections after NMS");
     }
 public:
     TensorRTDetector(const std::string& modelPath, const std::vector<std::string>& targetClasses_)
-        : GenericDetector(modelPath, targetClasses_), confidenceThreshold(0.1f), iouThreshold(0.1f), numClasses(1), numBoxes(0) {
+        : GenericDetector(modelPath, targetClasses_), numClasses(1), numBoxes(0) {
         LOG("Initializing TensorRTDetector");
         std::string onnxFilePath = modelPath + "/Yolov11ng3.onnx";
         std::string engineFilePath = modelPath + "/Yolov11ng3.trt";
@@ -462,13 +385,9 @@ public:
         }
 
         detections.clear();
-        if (bufferManager.hostBuffers.size() < 5) {
-            ERROR("Insufficient host buffers: " << bufferManager.hostBuffers.size());
-            return;
-        }
 
-        void* inputBuffer = bufferManager.hostBuffers[0];  // Changed to __half
-        void* outputBuffer = bufferManager.hostBuffers[4];  // Changed to __half
+        void* inputBuffer = bufferManager.hostBuffers[0];
+        void* outputBuffer = bufferManager.hostBuffers[4];  
 
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -518,12 +437,9 @@ public:
 
         auto t11 = std::chrono::high_resolution_clock::now();
         postprocess(outputBuffer, frame, detections);
+        printDetections(detections);
         auto t12 = std::chrono::high_resolution_clock::now();
-
-        auto t13 = std::chrono::high_resolution_clock::now();
-        drawDetections(frame, detections);
-        auto t14 = std::chrono::high_resolution_clock::now();
-
+        //drawDetections(frame, detections);
         auto end = std::chrono::high_resolution_clock::now();
 
         double preprocessTime = std::chrono::duration<double, std::milli>(t2 - t1).count();
@@ -532,7 +448,6 @@ public:
         double d2hTime = std::chrono::duration<double, std::milli>(t8 - t7).count();
         double syncTime = std::chrono::duration<double, std::milli>(t10 - t9).count();
         double postprocessTime = std::chrono::duration<double, std::milli>(t12 - t11).count();
-        double drawTime = std::chrono::duration<double, std::milli>(t14 - t13).count();
         double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
 
         LOG("Detect Timing (ms):");
@@ -542,7 +457,6 @@ public:
         LOG("  D2H Copy: " << d2hTime);
         LOG("  Sync: " << syncTime);
         LOG("  Postprocess: " << postprocessTime);
-        LOG("  Draw: " << drawTime);
         LOG("  Total: " << totalTime);
     }
 

@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
         cerr << "The application will continue without API connectivity." << endl;
     }
 
-    unique_ptr<Detector> detector(createDetector(modelPath, targetClasses));
+    Detector* detector = createDetector(modelPath, targetClasses);
     if (!detector) {
         cerr << "Error: Failed to initialize detector." << endl;
         return -1;

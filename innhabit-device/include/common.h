@@ -15,10 +15,10 @@ using json = nlohmann::json;
 
 // Detection threshold constants
 #ifndef BOX_THRESH
-#define BOX_THRESH 0.25
+#define BOX_THRESH 0.10
 #endif
 #ifndef NMS_THRESH
-#define NMS_THRESH 0.45
+#define NMS_THRESH 0.30
 #endif
 
 
