@@ -21,7 +21,7 @@ def users(request: HttpRequest) -> HttpResponse:
 
 
 @permission_required("accounts.add_user")
-def add_user(request: HttpRequest, email: str) -> HttpResponse:
+def add_user(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
         return render(request, "registration/add_user.html")
 
