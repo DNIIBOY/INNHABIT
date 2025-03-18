@@ -7,7 +7,7 @@ from django_components import DynamicComponent
 
 
 def index(request: HttpRequest) -> HttpResponse:
-    if request.user.has_perm("accounts.view_admin_dashboard"):
+    if request.user.is_authenticated:
         return render(request, "admin_dashboard.html")
     return render(request, "public_dashboard.html")
 

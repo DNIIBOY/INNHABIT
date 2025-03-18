@@ -1,4 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ user.get_full_name }}</h1>
+<div class="flex flex-wrap w-full h-full justify-center">
+    {% component "card" %}
+        {% fill "content" %}  
+        <div class="p-4">
+            <h2 class="text-xl font-semibold">Navn</h2>
+            <span>{{ user.get_full_name}}</span>
+            <h2 class="text-xl font-semibold">E-mail address</h2>
+            <span>{{ user.email }}</span>
+            <h2 class="text-xl font-semibold">Last login</h2>
+            <span>{{ user.last_login|date:"H:i, d/m/Y" }}</span>
+            <h2 class="text-xl font-semibold">Date created</h2>
+            <span>{{ user.date_joined }}</span>
+        </div>
+        {% endfill %}
+    {% endcomponent %}
+    {% component "card" %}
+        {% fill "content" %}
+        <div class="p-4">
+            <h2 class="text-xl font-semibold">Kodeords gendandelse</h2>
+            <span>mail connection idk</span>
+            <h2 class="text-xl font-semibold">Udslet denne user</h2>
+            <span>dissable user mail</span>
+        </div>
+        {% endfill %}
+    {% endcomponent %}
+</div>
+
 {% endblock %}

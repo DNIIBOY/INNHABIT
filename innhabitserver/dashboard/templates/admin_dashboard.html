@@ -5,70 +5,88 @@
 <div class="flex flex-col h-full justify-center w-full">
     <div class="flex flex-wrap">
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% component "card" %}
-                {% fill "content" %}
-                    {% component "occupants" %}{% endcomponent %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event and perms.occupancy.view_exit_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                            {% component "occupants" %}{% endcomponent %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% component "card" %}
-                {% fill "content" %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% component "card" %}
-                {% fill "content" %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% component "card" %}
-                {% fill "content" %}
-                    {% component "monthly_visitors" %}{% endcomponent %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                            {% component "monthly_visitors" %}{% endcomponent %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
     </div>
 
     <div class="flex flex-wrap mt-6">
         <div class="w-full flex flex-col px-3 mb-6 lg:mb-0 lg:w-1/3">
-            {% component "card" %}
-                {% fill "content" %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
         <div class="w-full px-3 mb-6 lg:mb-0 lg:w-1/4">
-            {% component "card" %}
-                {% fill "content" %}
-                    {% component "entrance_overview" %}{% endcomponent %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event and perms.occupancy.view_entrances %}
+                {% component "card" %}
+                    {% fill "content" %}
+                            {% component "entrance_overview" %}{% endcomponent %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
         <div class="w-full max-w-full px-3 lg:w-5/12">
-            {% component "card" %}
-                {% fill "content" %}
-                    {% component "latest_events" %}{% endcomponent %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event or perms.occupancy.view_exit_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                            {% component "latest_events" %}{% endcomponent %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
     </div>
 
     <div class="flex flex-wrap mt-6">
         <div class="w-full max-w-full px-3 mt-0 mb-6 lg:mb-0 lg:w-5/12 lg:flex-none">
-            {% component "card" %}
-                {% fill "content" %}
-                    {% component "busiest_days" %}{% endcomponent %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event and perms.dashboard.view_labelled_date %}
+                {% component "card" %}
+                    {% fill "content" %}
+                            {% component "busiest_days" %}{% endcomponent %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mt-0 lg:w-7/12 lg:flex-none">
-            {% component "card" %}
-                {% fill "content" %}
-                    {% component "comparison_plot" %}{% endcomponent %}
-                {% endfill %}
-            {% endcomponent %}
+            {% if perms.occupancy.view_entry_event and perms.occupancy.view_exit_event %}
+                {% component "card" %}
+                    {% fill "content" %}
+                            {% component "comparison_plot" %}{% endcomponent %}
+                    {% endfill %}
+                {% endcomponent %}
+            {% endif %}
         </div>
     </div>
 </div>

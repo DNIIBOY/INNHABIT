@@ -1,21 +1,21 @@
 import requests
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from .tokens import account_activation_token
 
-User = get_user_model()
 
-
-def send_activation_email(user: User, host: str = "https://innhabit.dk") -> None:
+def send_activation_email(
+    user: AbstractBaseUser, host: str = "https://innhabit.dk"
+) -> None:
     b64uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = account_activation_token.make_token(user)
     path = reverse("activate_account", args=[b64uid, token])
 
-    requests.post(
+    x = requests.post(
         "https://api.eu.mailgun.net/v3/mg.sigmaboy.dk/messages",
         auth=("api", settings.MAILGUN_API_KEY),
         data={
@@ -26,3 +26,4 @@ def send_activation_email(user: User, host: str = "https://innhabit.dk") -> None
         },
         timeout=5,
     )
+    print(x.text)
