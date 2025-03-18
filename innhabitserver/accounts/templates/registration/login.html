@@ -17,24 +17,20 @@
         <div class="flex justify-center gap-3 flex-col text-2xl p-3 text-white font-bold mb-4">
             <label for="username">Email:</label>
             <input type="text" name="username" placeholder="eksempel@student.aau.dk" class="text-black p-2 rounded">
-            {% if form.username.errors %}
-                <div class="text-red-300 text-sm font-normal">
-                    {% for error in form.username.errors %}
-                        <p>{{ error }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class="text-red-300 text-sm font-normal">
+                {% for error in form.username.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
         </div>
         <div class="flex justify-center gap-3 flex-col text-2xl p-3 text-white font-bold mb-4">
             <label for="password">Kodeord:</label>
             <input type="password" name="password" placeholder="***********" class="text-black p-2 rounded">
-            {% if form.password.errors %}
-                <div class="text-red-300 text-sm font-normal">
-                    {% for error in form.password.errors %}
-                        <p>{{ error }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class="text-red-300 text-sm font-normal">
+                {% for error in form.password.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
         </div>
         <div class="text-xl text-white font-bold mb-4">
             <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="hover:underline">Har du glemt din adgangskode?</a>

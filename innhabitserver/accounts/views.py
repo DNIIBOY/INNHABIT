@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
-from .forms import AddUserForm
+from .forms import AddUserForm, SetupUserForm
 from .tokens import account_activation_token
 from .utils import send_activation_email
 
@@ -52,14 +52,20 @@ def activate_account_view(
         return redirect("index")
 
     uid = force_str(urlsafe_base64_decode(b64uid))
-    user_object = get_object_or_404(User.objects.filter(is_active=False), pk=uid)
-    if not account_activation_token.check_token(user_object, token):
+    user_object = User.objects.filter(id=uid, is_active=False).first()
+    if not user_object or not account_activation_token.check_token(user_object, token):
         return render(request, "registration/activation_failure.html")
 
     if request.method == "GET":
-        context = {"user": user_object}
+        context = {"new_user": user_object}
         return render(request, "registration/setup_account.html", context)
 
+    form = SetupUserForm(request.POST, instance=user_object)
+    if not form.is_valid():
+        context = {"new_user": user_object, "form": form}
+        return render(request, "registration/setup_account.html", context)
+
+    form.save()
     user_object.is_active = True
     user_object.save()
     return redirect("login")
