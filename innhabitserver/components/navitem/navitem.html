@@ -3,23 +3,23 @@
 <li class="w-full text-lg">
     {% if active %}
     <a
-        href=""
+        href="{{ url  }}"
         class="rounded-lg text-slate-700 py-3 flex gap-4 items-center px-4 bg-white font-semibold shadow-xl hover:bg-slate-50 group active:opacity-85 transition-all"
     >
         <div class="shadow-2xl flex h-8 w-8 items-center justify-center rounded-lg text-center bg-gradient-to-r from-aau to-aau-light group-hover:scale-105 transition-all">
-            <i class="bi-shop-window flex text-white"></i>
+            <i class="bi-{{ icon }} flex text-white"></i>
         </div>
-        <p>Dashboard</p>
+        <p>{{ content }}</p>
     </a>
     {% else %}
     <a
-        href=""
+        href="{{ url  }}"
         class="group rounded-lg text-slate-700 py-3 flex gap-4 items-center px-4 hover:bg-white hover:font-semibold hover:shadow-xl active:opacity-85 transition-all"
     >
         <div class="shadow-xl flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-transparent group-hover:border-gray-200 group-hover:shadow-none transition-all group-hover:scale-105">
-            <i class="bi-shop-window flex"></i>
+            <i class="bi-{{ icon }} flex"></i>
         </div>
-        <p>Dashboard</p>
+        <p>{{ content }}</p>
     </a>
     {% endif %}
 </li>

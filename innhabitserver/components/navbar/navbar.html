@@ -20,8 +20,8 @@
 
     <div class="items-center w-auto h-screen overflow-auto grow basis-full">
         <ul class="flex flex-col px-4 gap-2">
-            {% component "navitem" active=True %}{% endcomponent %}
-            {% component "navitem" %}{% endcomponent %}
+            {% component "navitem" url_name="dashboard" content="Dashboard" icon="shop-window" %}{% endcomponent %}
+            {% component "navitem" url_name="users" content="Brugere" icon="people" %}{% endcomponent %}
             {% component "navitem" %}{% endcomponent %}
         </ul>
     </div>
