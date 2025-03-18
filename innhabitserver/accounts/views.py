@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
+from .forms import AddUserForm
 from .tokens import account_activation_token
 from .utils import send_activation_email
 
@@ -25,8 +26,12 @@ def add_user(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
         return render(request, "registration/add_user.html")
 
+    form = AddUserForm(request.POST)
+    if not form.is_valid():
+        return render(request, "registration/add_user.html", {"form": form})
+
     user_object = User.objects.create_user(
-        email=request.POST["email"],
+        email=form.cleaned_data["email"],
         is_active=False,
     )
     send_activation_email(user_object, host=request.get_host())

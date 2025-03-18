@@ -15,7 +15,8 @@ def send_activation_email(user: User, host: str = "https://innhabit.dk") -> None
     token = account_activation_token.make_token(user)
     path = reverse("activate_account", args=[b64uid, token])
 
-    requests.post(
+    print(user.email)
+    x = requests.post(
         "https://api.eu.mailgun.net/v3/mg.sigmaboy.dk/messages",
         auth=("api", settings.MAILGUN_API_KEY),
         data={
@@ -26,3 +27,4 @@ def send_activation_email(user: User, host: str = "https://innhabit.dk") -> None
         },
         timeout=5,
     )
+    print(x.text)
