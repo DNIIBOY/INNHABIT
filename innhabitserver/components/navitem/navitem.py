@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django_components import Component, register
 
 
@@ -5,5 +6,13 @@ from django_components import Component, register
 class Navitem(Component):
     template_name = "navitem.html"
 
-    def get_context_data(self, active: bool = False) -> dict:
-        return {"active": active}
+    def get_context_data(
+        self, url_name: str = "", content: str = "Nav Item", icon: str = "question"
+    ) -> dict:
+        url = reverse(url_name) if url_name else ""
+        return {
+            "active": self.request.path == url,
+            "icon": icon,
+            "url": url,
+            "content": content,
+        }
