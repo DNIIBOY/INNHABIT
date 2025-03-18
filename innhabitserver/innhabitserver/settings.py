@@ -26,6 +26,7 @@ env = environ.Env(
         str,
         get_random_secret_key(),
     ),
+    MAILGUN_API_KEY=(str, ""),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
