@@ -82,20 +82,20 @@ endif()
 if(USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/tensorrt.cpp)
     # Add CUDA kernel source file
-    #set(CUDA_KERNEL_SOURCES src/platforms/preprocess.cu)
+    set(CUDA_KERNEL_SOURCES src/platforms/preprocess.cu src/platforms/postprocess.cu)
 endif()
 if(NOT USE_CUDA AND NOT USE_RKNN AND NOT USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)  # Default to CPU
 endif()
 
 # Compile CUDA kernels if TensorRT is enabled
-#if(USE_TENSORRT)
-#    cuda_add_library(cuda_kernels STATIC ${CUDA_KERNEL_SOURCES})
-#    set_target_properties(cuda_kernels PROPERTIES
-#        CUDA_SEPARABLE_COMPILATION ON
-#        POSITION_INDEPENDENT_CODE ON
-#    )
-#endif()
+if(USE_TENSORRT)
+    cuda_add_library(cuda_kernels STATIC ${CUDA_KERNEL_SOURCES})
+    set_target_properties(cuda_kernels PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        POSITION_INDEPENDENT_CODE ON
+    )
+endif()
 
 # Add executable
 add_executable(object_detection
@@ -125,7 +125,7 @@ if(USE_TENSORRT)
     target_link_libraries(object_detection PRIVATE 
         ${TENSORRT_LIBRARY}
         ${TENSORRT_ONNX_LIBRARY}
-        #cuda_kernels  # Link the CUDA kernels library
+        cuda_kernels  # Link the CUDA kernels library
     )
 endif()
 

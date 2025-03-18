@@ -1,479 +1,389 @@
 #include "detector.h"
 #include "common.h"
-#include <NvInfer.h>
+#include "logging.h"
+#include "cuda_utils.h"
+#include "macros.h"
+#include "preprocess.h"
 #include <NvOnnxParser.h>
-#include <cuda_runtime_api.h>
-#include <cuda_fp16.h>  // Added for FP16 support
+#include "common.h"
 #include <fstream>
-#include <memory>
-#include <algorithm>
 #include <iostream>
-#include <cmath>
-#include <opencv2/cudaimgproc.hpp>
-#include <opencv2/cudawarping.hpp>
+#include "NvInfer.h"
+#include <opencv2/opencv.hpp>
 
-// Define whether to use FP16 precision
+using namespace nvinfer1;
+using namespace std;
+using namespace cv;
+
 #define isFP16 true
-
-// Define whether to perform model warmup
 #define warmup true
 
-class Logger : public nvinfer1::ILogger {
-public:
-    void log(Severity severity, const char* msg) noexcept override {
-        if (severity <= Severity::kWARNING) {
-            switch (severity) {
-                case Severity::kINTERNAL_ERROR: std::cerr << "[TRT ERROR] "; break;
-                case Severity::kERROR: std::cerr << "[TRT ERROR] "; break;
-                case Severity::kWARNING: std::cerr << "[TRT WARNING] "; break;
-                case Severity::kINFO: std::cerr << "[TRT INFO] "; break;
-                default: std::cerr << "[TRT UNKNOWN] "; break;
-            }
-            std::cerr << msg << std::endl;
-        }
-    }
-};
-
-struct TRTDeleter {
-    template <typename T>
-    void operator()(T* obj) const {
-        if (obj) obj->destroy();
-    }
-};
-
-template <typename T>
-using TRTUniquePtr = std::unique_ptr<T, TRTDeleter>;
+Logger logger; // Use the logger from logging.h instead of redefining
 
 class TensorRTDetector : public GenericDetector {
 private:
-    static Logger gLogger;
-    
-    TRTUniquePtr<nvinfer1::IRuntime> runtime;
-    TRTUniquePtr<nvinfer1::ICudaEngine> engine;
-    TRTUniquePtr<nvinfer1::IExecutionContext> context;
-    
-    struct BufferManager {
-        std::vector<void*> deviceBuffers;
-        std::vector<void*> hostBuffers;
-        std::vector<size_t> sizes;
-        cudaStream_t stream;
         
-        BufferManager() : stream(nullptr) {}
-        
-        ~BufferManager() {
-            for (void* buffer : deviceBuffers) {
-                if (buffer) cudaFree(buffer);
-            }
-            for (void* buffer : hostBuffers) {
-                if (buffer) cudaFreeHost(buffer);
-            }
-            if (stream) cudaStreamDestroy(stream);
-        }
-    } bufferManager;
+    float* gpu_buffers[5];               //!< The vector of device buffers needed for engine execution
+    float* cpu_output_buffer;
+
+    cudaStream_t stream;
+    IRuntime* runtime;                 //!< The TensorRT runtime used to deserialize the engine
+    ICudaEngine* engine;               //!< The TensorRT engine used to run the network
+    IExecutionContext* context;        //!< The context for executing inference using an ICudaEngine
+
+    float* gpu_filtered_output;   // GPU buffer for filtered detections
+    int* gpu_filtered_count;      // GPU counter for filtered detections
+    float* gpu_nms_output;        // GPU buffer for NMS results
+    int* gpu_nms_count;           // GPU counter for NMS results
+
+    // Model parameters
+    int model_input_w;
+    int model_input_h;
+    int num_detections;
+    int detection_attribute_size;
+    int num_classes = 1;
+    const int MAX_IMAGE_SIZE = 1280 * 720;
+    float conf_threshold = BOX_THRESH;
+    float nms_threshold = NMS_THRESH;
     
-    int numClasses;
-    int numBoxes;
-    std::string inputName;
-    std::string outputName;
-
-    void checkCudaStatus(cudaError_t status, const char* operation) {
-        if (status != cudaSuccess) {
-            ERROR(operation << " failed: " << cudaGetErrorString(status));
-        }
-    }
-
+    
     void printDetections(const std::vector<Detection>& detections) const {
-        for (size_t i = 0; i < std::min<size_t>(detections.size(), 3); ++i) {
+        size_t displayCount = std::min<size_t>(detections.size(), 3);
+        for (size_t i = 0; i < displayCount; ++i) {
             const Detection& det = detections[i];
-            std::cout << "  Detection " << i + 1 << ":" << std::endl;
-            std::cout << "    Class: " << det.classId << std::endl;
-            std::cout << "    Confidence: " << det.confidence << std::endl;
-            std::cout << "    Bounding Box: [x=" << det.box.x << ", y=" << det.box.y
-                      << ", width=" << det.box.width << ", height=" << det.box.height << "]" << std::endl;
+            std::cout << "  Detection " << i + 1 << ": Class=" << det.classId 
+                      << ", Conf=" << det.confidence << ", Box=[x=" << det.box.x 
+                      << ",y=" << det.box.y << ",w=" << det.box.width 
+                      << ",h=" << det.box.height << "]" << std::endl;
         }
-        if (detections.size() > 3) {
-            LOG("... and " << (detections.size() - 3) << " more detections");
+        if (detections.size() > displayCount) {
+            std::cout << "... and " << (detections.size() - displayCount) << " more" << std::endl;
         }
     }
     
- bool buildEngine(const std::string& onnxFilePath, const std::string& engineFilePath) {
-    LOG("Starting engine build process");
-    LOG("ONNX path: " << onnxFilePath);
-    LOG("Engine path: " << engineFilePath);
-    
-    std::ifstream engineFile(engineFilePath, std::ios::binary);
-    if (engineFile.good()) {
-        LOG("Found existing engine file");
-        engineFile.seekg(0, std::ios::end);
-        size_t size = engineFile.tellg();
-        engineFile.seekg(0, std::ios::beg);
-        std::vector<char> engineData(size);
-        engineFile.read(engineData.data(), size);
+    bool buildEngine(const std::string& onnxPath, nvinfer1::ILogger& logger) {
         
-        runtime.reset(nvinfer1::createInferRuntime(gLogger));
-        engine.reset(runtime->deserializeCudaEngine(engineData.data(), size));
-        LOG("Successfully loaded existing engine");
-        for (int i = 0; i < engine->getNbBindings(); i++) {
-            LOG("Binding " << i << " data type: " << static_cast<int>(engine->getBindingDataType(i)));
+        // create tensorrt builder
+        auto builder = createInferBuilder(logger);
+        const auto explicitBatch = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+        INetworkDefinition* network = builder->createNetworkV2(explicitBatch);
+        IBuilderConfig* config = builder->createBuilderConfig();
+        if (isFP16)
+        {
+            config->setFlag(BuilderFlag::kFP16);
+        }
+        nvonnxparser::IParser* parser = nvonnxparser::createParser(*network, logger);
+        bool parsed = parser->parseFromFile(onnxPath.c_str(), static_cast<int>(nvinfer1::ILogger::Severity::kINFO));
+        IHostMemory* plan{ builder->buildSerializedNetwork(*network, *config) };
+
+        runtime = createInferRuntime(logger);
+
+        engine = runtime->deserializeCudaEngine(plan->data(), plan->size());
+
+        context = engine->createExecutionContext();
+
+        delete network;
+        delete config;
+        delete parser;
+        delete plan;
+    }
+
+    bool saveEngine(const std::string& onnxpath) {
+        // Create an engine path from onnx path
+        std::string engine_path;
+        size_t dotIndex = onnxpath.find_last_of(".");
+        if (dotIndex != std::string::npos) {
+            engine_path = onnxpath.substr(0, dotIndex) + ".engine";
+        }
+        else
+        {
+            return false;
+        }
+
+        // Save the engine to the path
+        if (engine)
+        {
+            nvinfer1::IHostMemory* data = engine->serialize();
+            std::ofstream file;
+            file.open(engine_path, std::ios::binary | std::ios::out);
+            if (!file.is_open())
+            {
+                std::cout << "Create engine file" << engine_path << " failed" << std::endl;
+                return 0;
+            }
+            file.write((const char*)data->data(), data->size());
+            file.close();
+
+            delete data;
         }
         return true;
     }
     
-    LOG("Building new engine from ONNX");
-    TRTUniquePtr<nvinfer1::IBuilder> builder(nvinfer1::createInferBuilder(gLogger));
-    
-    const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-    TRTUniquePtr<nvinfer1::INetworkDefinition> network(builder->createNetworkV2(explicitBatch));
-
-    TRTUniquePtr<nvonnxparser::IParser> parser(nvonnxparser::createParser(*network, gLogger));    
-    std::ifstream onnxFile(onnxFilePath, std::ios::binary);
-    if (!onnxFile.good()) {
-        ERROR("Failed to open ONNX file: " << onnxFilePath);
-        return false;
-    }
-    onnxFile.seekg(0, std::ios::end);
-    size_t size = onnxFile.tellg();
-    onnxFile.seekg(0, std::ios::beg);
-    std::vector<char> onnxData(size);
-    onnxFile.read(onnxData.data(), size);
-        
-    TRTUniquePtr<nvinfer1::IBuilderConfig> config(builder->createBuilderConfig());
-
-    config->setMaxWorkspaceSize(1ULL << 30);  // 1GB workspace
-    config->setFlag(nvinfer1::BuilderFlag::kFP16);  // Enable FP16 precision
-    config->clearFlag(nvinfer1::BuilderFlag::kTF32);  // Disable TensorFloat-32
-    if (!builder->platformHasFastFp16()) {
-        ERROR("Platform does not support fast FP16 - falling back to FP32 might occur");
-    }
-
-    TRTUniquePtr<nvinfer1::IHostMemory> serializedEngine(builder->buildSerializedNetwork(*network, *config));
-    
-    std::ofstream engineOutput(engineFilePath, std::ios::binary);
-    engineOutput.write(static_cast<const char*>(serializedEngine->data()), serializedEngine->size());
-    
-    runtime.reset(nvinfer1::createInferRuntime(gLogger));
-
-    engine.reset(runtime->deserializeCudaEngine(serializedEngine->data(), serializedEngine->size()));
-    return true;
-}
-    
-    bool initializeBuffers() {
-        LOG("Initializing buffers");
-        if (cudaStreamCreate(&bufferManager.stream) != cudaSuccess) {
-            ERROR("CUDA stream creation failed - check CUDA runtime");
-            return false;
-        }
-        
-        int numBindings = engine->getNbBindings();
-        LOG("Number of bindings: " << numBindings);
-        if (numBindings < 2) {
-            ERROR("Invalid number of bindings - expected at least 1 input and 1 output");
-            return false;
-        }
-        
-        bufferManager.deviceBuffers.resize(numBindings);
-        bufferManager.hostBuffers.resize(numBindings);
-        bufferManager.sizes.resize(numBindings);
-        
-        for (int i = 0; i < numBindings; i++) {
-            nvinfer1::Dims dims = engine->getBindingDimensions(i);
-            nvinfer1::DataType dtype = engine->getBindingDataType(i);
-            LOG("Binding " << i << ": " << engine->getBindingName(i));
-            LOG("  Dimensions: " << dims.nbDims);
-            for (int j = 0; j < dims.nbDims; j++) {
-                LOG("  Dim[" << j << "]: " << dims.d[j]);
-            }
-            
-            size_t size = 1;
-            for (int j = 0; j < dims.nbDims; j++) {
-                size *= dims.d[j];
-            }
-            if (dtype == nvinfer1::DataType::kHALF) {
-                size *= sizeof(__half);  // FP16
-                LOG("  Data type: FP16");
-            } else if (dtype == nvinfer1::DataType::kFLOAT) {
-                size *= sizeof(float);  // FP32
-                LOG("  Data type: FP32");
-            } else {
-                ERROR("Unsupported data type: " << static_cast<int>(dtype));
-                return false;
-            }
-            bufferManager.sizes[i] = size;
-            LOG("  Size in bytes: " << size);
-            
-            if (cudaMalloc(&bufferManager.deviceBuffers[i], size) != cudaSuccess) {
-                ERROR("Failed to allocate device memory for binding " << i);
-                return false;
-            }
-            if (cudaMallocHost(&bufferManager.hostBuffers[i], size) != cudaSuccess) {
-                ERROR("Failed to allocate host memory for binding " << i);
-                return false;
-            }
-            
-            if (engine->bindingIsInput(i)) {
-                inputName = engine->getBindingName(i);
-                LOG("Input binding: " << inputName << ", size: " << size << " bytes");
-            } else {
-                outputName = engine->getBindingName(i);
-                LOG("Output binding: " << outputName << ", size: " << size << " bytes");
-                nvinfer1::Dims outputDims = engine->getBindingDimensions(i);
-                if (outputDims.nbDims == 3) {
-                    numBoxes = outputDims.d[2];
-                }
-            }
-        }
-        return true;
+    void preprocess(Mat& frame) {
+        // Preprocessing data on gpu
+        cuda_preprocess(frame.ptr(), frame.cols, frame.rows, gpu_buffers[0], model_input_w, model_input_h, stream);
+        CUDA_CHECK(cudaStreamSynchronize(stream));
     }
     
-    void preprocess(const cv::Mat& frame, void* inputBuffer) {  // Use void* to handle both FP16 and FP32
-        const cv::Scalar PADDING_COLOR(114, 114, 114);
-        cv::cuda::GpuMat gpu_frame, gpu_rgb, gpu_resized_part, gpu_output;
-        cv::cuda::Stream cvStream;
+    void postprocess(std::vector<Detection>& output) {
+        // Pre-allocate output vector to avoid dynamic resizing
+        output.reserve(100); // Adjust based on expected max detections
 
-        gpu_frame.upload(frame, cvStream);
-        cv::cuda::cvtColor(gpu_frame, gpu_rgb, cv::COLOR_BGR2RGB, 0, cvStream);
+        // Synchronize and copy data from GPU
+        CUDA_CHECK(cudaMemcpyAsync(cpu_output_buffer, gpu_buffers[4], 
+                                detection_attribute_size * num_detections * sizeof(float), 
+                                cudaMemcpyDeviceToHost, stream));
+        CUDA_CHECK(cudaStreamSynchronize(stream));
 
-        const int img_width = frame.cols;
-        const int img_height = frame.rows;
-        float scale = std::min(static_cast<float>(width) / img_width, static_cast<float>(height) / img_height);
-        const int new_width = static_cast<int>(img_width * scale);
-        const int new_height = static_cast<int>(img_height * scale);
-        const int dx = (width - new_width) / 2;
-        const int dy = (height - new_height) / 2;
+        // Use a single pass to filter and scale boxes
+        const Mat det_output(detection_attribute_size, num_detections, CV_32F, cpu_output_buffer);
+        
+        // Scaling factors (assuming these are class members or passed in)
+        const float ratio_h = static_cast<float>(model_input_h) / 720.0f; // Video height: 1280x720
+        const float ratio_w = static_cast<float>(model_input_w) / 1280.0f; // Video width: 1280x720
+        const float scale = std::min(ratio_h, ratio_w);
+        const float offset_x = (ratio_h > ratio_w) ? 0.0f : (model_input_w - ratio_h * 1280.0f) * 0.5f;
+        const float offset_y = (ratio_h > ratio_w) ? (model_input_h - ratio_w * 720.0f) * 0.5f : 0.0f;
 
-        cv::cuda::resize(gpu_rgb, gpu_resized_part, cv::Size(new_width, new_height), 0, 0, cv::INTER_LINEAR, cvStream);
-        gpu_output.create(height, width, CV_8UC3);
-        gpu_output.setTo(PADDING_COLOR, cvStream);
-        gpu_resized_part.copyTo(gpu_output(cv::Rect(dx, dy, new_width, new_height)), cvStream);
-
-        // Convert based on engine data type
-        cv::Mat cpu_float;
-        const int channelSize = width * height;
-        nvinfer1::DataType dtype = engine->getBindingDataType(0);  // Assuming binding 0 is input
-        if (dtype == nvinfer1::DataType::kHALF) {
-            cv::cuda::GpuMat gpu_half;
-            gpu_output.convertTo(gpu_half, CV_16F, 1.0 / 255.0, 0, cvStream);
-            gpu_half.download(cpu_float, cvStream);
-            cvStream.waitForCompletion();
-            std::vector<cv::Mat> channels(3);
-            cv::split(cpu_float, channels);
-            __half* ptr = static_cast<__half*>(inputBuffer);
-            for (int i = 0; i < 3; ++i) {
-                std::vector<__half> channelData(channelSize);
-                for (int j = 0; j < channelSize; ++j) {
-                    channelData[j] = __float2half(channels[i].at<float>(j));
-                }
-                checkCudaStatus(cudaMemcpyAsync(ptr + i * channelSize, channelData.data(),
-                                                channelSize * sizeof(__half), cudaMemcpyHostToDevice,
-                                                bufferManager.stream), "Channel upload");
-            }
-        } else {  // FP32
-            cv::cuda::GpuMat gpu_float;
-            gpu_output.convertTo(gpu_float, CV_32F, 1.0 / 255.0, 0, cvStream);
-            gpu_float.download(cpu_float, cvStream);
-            cvStream.waitForCompletion();
-            std::vector<cv::Mat> channels(3);
-            cv::split(cpu_float, channels);
-            float* ptr = static_cast<float*>(inputBuffer);
-            for (int i = 0; i < 3; ++i) {
-                checkCudaStatus(cudaMemcpyAsync(ptr + i * channelSize, channels[i].data,
-                                                channelSize * sizeof(float), cudaMemcpyHostToDevice,
-                                                bufferManager.stream), "Channel upload");
-            }
-        }
-
-        checkCudaStatus(cudaStreamSynchronize(bufferManager.stream), "Stream sync in preprocess");
-    }
-    
-    void postprocess(const void* outputBuffer, cv::Mat& frame, std::vector<Detection>& detections) {
-        const int frameWidth = frame.cols;
-        const int frameHeight = frame.rows;
-        const float widthScale = static_cast<float>(frameWidth) / 640.0f; // Assuming 640x640 input
-        const float heightScale = static_cast<float>(frameHeight) / 640.0f;
-        const int numBboxes = 8400;
-    
-        const cv::Mat detection_output(5, numBboxes, CV_32F, const_cast<float*>(static_cast<const float*>(outputBuffer)));
-        std::vector<cv::Rect> boxes;
+        // Temporary storage for NMS
+        std::vector<Rect> boxes;
         std::vector<float> confidences;
-        std::vector<int> classIds;
-    
-        for (int i = 0; i < detection_output.cols; i++) {
-            float confidence = detection_output.at<float>(4, i); // Objectness score
-            if (confidence > BOX_THRESH) {
-                // extract bounding box coordinates from output
-                float centerX = detection_output.at<float>(0, i);
-                float centerY = detection_output.at<float>(1, i);
-                float boxWidth = detection_output.at<float>(2, i);
-                float boxHeight = detection_output.at<float>(3, i);
-                // Scale bounding box input size of video or image
-                float scaledCenterX = centerX * widthScale;
-                float scaledCenterY = centerY * heightScale;
-                float scaledWidth = boxWidth * widthScale;
-                float scaledHeight = boxHeight * heightScale;
-                // Calculate bounding box coordinates
-                int x = static_cast<int>(scaledCenterX - (scaledWidth / 2));
-                int y = static_cast<int>(scaledCenterY - (scaledHeight / 2));
-                int w = static_cast<int>(scaledWidth);
-                int h = static_cast<int>(scaledHeight);
-        
-                boxes.push_back(cv::Rect(x, y, w, h));
+        boxes.reserve(100); // Pre-allocate to avoid resizing
+        confidences.reserve(100);
+
+        // Single pass: filter and scale
+        for (int i = 0; i < num_detections; ++i) {
+            float confidence = det_output.at<float>(4, i);
+            if (confidence > conf_threshold) {
+                float cx = det_output.at<float>(0, i);
+                float cy = det_output.at<float>(1, i);
+                float ow = det_output.at<float>(2, i);
+                float oh = det_output.at<float>(3, i);
+
+                // Scale and adjust box coordinates
+                Rect box;
+                box.x = static_cast<int>((cx - 0.5f * ow - offset_x) / scale);
+                box.y = static_cast<int>((cy - 0.5f * oh - offset_y) / scale);
+                box.width = static_cast<int>(ow / scale);
+                box.height = static_cast<int>(oh / scale);
+
+                boxes.push_back(box);
                 confidences.push_back(confidence);
-                classIds.push_back(0); // Default to class 0 (single-class assumption)
             }
         }
-    
-        std::vector<int> indices;
-        cv::dnn::NMSBoxes(boxes, confidences, NMS_THRESH, BOX_THRESH, indices);
-    
-        detections.clear();
-        detections.reserve(indices.size());
-        for (int i = 0; i < indices.size(); i++) {
-            Detection det;
-            int idx = indices[i];
-            det.classId = classIds[idx];
-            det.confidence = confidences[idx];
-            det.box = boxes[idx];
-            detections.push_back(det);
+
+        // NMS
+        std::vector<int> nms_result;
+        dnn::NMSBoxes(boxes, confidences, conf_threshold, nms_threshold, nms_result);
+
+        // Populate output directly
+        for (int idx : nms_result) {
+            Detection result;
+            result.classId = "person"; // Single-class (use 0 if classId is int)
+            result.confidence = confidences[idx];
+            result.box = boxes[idx];
+            output.push_back(std::move(result)); // Move to avoid copying
         }
-    
-        LOG("Postprocess: " << detections.size() << " detections after NMS");
     }
+
 public:
-    TensorRTDetector(const std::string& modelPath, const std::vector<std::string>& targetClasses_)
-        : GenericDetector(modelPath, targetClasses_), numClasses(1), numBoxes(0) {
-        LOG("Initializing TensorRTDetector");
-        std::string onnxFilePath = modelPath + "/Yolov11ng3.onnx";
-        std::string engineFilePath = modelPath + "/Yolov11ng3.trt";
-
-        if (!buildEngine(onnxFilePath, engineFilePath)) {
-            ERROR("Failed to build TensorRT engine");
-            initialized = false;
-            return;
+    TensorRTDetector(const std::string& model_path, const vector<string>& targetClasses)
+            : GenericDetector(model_path, targetClasses) {
+            if (model_path.find(".onnx") == std::string::npos) {
+                initialize(model_path);
+            } else {
+                buildEngine(model_path, logger);
+                saveEngine(model_path);
+            }
         }
-
-        if (!initializeBuffers()) {
-            ERROR("Failed to initialize TensorRT buffers");
-            initialized = false;
-            return;
-        }
-
-        context.reset(engine->createExecutionContext());
-        if (!context) {
-            ERROR("Failed to create TensorRT execution context");
-            initialized = false;
-            return;
-        }
-        LOG("Detector initialized successfully");
-        initialized = true;
-    }
 
     ~TensorRTDetector() {
-        context.reset();
-        engine.reset();
-        runtime.reset();
+        CUDA_CHECK(cudaStreamSynchronize(stream));
+        CUDA_CHECK(cudaStreamDestroy(stream));
+        for (int i = 0; i < 5; i++) {
+            if (gpu_buffers[i]) {
+                CUDA_CHECK(cudaFree(gpu_buffers[i]));
+            }
+        }
+        delete[] cpu_output_buffer;
+        cuda_preprocess_destroy();
+        delete context;
+        delete engine;
+        delete runtime;
     }
 
-    void detect(cv::Mat& frame) override {
+    void detect(Mat& frame) override {
         if (!initialized) {
-            ERROR("Detector not initialized");
+            std::cerr << "Detector not initialized" << std::endl;
             return;
         }
 
-        if (frame.empty()) {
-            ERROR("Input frame is empty");
-            return;
-        }
-
+        // Clear previous detections
         detections.clear();
 
-        void* inputBuffer = bufferManager.hostBuffers[0];
-        void* outputBuffer = bufferManager.hostBuffers[4];  
+        // Total start time
+        auto total_start = std::chrono::high_resolution_clock::now();
 
-        auto start = std::chrono::high_resolution_clock::now();
+        // Preprocessing
+        auto preprocess_start = std::chrono::high_resolution_clock::now();
+        preprocess(frame);
+        auto preprocess_end = std::chrono::high_resolution_clock::now();
+        double preprocess_time = std::chrono::duration<double, std::milli>(preprocess_end - preprocess_start).count();
 
-        auto t1 = std::chrono::high_resolution_clock::now();
-        preprocess(frame, inputBuffer);
-        auto t2 = std::chrono::high_resolution_clock::now();
+        // Inference
+        auto inference_start = std::chrono::high_resolution_clock::now();
+        runInference(frame);
+        auto inference_end = std::chrono::high_resolution_clock::now();
+        double inference_time = std::chrono::duration<double, std::milli>(inference_end - inference_start).count();
 
-        cudaEvent_t event, infStart, infStop;
-        checkCudaStatus(cudaEventCreate(&event), "Event create");
-        checkCudaStatus(cudaEventCreate(&infStart), "InfStart create");
-        checkCudaStatus(cudaEventCreate(&infStop), "InfStop create");
+        // Postprocessing
+        auto postprocess_start = std::chrono::high_resolution_clock::now();
+        postprocess(detections);
+        auto postprocess_end = std::chrono::high_resolution_clock::now();
+        double postprocess_time = std::chrono::duration<double, std::milli>(postprocess_end - postprocess_start).count();
 
-        auto t3 = std::chrono::high_resolution_clock::now();
-        checkCudaStatus(cudaMemcpyAsync(bufferManager.deviceBuffers[0], inputBuffer,
-                bufferManager.sizes[0], cudaMemcpyHostToDevice, bufferManager.stream),
-                "Input copy");
-        auto t4 = std::chrono::high_resolution_clock::now();
-        
-        auto t5 = std::chrono::high_resolution_clock::now();
-        checkCudaStatus(cudaEventRecord(infStart, bufferManager.stream), "InfStart record");
-        if (!context->enqueueV2(bufferManager.deviceBuffers.data(), bufferManager.stream, nullptr)) {
-            ERROR("Inference failed");
-            cudaEventDestroy(event);
-            cudaEventDestroy(infStart);
-            cudaEventDestroy(infStop);
-            return;
-        }
-        checkCudaStatus(cudaEventRecord(infStop, bufferManager.stream), "InfStop record");
-        checkCudaStatus(cudaEventSynchronize(infStop), "InfStop sync");
-        float inferenceMs;
-        checkCudaStatus(cudaEventElapsedTime(&inferenceMs, infStart, infStop), "Elapsed time");
-        auto t6 = std::chrono::high_resolution_clock::now();
-
-        auto t7 = std::chrono::high_resolution_clock::now();
-        checkCudaStatus(cudaMemcpyAsync(outputBuffer, bufferManager.deviceBuffers[4],
-                bufferManager.sizes[4], cudaMemcpyDeviceToHost, bufferManager.stream),
-                "Output copy");
-        auto t8 = std::chrono::high_resolution_clock::now();
-
-        auto t9 = std::chrono::high_resolution_clock::now();
-        checkCudaStatus(cudaEventRecord(event, bufferManager.stream), "Event record");
-        checkCudaStatus(cudaEventSynchronize(event), "Event sync");
-        cudaEventDestroy(event);
-        cudaEventDestroy(infStart);
-        cudaEventDestroy(infStop);
-        auto t10 = std::chrono::high_resolution_clock::now();
-
-        auto t11 = std::chrono::high_resolution_clock::now();
-        postprocess(outputBuffer, frame, detections);
+        // Drawing and printing
+        auto draw_start = std::chrono::high_resolution_clock::now();
+        //draw(frame, detections);  // Assuming draw() exists; adjust if named differently
         printDetections(detections);
-        auto t12 = std::chrono::high_resolution_clock::now();
-        //drawDetections(frame, detections);
-        auto end = std::chrono::high_resolution_clock::now();
+        auto draw_end = std::chrono::high_resolution_clock::now();
+        double draw_time = std::chrono::duration<double, std::milli>(draw_end - draw_start).count();
 
-        double preprocessTime = std::chrono::duration<double, std::milli>(t2 - t1).count();
-        double h2dTime = std::chrono::duration<double, std::milli>(t4 - t3).count();
-        double inferenceTime = static_cast<double>(inferenceMs);
-        double d2hTime = std::chrono::duration<double, std::milli>(t8 - t7).count();
-        double syncTime = std::chrono::duration<double, std::milli>(t10 - t9).count();
-        double postprocessTime = std::chrono::duration<double, std::milli>(t12 - t11).count();
-        double totalTime = std::chrono::duration<double, std::milli>(end - start).count();
+        // Total end time
+        auto total_end = std::chrono::high_resolution_clock::now();
+        double total_time = std::chrono::duration<double, std::milli>(total_end - total_start).count();
 
-        LOG("Detect Timing (ms):");
-        LOG("  Preprocess: " << preprocessTime);
-        LOG("  H2D Copy: " << h2dTime);
-        LOG("  Inference: " << inferenceTime);
-        LOG("  D2H Copy: " << d2hTime);
-        LOG("  Sync: " << syncTime);
-        LOG("  Postprocess: " << postprocessTime);
-        LOG("  Total: " << totalTime);
+        // Output timings
+        std::cout << "Preprocessing time: " << preprocess_time << "ms" << std::endl;
+        std::cout << "Inference time: " << inference_time << "ms" << std::endl;
+        std::cout << "Postprocessing time: " << postprocess_time << "ms" << std::endl;
+        std::cout << "Drawing time: " << draw_time << "ms" << std::endl;
+        std::cout << "Total detection time: " << total_time << "ms" << std::endl;
     }
 
-protected:
-    void initialize(const std::string& modelPath) override {}
-    DetectionOutput runInference(const cv::Mat& input) override { return DetectionOutput(); }
-    void releaseOutputs(const DetectionOutput& output) override {}
+    void draw(Mat& image, const vector<Detection>& output)
+    {
+        const float ratio_h = model_input_h / (float)image.rows;
+        const float ratio_w = model_input_w / (float)image.cols;
+
+        for (int i = 0; i < output.size(); i++)
+        {
+            auto detection = output[i];
+            auto box = detection.box;
+            auto class_id = detection.classId;
+            auto conf = detection.confidence;
+            cv::Scalar color = cv::Scalar(144, 144, 144);
+
+            if (ratio_h > ratio_w)
+            {
+                box.x = box.x / ratio_w;
+                box.y = (box.y - (model_input_h - ratio_w * image.rows) / 2) / ratio_w;
+                box.width = box.width / ratio_w;
+                box.height = box.height / ratio_w;
+            }
+            else
+            {
+                box.x = (box.x - (model_input_w - ratio_h * image.cols) / 2) / ratio_h;
+                box.y = box.y / ratio_h;
+                box.width = box.width / ratio_h;
+                box.height = box.height / ratio_h;
+            }
+
+            rectangle(image, Point(box.x, box.y), Point(box.x + box.width, box.y + box.height), color, 3);
+
+            // Detection box text
+            string class_string = "person" + ' ' + to_string(conf).substr(0, 4);
+            Size text_size = getTextSize(class_string, FONT_HERSHEY_DUPLEX, 1, 2, 0);
+            Rect text_rect(box.x, box.y - 40, text_size.width + 10, text_size.height + 20);
+            rectangle(image, text_rect, color, FILLED);
+            putText(image, class_string, Point(box.x + 5, box.y - 10), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 0), 2, 0);
+    }
+    }
+
+    void initialize(const string& engineFilePath) override {
+        ifstream engineStream(engineFilePath, ios::binary);
+        engineStream.seekg(0, ios::end);
+        const size_t modelSize = engineStream.tellg();
+        engineStream.seekg(0, ios::beg);
+        unique_ptr<char[]> engineData(new char[modelSize]);
+        engineStream.read(engineData.get(), modelSize);
+        engineStream.close();
+
+        runtime = createInferRuntime(logger);
+        engine = runtime->deserializeCudaEngine(engineData.get(), modelSize);
+        context = engine->createExecutionContext();
+
+        int numBindings = engine->getNbBindings();
+        LOG("Number of bindings: " << numBindings);
+        for (int i = 0; i < numBindings; i++) {
+            Dims dims = engine->getBindingDimensions(i);
+            std::string bindingName = engine->getBindingName(i);
+            LOG("Binding " << i << ": " << bindingName << " [Dims: " << dims.d[0] << "x" << dims.d[1] << "x" << dims.d[2] << "x" << dims.d[3] << "]");
+        }
+
+        // Input binding (index 0)
+        model_input_h = engine->getBindingDimensions(0).d[2];
+        model_input_w = engine->getBindingDimensions(0).d[3];
+        LOG("[INFO] model_input_h: " << model_input_h << " model_input_w: " << model_input_w);
+
+        int outputBindingIndex = 4; // 'outputs'
+        detection_attribute_size = engine->getBindingDimensions(outputBindingIndex).d[1]; // 5
+        num_detections = engine->getBindingDimensions(outputBindingIndex).d[2]; // 8400
+        num_classes = 1; // Single-class
+        LOG("detection_attribute_size: " << detection_attribute_size << " num_detections: " << num_detections << " num_classes: " << num_classes);
+
+        // Allocate buffers for all bindings
+        size_t input_size = 3 * model_input_w * model_input_h * sizeof(float);
+        LOG("Allocating gpu_buffers[0]: " << input_size << " bytes");
+        CUDA_CHECK(cudaMalloc(&gpu_buffers[0], input_size)); // images
+
+        size_t output_size1 = 65 * 80 * 80 * sizeof(float);
+        LOG("Allocating gpu_buffers[1]: " << output_size1 << " bytes");
+        CUDA_CHECK(cudaMalloc(&gpu_buffers[1], output_size1)); // onnx::Reshape_965
+
+        size_t output_size2 = 65 * 40 * 40 * sizeof(float);
+        LOG("Allocating gpu_buffers[2]: " << output_size2 << " bytes");
+        CUDA_CHECK(cudaMalloc(&gpu_buffers[2], output_size2)); // onnx::Reshape_992
+
+        size_t output_size3 = 65 * 20 * 20 * sizeof(float);
+        LOG("Allocating gpu_buffers[3]: " << output_size3 << " bytes");
+        CUDA_CHECK(cudaMalloc(&gpu_buffers[3], output_size3)); // onnx::Reshape_1019
+
+        size_t output_size4 = 5 * 8400 * sizeof(float);
+        LOG("Allocating gpu_buffers[4]: " << output_size4 << " bytes");
+        CUDA_CHECK(cudaMalloc(&gpu_buffers[4], output_size4)); // outputs
+
+        cpu_output_buffer = new float[detection_attribute_size * num_detections]; // 5 * 8400
+
+        cuda_preprocess_init(MAX_IMAGE_SIZE);
+        CUDA_CHECK(cudaStreamCreate(&stream));
+
+        if (warmup) {
+            LOG("Starting warmup...");
+            Mat dummyFrame(model_input_h, model_input_w, CV_8UC3, Scalar(128, 128, 128));
+            for (int i = 0; i < 10; i++) {
+                LOG("Warmup iteration " << i + 1);
+                preprocess(dummyFrame);
+                this->runInference(dummyFrame);
+            }
+            LOG("model warmup 10 times");
+        }
+        initialized = true;
+    }
+ 
+    DetectionOutput runInference(const Mat& input) override {
+        void* buffers[] = { gpu_buffers[0], gpu_buffers[1], gpu_buffers[2], gpu_buffers[3], gpu_buffers[4] };
+        context->enqueueV2(buffers, stream, nullptr);
+        return DetectionOutput{};
+    }
+    void releaseOutputs(const DetectionOutput&) override {}
 };
 
-Logger TensorRTDetector::gLogger;
-
-Detector* createDetector(const std::string& modelPath, const std::vector<std::string>& targetClasses) {
+Detector* createDetector(const std::string& modelPath, const vector<string>& targetClasses) {
     try {
-        LOG("Creating new TensorRT detector");
         return new TensorRTDetector(modelPath, targetClasses);
     } catch (const std::exception& e) {
-        ERROR("Error creating TensorRT detector: " << e.what());
+        std::cerr << "Failed to create detector: " << e.what() << std::endl;
         return nullptr;
     }
 }
