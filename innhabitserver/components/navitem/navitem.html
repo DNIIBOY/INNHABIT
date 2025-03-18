@@ -1,27 +1,25 @@
 {% load static %}
 
-{% if active %}
-<li class="mt-0.5 w-full">
-    <a class="rounded-lg text-slate-700 py-3 flex items-center px-4 bg-white font-semibold shadow-xl hover:bg-slate-50">
-        <div
-            class="shadow-2xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-center bg-gradient-to-r from-aau to-aau-light"
-        >
+<li class="w-full text-lg">
+    {% if active %}
+    <a
+        href=""
+        class="rounded-lg text-slate-700 py-3 flex gap-4 items-center px-4 bg-white font-semibold shadow-xl hover:bg-slate-50 group active:opacity-85 transition-all"
+    >
+        <div class="shadow-2xl flex h-8 w-8 items-center justify-center rounded-lg text-center bg-gradient-to-r from-aau to-aau-light group-hover:scale-105 transition-all">
             <i class="bi-shop-window flex text-white"></i>
         </div>
         <p>Dashboard</p>
     </a>
-</li>
-{% else %}
-
-<li class="mt-0.5 w-full">
-    <a class="group rounded-lg text-slate-700 py-3 flex items-center px-4 hover:bg-white hover:font-semibold transition-all"
+    {% else %}
+    <a
+        href=""
+        class="group rounded-lg text-slate-700 py-3 flex gap-4 items-center px-4 hover:bg-white hover:font-semibold hover:shadow-xl active:opacity-85 transition-all"
     >
-        <div
-            class="shadow-xl mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white group-hover:bg-gray-100 hover:shadow-none"
-        >
+        <div class="shadow-xl flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-transparent group-hover:border-gray-200 group-hover:shadow-none transition-all group-hover:scale-105">
             <i class="bi-shop-window flex"></i>
         </div>
         <p>Dashboard</p>
     </a>
+    {% endif %}
 </li>
-{% endif %}

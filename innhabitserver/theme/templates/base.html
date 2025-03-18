@@ -32,7 +32,7 @@
         {% endif %}
         <main
             class="p-4 w-full h-full min-h-screen flex justify-center
-            {% if request.user.is_authenticated and request.path != insights_url %} xl:ml-60 {% endif %}
+            {% if request.user.is_authenticated and request.path != insights_url %} xl:ml-64 {% endif %}
             "
         >
             {% block content %}
