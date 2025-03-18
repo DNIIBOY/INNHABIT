@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.encoding import force_str
@@ -41,6 +41,13 @@ def add_user(request: HttpRequest) -> HttpResponse:
 @permission_required("accounts.view_user")
 def user(request: HttpRequest, user_id: int) -> HttpResponse:
     user_object = get_object_or_404(User, id=user_id)
+    context = {"user": user_object}
+    return render(request, "view_user.html", context)
+
+
+@login_required
+def profile(request: HttpRequest) -> HttpResponse:
+    user_object = request.user
     context = {"user": user_object}
     return render(request, "view_user.html", context)
 

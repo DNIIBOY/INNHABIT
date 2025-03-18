@@ -1,5 +1,5 @@
-<aside class="w-full max-w-64 fixed items-center justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r">
-    <div class="flex flex-col items-center pt-12 pb-2 gap-8">
+<aside class="w-full h-full max-w-64 fixed flex flex-col justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r py-2">
+    <div class="flex flex-col items-center pt-10 pb-2 gap-8">
         <a
             href="{% url 'index' %}"
             class="flex gap-4 items-center text-slate-700"
@@ -18,12 +18,20 @@
         <div class="h-px w-3/4 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
     </div>
 
-
     <div class="items-center w-auto h-screen overflow-auto grow basis-full">
         <ul class="flex flex-col px-4 gap-2">
             {% component "navitem" active=True %}{% endcomponent %}
             {% component "navitem" %}{% endcomponent %}
             {% component "navitem" %}{% endcomponent %}
         </ul>
+    </div>
+    <div class="w-full flex flex-col items-center">
+        <a
+            class="w-11/12 p-3 bg-white border-black/15 border rounded-lg overflow-x-auto text-nowrap hover:scale-[102%] transition-all"
+            href="{% url 'profile' %}"
+        >
+            <h4 class="text-lg font-semibold">{{ user.get_full_name }}</h4>
+            <p>{{ user.email }}</p>
+        </a>
     </div>
 </aside>
