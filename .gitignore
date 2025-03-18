@@ -3,6 +3,7 @@ venv/
 **/.env
 **/__pycache__/
 **/*.mp4
+**/.mypy_cache/
 innbahit-device/*.weights
 innbahit-device/*.cfg
 innbahit-device/coco.names
