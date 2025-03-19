@@ -76,6 +76,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "dashboard.middleware.TimezoneMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "django_components.middleware.ComponentDependencyMiddleware",
     "django_browser_reload.middleware.BrowserReloadMiddleware",

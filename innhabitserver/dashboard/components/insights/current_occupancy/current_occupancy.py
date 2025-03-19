@@ -8,7 +8,7 @@ class CurrentOccupancy(Component):
     template_name = "current_occupancy.html"
 
     def get_context_data(self) -> dict:
-        today = timezone.now().date()
+        today = timezone.localtime().date()
         entries = EntryEvent.objects.filter(timestamp__date=today).count()
         exits = ExitEvent.objects.filter(timestamp__date=today).count()
         return {

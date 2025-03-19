@@ -12,7 +12,7 @@ class CafeteriaDay(Component):
     template_name = "cafeteria_day.html"
 
     def get_context_data(self) -> dict:
-        today = timezone.now().date()
+        today = timezone.localtime().date()
         start_of_this_week = today - datetime.timedelta(days=today.weekday())
         end_of_prev_week = start_of_this_week - datetime.timedelta(days=1)
         start_of_prev_week = end_of_prev_week - datetime.timedelta(days=6)
