@@ -37,7 +37,7 @@ function setupComparisonPlot(data) {
                     borderWidth: 3,
                     backgroundColor: gradientStroke2,
                     fill: true,
-                    data: [],
+                    data: data["avg_weekday_counts"],
                     maxBarThickness: 6,
                 },
             ],
