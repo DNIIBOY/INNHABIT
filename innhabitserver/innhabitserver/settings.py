@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "django_browser_reload",
     "tailwind",
     "django_htmx",
+    "template_partials",
     "django_components",
     "rest_framework",
     "accounts",

@@ -1,20 +1,22 @@
 {% extends "base.html" %}
-    {% block content %}
-<div class="flex flex-col items-center w-full h-fit gap-8">
-    <h1 class="text-2xl font-semibold">{{ user.get_full_name }}</h1>
+{% load partials %}
+{% block content %}
+{% partialdef user_page inline %}
+<div id="user_content" class="flex flex-col items-center w-full h-fit gap-8">
+    <h1 class="text-2xl font-semibold">{{ viewed_user.get_full_name }}</h1>
     <div class="flex flex-col lg:flex-row gap-4 w-full h-full justify-between">
         <div class="w-full">
             {% component "card" %}
             {% fill "content" %}  
             <div class="p-4">
                 <h2 class="text-xl font-semibold">Navn</h2>
-                <p>{{ user.get_full_name}}</p>
+                <p>{{ viewed_user.get_full_name }}</p>
                 <h2 class="text-xl font-semibold">E-mail addresse</h2>
-                <p>{{ user.email }}</p>
+                <p>{{ viewed_user.email }}</p>
                 <h2 class="text-xl font-semibold">Sidste login</h2>
-                <p>{{ user.last_login|date:"H:i, d/m/Y" }}</p>
+                <p>{{ viewed_user.last_login|date:"H:i, d/m/Y" }}</p>
                 <h2 class="text-xl font-semibold">Oprettelsesdato</h2>
-                <p>{{ user.date_joined }}</p>
+                <p>{{ viewed_user.date_joined }}</p>
             </div>
             {% endfill %}
             {% endcomponent %}
@@ -27,12 +29,27 @@
                 <button class="bg-green-200 border-green-500 border-2 rounded-lg w-full p-2">
                     <h2 class="text-xl font-semibold">Opdater roller</h2>
                 </button>
+
                 <button class="bg-sky-200 border-sky-500 border-2 rounded-lg w-full p-2">
                     <h2 class="text-xl font-semibold">Gendan kodeord</h2>
                 </button>
-                <button class="bg-red-200 border-red-500 border-2 rounded-lg w-full p-2">
+                {% if viewed_user.is_active %}
+                <button
+                    hx-target="#user_content"
+                    hx-delete="{% url 'user' viewed_user.id %}"
+                    hx-confirm="Slet bruger {{ viewed_user.get_full_name }}?"
+                    class="bg-red-200 border-red-500 border-2 rounded-lg w-full p-2"
+                >
                     <h2 class="text-xl font-semibold">Deaktiver konto</h2>
-                </button>
+                </button> 
+
+                {% else %}
+                <button
+                class="bg-green-200 border-green-500 border-2 rounded-lg w-full p-2">
+                <h2 class="text-xl font-semibold">Gendan konto</h2>
+                </button> 
+                {% endif %}
+                
             </div>
             {% endfill %}
             {% endcomponent %}
@@ -40,4 +57,5 @@
         {% endif %}
     </div>
 </div>
+{% endpartialdef user_page %}
 {% endblock %}
