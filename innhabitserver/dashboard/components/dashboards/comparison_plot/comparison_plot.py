@@ -1,7 +1,8 @@
 import json
+from datetime import timedelta
 
 import numpy as np
-from django.db.models import Count, ExpressionWrapper, IntegerField
+from django.db.models import Count, ExpressionWrapper, IntegerField, Q
 from django.db.models.functions import ExtractHour, ExtractMinute, Floor
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -45,13 +46,44 @@ class ComparisonPlot(Component):
         assert 60 % interval == 0, "Interval must be a divisor of 60"
 
         today = timezone.now().date()
-        entries = extract_count_per_interval(
+        today_entries = extract_count_per_interval(
             EntryEvent.objects.filter(timestamp__date=today), interval
         )
-        exits = extract_count_per_interval(
+        today_exits = extract_count_per_interval(
             ExitEvent.objects.filter(timestamp__date=today), interval
         )
-        today_counts = entries.cumsum() - exits.cumsum()
+        today_counts = today_entries.cumsum() - today_exits.cumsum()
+
+        prev_month = today.replace(day=1) - timedelta(days=1)
+        weekday_entries = extract_count_per_interval(
+            EntryEvent.objects.filter(
+                ~Q(timestamp__date=today),
+                timestamp__year__gte=prev_month.year,
+                timestamp__month__gte=prev_month.month,
+                timestamp__week_day=(today.weekday() + 2) % 7,
+            ),
+            interval,
+        )
+        weekday_exits = extract_count_per_interval(
+            ExitEvent.objects.filter(
+                ~Q(timestamp__date=today),
+                timestamp__year__gte=prev_month.year,
+                timestamp__month__gte=prev_month.month,
+                timestamp__week_day=(today.weekday() + 2) % 7,
+            ),
+            interval,
+        )
+
+        weekday_count = 0
+        date = prev_month
+        while date < today:
+            if date.weekday() == today.weekday():
+                weekday_count += 1
+            date += timedelta(days=1)
+
+        avg_weekday_counts = (
+            weekday_entries.cumsum() - weekday_exits.cumsum()
+        ) // weekday_count
 
         labels = []
         for hour in range(24):
@@ -64,6 +96,7 @@ class ComparisonPlot(Component):
         context = {
             "labels": labels,
             "today_counts": today_counts.tolist(),
+            "avg_weekday_counts": avg_weekday_counts.tolist(),
         }
         return {
             **context,
