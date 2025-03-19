@@ -37,7 +37,7 @@ class MonthlyVisitors(Component):
             last_month_entries = 1  # Avoid division by zero
 
         return {
-            "montly_visitors": entries,
+            "monthly_visitors": entries,
             "last_month_visitors": last_month_entries,
             "last_month_diff": entries - last_month_entries,
             "last_month_percentage": round(

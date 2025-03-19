@@ -25,6 +25,7 @@
             {% if perms.occupancy.view_entryevent %}
                 {% component "card" %}
                     {% fill "content" %}
+                            {% component "weekly_visitors" %}{% endcomponent %}
                     {% endfill %}
                 {% endcomponent %}
             {% endif %}
