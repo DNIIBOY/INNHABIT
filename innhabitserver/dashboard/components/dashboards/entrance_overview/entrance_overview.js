@@ -1,55 +1,47 @@
-var ctx2 = document.getElementById("chart-circle").getContext("2d");
-var ctx3 = document.getElementById("chart-circle2").getContext("2d");
+const entriesChart = document.getElementById("entries-chart").getContext("2d");
+const exitsCharts = document.getElementById("exits-chart").getContext("2d");
 
+const jsonElement = document.getElementById("json-element");
+const data = JSON.parse(jsonElement.dataset.json);
 
-new Chart(ctx2, {
+const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: false,
+        },
+    },
+    interaction: {
+        intersect: false,
+        mode: "index",
+    }
+}
+
+new Chart(entriesChart, {
     type: "doughnut",
     data: {
-        labels: ["A", "B"],
+        labels: data["labels"],
         datasets: [
             {
-                data: [25, 30],
-                backgroundColor: ["#cb0c9f", "#3A416F"],
+                data: data["entries"],
+                backgroundColor: data["colors"],
             },
         ],
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false,
-            },
-        },
-        interaction: {
-            intersect: false,
-            mode: "index",
-        },
-    },
+    options: options,
 });
 
-new Chart(ctx3, {
+new Chart(exitsCharts, {
     type: "doughnut",
     data: {
-        labels: ["A", "B"],
+        labels: data["labels"],
         datasets: [
             {
-                data: [45, 30],
-                backgroundColor: ["#cb0c9f", "#3A416F"],
+                data: data["exits"],
+                backgroundColor: data["colors"],
             },
         ],
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false,
-            },
-        },
-        interaction: {
-            intersect: false,
-            mode: "index",
-        },
-    },
+    options: options,
 });

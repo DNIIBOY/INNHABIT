@@ -2,15 +2,13 @@ var ctx2 = document.getElementById("chart-line").getContext("2d");
 
 var gradientStroke1 = ctx2.createLinearGradient(0, 230, 0, 50);
 
-gradientStroke1.addColorStop(1, "rgba(203,12,159,0.2)");
+gradientStroke1.addColorStop(1, "rgba(49, 169, 193, 0.2)");
 gradientStroke1.addColorStop(0.2, "rgba(72,72,176,0.0)");
-gradientStroke1.addColorStop(0, "rgba(203,12,159,0)"); //purple colors
 
 var gradientStroke2 = ctx2.createLinearGradient(0, 230, 0, 50);
 
-gradientStroke2.addColorStop(1, "rgba(20,23,39,0.2)");
+gradientStroke2.addColorStop(1, "rgba(33, 26, 81, 0.2)");
 gradientStroke2.addColorStop(0.2, "rgba(72,72,176,0.0)");
-gradientStroke2.addColorStop(0, "rgba(20,23,39,0)"); //purple colors
 
 new Chart(ctx2, {
   type: "line",
@@ -22,7 +20,7 @@ new Chart(ctx2, {
         tension: 0.4,
         borderWidth: 0,
         pointRadius: 0,
-        borderColor: "#cb0c9f",
+        borderColor: "#31A9C1",
         borderWidth: 3,
         backgroundColor: gradientStroke1,
         fill: true,
@@ -34,7 +32,7 @@ new Chart(ctx2, {
         tension: 0.4,
         borderWidth: 0,
         pointRadius: 0,
-        borderColor: "#3A416F",
+        borderColor: "#201950",
         borderWidth: 3,
         backgroundColor: gradientStroke2,
         fill: true,
