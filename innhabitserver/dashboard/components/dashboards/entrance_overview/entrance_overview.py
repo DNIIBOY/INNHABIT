@@ -16,7 +16,7 @@ class EntranceOverview(Component):
         js = ["https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.0.2/chart.min.js"]
 
     def get_context_data(self) -> dict:
-        today = timezone.now().date()
+        today = timezone.localtime().date()
         entrances = Entrance.objects.annotate(
             entry_count=Count(
                 "entries", filter=Q(entries__timestamp__date=today), distinct=True

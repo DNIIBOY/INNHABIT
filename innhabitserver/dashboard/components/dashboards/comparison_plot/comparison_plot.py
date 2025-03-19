@@ -45,7 +45,8 @@ class ComparisonPlot(Component):
     def get_context_data(self, interval: int = 30) -> dict:
         assert 60 % interval == 0, "Interval must be a divisor of 60"
 
-        today = timezone.now().date()
+        now = timezone.localtime()
+        today = now.date()
         today_entries = extract_count_per_interval(
             EntryEvent.objects.filter(timestamp__date=today), interval
         )
@@ -85,9 +86,15 @@ class ComparisonPlot(Component):
             weekday_entries.cumsum() - weekday_exits.cumsum()
         ) // weekday_count
 
-        labels = []
+        labels: list[str] = []
+        current_time = 0
         for hour in range(24):
             for minute_group in range(0, 60, interval):
+                if (
+                    now.hour == hour
+                    and now.minute // interval == minute_group // interval
+                ):
+                    current_time = len(labels)
                 if minute_group == 0:
                     labels.append(f"{hour:02d}")
                 else:
@@ -95,7 +102,7 @@ class ComparisonPlot(Component):
 
         context = {
             "labels": labels,
-            "today_counts": today_counts.tolist(),
+            "today_counts": today_counts.tolist()[: current_time + 1],
             "avg_weekday_counts": avg_weekday_counts.tolist(),
         }
         return {

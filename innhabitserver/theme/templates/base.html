@@ -42,6 +42,11 @@
                 <a href="{% url 'login' %}">Login</a>
             </div>
         {% endif %}
+
+    <script>
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.cookie = "tzinfo=" + timezone;
+    </script>
     {% block js %}
     {% endblock %}
     </body>

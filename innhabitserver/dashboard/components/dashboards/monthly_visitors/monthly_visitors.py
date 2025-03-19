@@ -22,7 +22,7 @@ class MonthlyVisitors(Component):
             "November",
             "December",
         ]
-        today = timezone.now().date()
+        today = timezone.localtime().date()
         entries = EntryEvent.objects.filter(
             timestamp__date__year=today.year,
             timestamp__date__month=today.month,
