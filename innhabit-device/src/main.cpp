@@ -20,8 +20,6 @@ void movementEventCallback(const TrackedPerson& person, const std::string& event
 void printUsage(const char* progName) {
     cout << "Usage: " << progName << " [--video <video_file>] [--image <image_file>]" << endl;
     cout << "  --video <file> : Process a video file" << endl;
-    cout << "  --image <file> : Process a single image" << endl;
-    cout << "  --api <url>    : API server URL (default: http://127.0.0.1:8000)" << endl;
     cout << "  (No arguments defaults to webcam)" << endl;
 }
 
@@ -52,8 +50,6 @@ int main(int argc, char** argv) {
             imageFile = argv[++i];
         } else if (strcmp(argv[i], "--model") == 0 && i + 1 < argc) {
             modelPath = argv[++i];
-        } else if (strcmp(argv[i], "--api") == 0 && i + 1 < argc) {
-            apiUrl = argv[++i];
         } else {
             cerr << "Unknown argument: " << argv[i] << endl;
             printUsage(argv[0]);
@@ -83,7 +79,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    Mat frame;
+    cv::Mat frame;
     VideoCapture cap;
 
     if (!videoFile.empty()) {
@@ -123,57 +119,55 @@ int main(int argc, char** argv) {
     int frameCount = 0;
     chrono::steady_clock::time_point startTime;
 
-    if (!imageFile.empty()) {
+    cout << "Press 'q' to quit." << endl;
+    while (true) {
         startTime = chrono::steady_clock::now();
-
+        
+        cap >> frame;
+        if (frame.empty()) {
+            cerr << "Error: Frame capture failed during loop." << endl;
+            break;
+        }
+        std::cout << "================== time ===================" << std::endl;
+        auto detection_start = std::chrono::high_resolution_clock::now();
         detector->detect(frame);
+        auto detection_end = std::chrono::high_resolution_clock::now();
+        double detect_time = std::chrono::duration<double, std::milli>(detection_end - detection_start).count();
+        
+        auto tracker_update_start = std::chrono::high_resolution_clock::now();
         tracker.update(detector->getDetections(), frame.rows);
+        auto tracker_update_end = std::chrono::high_resolution_clock::now();
+        double tracker_update_time = std::chrono::duration<double, std::milli>(tracker_update_end - tracker_update_start).count();
+        
+        auto tracker_draw_start = std::chrono::high_resolution_clock::now();
         tracker.draw(frame);
+        auto tracker_draw_end = std::chrono::high_resolution_clock::now();
+        double tracker_draw_time = std::chrono::duration<double, std::milli>(tracker_update_end - tracker_update_start).count();
+        
+        std::cout << "detect time: " << detect_time << "ms" << std::endl;
+        std::cout << "tracker update time: " << tracker_update_time << "ms" << std::endl;
+        std::cout << "tracker draw time: " << tracker_draw_time << "ms" << std::endl;
 
         auto endTime = chrono::steady_clock::now();
         float frameTimeMs = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
         float fps = (frameTimeMs > 0) ? 1000.0f / frameTimeMs : 0.0f;
-        string fpsText = format("FPS: %.2f", fps);
-        putText(frame, fpsText, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 0), 2);
-
-        imshow("People Detection and Tracking", frame);
-        waitKey(0);
-    } else {
-        cout << "Press 'q' to quit." << endl;
-        while (true) {
-            startTime = chrono::steady_clock::now();
-            
-            cap >> frame;
-            if (frame.empty()) {
-                cerr << "Error: Frame capture failed during loop." << endl;
-                break;
-            }
-            
-            detector->detect(frame);
-            tracker.update(detector->getDetections(), frame.rows);
-            tracker.draw(frame);
-            
-            auto endTime = chrono::steady_clock::now();
-            float frameTimeMs = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
-            float fps = (frameTimeMs > 0) ? 1000.0f / frameTimeMs : 0.0f;
-            
-            fpsBuffer[frameCount % fpsBufferSize] = fps;
-            frameCount++;
-            
-            float avgFps = 0.0;
-            for (int i = 0; i < min(frameCount, fpsBufferSize); i++) {
-                avgFps += fpsBuffer[i];
-            }
-            avgFps /= min(frameCount, fpsBufferSize);
-            
-            string fpsText = format("FPS: %.2f", avgFps);
-            putText(frame, fpsText, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 0), 2);
-            
-            imshow("People Detection and Tracking", frame);
-            if (waitKey(1) == 'q') break;
+        
+        fpsBuffer[frameCount % fpsBufferSize] = fps;
+        frameCount++;
+        
+        float avgFps = 0.0;
+        for (int i = 0; i < min(frameCount, fpsBufferSize); i++) {
+            avgFps += fpsBuffer[i];
         }
+        avgFps /= min(frameCount, fpsBufferSize);
+        
+        string fpsText = format("FPS: %.2f", avgFps);
+        putText(frame, fpsText, Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 0), 2);
+        
+        imshow("People Detection and Tracking", frame);
+        if (waitKey(1) == 'q') break;
     }
-    
+
     cap.release();
     destroyAllWindows();
     apiHandler.reset();

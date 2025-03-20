@@ -55,7 +55,7 @@ protected:
 
     // Virtual methods to be implemented by platform-specific detectors
     virtual void initialize(const string& modelPath) = 0;
-    virtual DetectionOutput runInference(const Mat& input) = 0;
+    virtual DetectionOutput runInference(cv::Mat& input) = 0;
     virtual void releaseOutputs(const DetectionOutput& output) = 0;
     virtual void processDetections(const DetectionOutput& output, Mat& frame, float scale, int dx, int dy);
 

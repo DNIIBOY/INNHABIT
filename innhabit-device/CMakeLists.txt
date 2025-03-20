@@ -82,7 +82,7 @@ endif()
 if(USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/tensorrt.cpp)
     # Add CUDA kernel source file
-    set(CUDA_KERNEL_SOURCES src/platforms/preprocess.cu src/platforms/postprocess.cu)
+    set(CUDA_KERNEL_SOURCES src/platforms/preprocess.cu)
 endif()
 if(NOT USE_CUDA AND NOT USE_RKNN AND NOT USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)  # Default to CPU
