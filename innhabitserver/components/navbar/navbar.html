@@ -21,8 +21,13 @@
     <div class="items-center w-auto h-screen overflow-auto grow basis-full">
         <ul class="flex flex-col px-4 gap-2">
             {% component "navitem" url_name="dashboard" content="Dashboard" icon="shop-window" %}{% endcomponent %}
-            {% component "navitem" url_name="users" content="Brugere" icon="people" %}{% endcomponent %}
-            {% component "navitem" %}{% endcomponent %}
+            {% if perms.accounts.view_user %}
+                {% component "navitem" url_name="users" content="Brugere" icon="people" %}{% endcomponent %}
+            {% endif %}
+            {% if perms.dashboard.view_labelleddate %}
+                {% component "navitem" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
+            {% endif %}
+            {% component "navitem" content="System" icon="gear-wide-connected" %}{% endcomponent %}
         </ul>
     </div>
     <div class="w-full flex flex-col items-center">
