@@ -1,0 +1,30 @@
+<div class="py-4 px-6">
+    <div class="flex flex-row justify-between">
+        <div class="flex-none w-2/3 max-w-full">
+            <div>
+                <h4 class="font-semibold">Besøgende idag {{ day_number }}</h4>
+                <h5 class="font-bold flex text-lg items-center gap-4">
+                    {{ daily_visitors }}
+                    {% if last_day_diff > 0 %}
+                        <span class="leading-normal text-lime-500">+ {{ last_day_percentage }}%
+                            <i class="bi-calendar-minus text-lime-500"></i>
+                        </span>
+                    {% elif last_day_diff < 0 %}
+                        <span class="leading-normal text-red-500">{{ last_day_percentage }}%
+                            <i class="bi-calendar-minus text-red-500"></i>
+                        </span>
+                    {% else %}
+                    {% endif %}
+                </h5>
+            </div>
+        </div>
+        <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br from-aau to-aau-light text-slate-100">
+            <div class="relative">
+                <i class="bi-calendar4 text-4xl align-middle inline-flex"></i>
+                <div class="absolute top-2 select-none w-full flex justify-center">
+                    <p>{{ weekday }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
