@@ -9,17 +9,18 @@
     </div>
     <div class="flex flex-col text-sm justify-around">
         <div class="flex items-center gap-1">
-            <div class="w-3 h-3 rounded-full bg-fuchsia-400"></div>
+            <div class="w-3 h-3 rounded-full bg-aau-light-blue"></div>
             <p>Idag</p>
         </div>
         <div class="flex items-center gap-1">
-            <div class="w-3 h-3 rounded-full bg-blue-900"></div>
+            <div class="w-3 h-3 rounded-full bg-aau"></div>
             <p class="text-nowrap">Gennemsnitlig onsdag</p>
         </div>
     </div>
 </div>
 <div class="h-full p-4 pb-0">
     <div class="h-full">
-        <canvas id="chart-line" height="900" width="2142" class="block box-border w-full h-full"></canvas>
+        <canvas id="comparison-chart" height="900" width="2142" class="block box-border w-full h-full"></canvas>
     </div>
 </div>
+<div id="comparison-json-element" hidden data-json="{{ json_data }}"></div>

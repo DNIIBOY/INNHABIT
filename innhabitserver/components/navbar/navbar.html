@@ -1,23 +1,37 @@
-<nav class="flex flex-col fixed top-0 h-full justify-between p-3 w-72 bg-aau drop-shadow-lg text-gray-100">
-    <div class="space-y-3">
-        <div class="flex flex-col items-start justify-between">
-            <h2 class="text-3xl font-bold">AAU INNOVATE</h2>
-            <h3 class="text-xs">Thomas Manns Vej 25, 9220 Aalborg</h3>
-        </div>
-        <hr>
-        <div class="flex-1">
-            <ul class="pt-2 pb-4">
-                {% component "navitem" %}{% endcomponent %}
-                {% component "navitem" %}{% endcomponent %}
-                {% component "navitem" %}{% endcomponent %}
-                {% component "navitem" %}{% endcomponent %}
-            </ul>
-        </div>
+<aside class="w-full h-full max-w-64 fixed flex flex-col justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r py-2">
+    <div class="flex flex-col items-center pt-10 pb-2 gap-8">
+        <a
+            href="{% url 'index' %}"
+            class="flex gap-4 items-center text-slate-700"
+        >
+            <svg
+                viewBox="0 0 69 72"
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-7 fill-aau"
+            >
+                <path d="M68.4473 55.0722C66.6046 54.2335 64.7513 53.8828 61.6073 51.6508C53.6033 45.9735 50.002 39.4015 55.1273 25.4922C58.0833 17.4682 59.2166 11.5148 59.0433 3.72951C58.9353 3.6535 58.6286 3.4455 58.5366 3.36816C56.9433 13.0428 54.2753 17.8135 48.2726 27.5615C34.6859 49.6242 47.4593 63.1295 53.4966 68.004C59.0846 65.3186 64.9326 60.6628 68.4473 55.0722Z"/>
+                <path d="M41.8399 26.8043C51.3132 14.8349 55.1945 9.82425 56.0319 1.78825C55.9252 1.72826 55.6346 1.57227 55.5279 1.5136C52.9626 11.2269 47.6532 15.4723 31.8012 26.4376C15.3199 37.8376 15.9039 55.0136 20.3959 67.5443C25.4919 70.1588 31.2585 71.6432 37.3759 71.6432C38.6799 71.6432 39.9679 71.5749 41.2385 71.4443C29.9025 53.3096 30.7892 40.7669 41.8399 26.8043Z"/>
+                <path d="M35.384 17.7161C46.132 12.3935 50.8974 7.08013 53.0067 0.222797C52.912 0.177464 52.5054 -0.00520706 52.5014 0.000125885C46.4134 10.4308 38.8574 11.2001 21.6614 14.0748C11.7854 15.7241 6.41204 20.0375 0.870703 26.1175C0.358703 28.2961 -0.00396724 31.7855 3.27623e-05 34.1028C0.0120328 43.0548 3.06804 51.5108 8.57471 58.0695C8.88271 30.0495 21.956 24.3655 35.384 17.7161Z"/>
+            </svg>
+            <span class="font-bold text-xl duration-200 text-aau">AAU INNOVATE</span>
+        </a>
+        <div class="h-px w-3/4 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
     </div>
-    <div class="flex items-center p-2 mt-12 space-x-4 justify-self-end">
-        <div>
-            <h2 class="text-lg font-semibold">{{ request.user.get_full_name }}</h2>
-            <p class="text-xs">{{ request.user.email }}</p>
-        </div>
+
+    <div class="items-center w-auto h-screen overflow-auto grow basis-full">
+        <ul class="flex flex-col px-4 gap-2">
+            {% component "navitem" url_name="dashboard" content="Dashboard" icon="shop-window" %}{% endcomponent %}
+            {% component "navitem" url_name="users" content="Brugere" icon="people" %}{% endcomponent %}
+            {% component "navitem" %}{% endcomponent %}
+        </ul>
     </div>
-</nav>
+    <div class="w-full flex flex-col items-center">
+        <a
+            class="w-11/12 p-3 bg-white border-black/15 border rounded-lg overflow-x-auto text-nowrap hover:scale-[102%] transition-all"
+            href="{% url 'profile' %}"
+        >
+            <h4 class="text-lg font-semibold">{{ user.get_full_name }}</h4>
+            <p>{{ user.email }}</p>
+        </a>
+    </div>
+</aside>

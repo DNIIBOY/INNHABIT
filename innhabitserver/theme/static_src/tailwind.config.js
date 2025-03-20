@@ -49,6 +49,10 @@ module.exports = {
                 "aau": "#201950",
                 "aau-light": "#4066B2",
                 "aau-gray": "#435A69",
+                "aau-green": "#5CAF8D",
+                "aau-orange": "#DF8E2E",
+                "aau-red": "#CC445B",
+                "aau-light-blue": "#31A9C1"
             }
         },
     },
