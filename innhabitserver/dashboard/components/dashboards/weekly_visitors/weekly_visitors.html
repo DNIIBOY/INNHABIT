@@ -6,13 +6,9 @@
                 <h5 class="flex text-4xl items-center gap-2 text-nowrap">
                     {{ weekly_visitors }}
                     {% if last_week_diff > 0 %}
-                        <span class="font-semibold text-lime-500">+{{ last_week_percentage|floatformat:0 }}%
-                            <i class="bi-calendar-minus text-lime-500"></i>
-                        </span>
+                        <span class="font-semibold text-lime-500">+{{ last_week_percentage|floatformat:0 }}%</span>
                     {% elif last_week_diff < 0 %}
-                        <span class="font-bold text-red-500">{{ last_week_percentage|floatformat:0 }}%
-                            <i class="bi-calendar-minus text-red-500"></i>
-                        </span>
+                        <span class="font-bold text-red-500">{{ last_week_percentage|floatformat:0 }}%</span>
                     {% else %}
                     {% endif %}
                 </h5>
