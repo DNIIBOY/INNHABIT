@@ -55,10 +55,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_browser_reload",
     "tailwind",
     "django_htmx",
-    "template_partials",
+    "template_partials.apps.SimpleAppConfig",
+    "django_browser_reload",
     "django_components",
     "rest_framework",
     "accounts",
@@ -96,9 +96,19 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
             ],
             "loaders": [
-                "django_components.template_loader.Loader",
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
+                (
+                    "template_partials.loader.Loader",
+                    [
+                        (
+                            "django.template.loaders.cached.Loader",
+                            [
+                                "django_components.template_loader.Loader",
+                                "django.template.loaders.filesystem.Loader",
+                                "django.template.loaders.app_directories.Loader",
+                            ],
+                        )
+                    ],
+                ),
             ],
             "builtins": [
                 "django_components.templatetags.component_tags",
