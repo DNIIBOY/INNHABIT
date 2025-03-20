@@ -1,28 +1,15 @@
 <div class="p-6 pb-0 flex flex-col justify-between gap-1">
-    <h5 class="text-xl font-bold">Brug af indgange</h5>
-    <div class="flex text-xs lg:text-sm justify-between">
+    <h5 class="text-3xl font-bold">Brug af indgange</h5>
+    <div class="grid grid-cols-2 text-xs lg:text-sm justify-between lg:hidden 2xl:grid">
         {% for label, color in label_colors %}
-        <div class="flex items-center">
+        <div class="flex items-center gap-2 {% if forloop.counter|divisibleby:2 %}justify-self-end flex-row-reverse{% endif %}">
             <div class="w-3 h-3 rounded-full" style="background-color: {{ color }};"></div>
-            <p>{{ label }}</p>
+            <p class="text-2xl">{{ label }}</p>
         </div>
         {% endfor %}
     </div>
 </div>
-<div class="flex justify-between px-4 pt-5">
-    <div>
-        <div>
-            <canvas id="entries-chart" width="900" height="900" class="block box-border w-32 aspect-square"></canvas>
-        </div>
-    </div>
-    <div>
-        <div>
-            <canvas id="exits-chart" width="900" height="900" class="block box-border w-32 aspect-square"></canvas>
-        </div>
-    </div>
-</div>
-<div class="flex justify-between pb-2 px-14">
-    <p>Indgang</p>
-    <p>Udgang</p>
+<div class="flex w-full justify-center pb-4">
+    <canvas id="entrance-chart" width="900" height="900" class="block box-border w-56 aspect-square"></canvas>
 </div>
 <div id="entrance-json-element" hidden data-json="{{ json_data }}"></div>

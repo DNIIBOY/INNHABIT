@@ -1,6 +1,6 @@
 import json
 
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import Entrance
@@ -24,18 +24,16 @@ class EntranceOverview(Component):
             exit_count=Count(
                 "exits", filter=Q(entries__timestamp__date=today), distinct=True
             ),
+            event_count=F("entry_count") + F("exit_count"),
         ).order_by("name")
         labels = []
-        entries = []
-        exits = []
+        events = []
         for entrance in entrances:
             labels.append(entrance.name)
-            entries.append(entrance.entry_count)
-            exits.append(entrance.exit_count)
+            events.append(entrance.event_count)
         context = {
             "labels": labels,
-            "entries": entries,
-            "exits": exits,
+            "events": events,
             "colors": self.colors[: len(labels)],
             "label_colors": tuple(zip(labels, self.colors[: len(labels)])),
         }
