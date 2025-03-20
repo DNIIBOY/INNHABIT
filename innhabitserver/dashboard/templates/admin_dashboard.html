@@ -5,7 +5,7 @@
 <div class="flex flex-col h-full justify-center w-full">
     <div class="flex flex-wrap">
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% if perms.occupancy.view_entry_event and perms.occupancy.view_exit_event %}
+            {% if perms.occupancy.view_entryevent and perms.occupancy.view_exitevent %}
                 {% component "card" %}
                     {% fill "content" %}
                             {% component "occupants" %}{% endcomponent %}
@@ -14,7 +14,7 @@
             {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% if perms.occupancy.view_entry_event %}
+            {% if perms.occupancy.view_entryevent %}
                 {% component "card" %}
                     {% fill "content" %}
                     {% endfill %}
@@ -22,15 +22,16 @@
             {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% if perms.occupancy.view_entry_event %}
+            {% if perms.occupancy.view_entryevent %}
                 {% component "card" %}
                     {% fill "content" %}
+                            {% component "weekly_visitors" %}{% endcomponent %}
                     {% endfill %}
                 {% endcomponent %}
             {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-            {% if perms.occupancy.view_entry_event %}
+            {% if perms.occupancy.view_entryevent %}
                 {% component "card" %}
                     {% fill "content" %}
                             {% component "monthly_visitors" %}{% endcomponent %}
@@ -42,7 +43,7 @@
 
     <div class="flex flex-wrap mt-6">
         <div class="w-full flex flex-col px-3 mb-6 lg:mb-0 lg:w-1/3">
-            {% if perms.occupancy.view_entry_event %}
+            {% if perms.occupancy.view_entryevent %}
                 {% component "card" %}
                     {% fill "content" %}
                     {% endfill %}
@@ -50,7 +51,7 @@
             {% endif %}
         </div>
         <div class="w-full px-3 mb-6 lg:mb-0 lg:w-1/4">
-            {% if perms.occupancy.view_entry_event and perms.occupancy.view_entrances %}
+            {% if perms.occupancy.view_entryevent and perms.occupancy.view_entrance %}
                 {% component "card" %}
                     {% fill "content" %}
                             {% component "entrance_overview" %}{% endcomponent %}
@@ -59,7 +60,7 @@
             {% endif %}
         </div>
         <div class="w-full max-w-full px-3 lg:w-5/12">
-            {% if perms.occupancy.view_entry_event or perms.occupancy.view_exit_event %}
+            {% if perms.occupancy.view_entryevent or perms.occupancy.view_exitevent %}
                 {% component "card" %}
                     {% fill "content" %}
                             {% component "latest_events" %}{% endcomponent %}
@@ -71,7 +72,7 @@
 
     <div class="flex flex-wrap mt-6">
         <div class="w-full max-w-full px-3 mt-0 mb-6 lg:mb-0 lg:w-5/12 lg:flex-none">
-            {% if perms.occupancy.view_entry_event and perms.dashboard.view_labelled_date %}
+            {% if perms.occupancy.view_entryevent and perms.dashboard.view_labelleddate %}
                 {% component "card" %}
                     {% fill "content" %}
                             {% component "busiest_days" %}{% endcomponent %}
@@ -80,7 +81,7 @@
             {% endif %}
         </div>
         <div class="w-full max-w-full px-3 mt-0 lg:w-7/12 lg:flex-none">
-            {% if perms.occupancy.view_entry_event and perms.occupancy.view_exit_event %}
+            {% if perms.occupancy.view_entryevent and perms.occupancy.view_exitevent %}
                 {% component "card" %}
                     {% fill "content" %}
                             {% component "comparison_plot" %}{% endcomponent %}

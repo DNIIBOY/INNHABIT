@@ -10,7 +10,7 @@ class Occupants(Component):
     template_name = "occupants.html"
 
     def get_context_data(self) -> dict:
-        now = timezone.now()
+        now = timezone.localtime()
         comparison_time = now - timedelta(hours=1)
         today = now.date()
         entries = EntryEvent.objects.filter(timestamp__date=today).count()

@@ -1,4 +1,4 @@
-import datetime
+from datetime import time, timedelta
 
 from django.db.models import Count
 from django.db.models.functions import ExtractWeekDay
@@ -12,15 +12,15 @@ class CafeteriaDay(Component):
     template_name = "cafeteria_day.html"
 
     def get_context_data(self) -> dict:
-        today = timezone.now().date()
-        start_of_this_week = today - datetime.timedelta(days=today.weekday())
-        end_of_prev_week = start_of_this_week - datetime.timedelta(days=1)
-        start_of_prev_week = end_of_prev_week - datetime.timedelta(days=6)
+        today = timezone.localtime().date()
+        start_of_this_week = today - timedelta(days=today.weekday())
+        end_of_prev_week = start_of_this_week - timedelta(days=1)
+        start_of_prev_week = end_of_prev_week - timedelta(days=6)
 
         top_day = (
             EntryEvent.objects.filter(
                 timestamp__date__range=(start_of_prev_week, end_of_prev_week),
-                timestamp__time__range=(datetime.time(11, 15), datetime.time(13, 15)),
+                timestamp__time__range=(time(11, 15), time(13, 15)),
             )
             .annotate(weekday=ExtractWeekDay("timestamp"))
             .values("weekday")
