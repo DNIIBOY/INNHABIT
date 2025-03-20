@@ -1,6 +1,5 @@
 function setupEntranceCharts(data){
-    const entriesChart = document.getElementById("entries-chart").getContext("2d");
-    const exitsCharts = document.getElementById("exits-chart").getContext("2d");
+    const entranceChart = document.getElementById("entrance-chart").getContext("2d");
 
     const options = {
         responsive: true,
@@ -16,33 +15,19 @@ function setupEntranceCharts(data){
         }
     }
 
-    new Chart(entriesChart, {
+    new Chart(entranceChart, {
         type: "doughnut",
         data: {
             labels: data["labels"],
             datasets: [
                 {
-                    data: data["entries"],
+                    data: data["events"],
                     backgroundColor: data["colors"],
                 },
             ],
         },
         options: options,
     });
-
-    new Chart(exitsCharts, {
-        type: "doughnut",
-        data: {
-            labels: data["labels"],
-            datasets: [
-                {
-                    data: data["exits"],
-                    backgroundColor: data["colors"],
-                },
-            ],
-        },
-        options: options,
-    })
 }
 
 document.addEventListener("DOMContentLoaded", function() {
