@@ -42,17 +42,17 @@ private:
     float nms_threshold = NMS_THRESH; // NMS threshold
     
     
-    void printDetections(const std::vector<Detection>& detections) const {
-        size_t displayCount = std::min<size_t>(detections.size(), 3);
+    void printDetections() const {
+        size_t displayCount = std::min<size_t>(detections_.size(), 3);
         for (size_t i = 0; i < displayCount; ++i) {
-            const Detection& det = detections[i];
+            const Detection& det = detections_[i];
             std::cout << "  Detection " << i + 1 << ": Class=" << det.class_id 
                       << ", Conf=" << det.confidence << ", Box=[x=" << det.bounding_box.x 
                       << ",y=" << det.bounding_box.y << ",w=" << det.bounding_box.width 
                       << ",h=" << det.bounding_box.height << "]" << std::endl;
         }
-        if (detections.size() > displayCount) {
-            std::cout << "... and " << (detections.size() - displayCount) << " more" << std::endl;
+        if (detections_.size() > displayCount) {
+            std::cout << "... and " << (detections_.size() - displayCount) << " more" << std::endl;
         }
     }
     
@@ -77,10 +77,23 @@ private:
 
         context = engine->createExecutionContext();
 
+
+
         delete network;
         delete config;
         delete parser;
         delete plan;
+
+        if (!engine)
+        {
+            std::cout << "Failed to create engine" << std::endl;
+            return false;
+        } else {
+
+        }
+
+        std::cout << "Successfully created engine" << std::endl;
+        return true;
     }
 
     bool saveEngine(const std::string& onnxpath) {
@@ -139,8 +152,8 @@ private:
         const Mat det_output(detection_attribute_size, num_detections, CV_32F, cpu_output_buffer);
         
         // Scaling factors and offsets
-        const float ratio_h = static_cast<float>(model_input_h) / frame.rows;
-        const float ratio_w = static_cast<float>(model_input_w) / frame.cols; 
+        const float ratio_h = static_cast<float>(model_input_h)/ frame.rows;
+        const float ratio_w = static_cast<float>(model_input_w)/ frame.cols ; 
         const float scale = std::min(ratio_h, ratio_w);
         const float offset_x = (ratio_h > ratio_w) ? 0.0f : (model_input_w - ratio_h * frame.cols) * 0.5f;
         const float offset_y = (ratio_h > ratio_w) ? (model_input_h - ratio_w * frame.rows) * 0.5f : 0.0f;
@@ -219,48 +232,6 @@ public:
         delete engine;
         delete runtime;
     }
-
-    // Detect function
-    void detect(cv::Mat& frame) override {
-        if (!initialized_) {
-            std::cerr << "Detector not initialized" << std::endl;
-            return;
-        }
-
-        // Clear previous detections
-        detections_.clear();
-
-        // Total start time
-        auto total_start = std::chrono::high_resolution_clock::now();
-
-        // Preprocessing
-        auto preprocess_start = std::chrono::high_resolution_clock::now();
-        preprocess(frame);
-        auto preprocess_end = std::chrono::high_resolution_clock::now();
-        double preprocess_time = std::chrono::duration<double, std::milli>(preprocess_end - preprocess_start).count();
-
-        // Inference
-        auto inference_start = std::chrono::high_resolution_clock::now();
-        inference(frame);
-        auto inference_end = std::chrono::high_resolution_clock::now();
-        double inference_time = std::chrono::duration<double, std::milli>(inference_end - inference_start).count();
-
-        // Postprocessing
-        auto postprocess_start = std::chrono::high_resolution_clock::now();
-        postprocess(frame);
-        auto postprocess_end = std::chrono::high_resolution_clock::now();
-        double postprocess_time = std::chrono::duration<double, std::milli>(postprocess_end - postprocess_start).count();
-        // Total end time
-        auto total_end = std::chrono::high_resolution_clock::now();
-        double total_time = std::chrono::duration<double, std::milli>(total_end - total_start).count();
-
-        // Output timings
-        std::cout << "Preprocessing time: " << preprocess_time << "ms" << std::endl;
-        std::cout << "Inference time: " << inference_time << "ms" << std::endl;
-        std::cout << "Postprocessing time: " << postprocess_time << "ms" << std::endl;
-        std::cout << "Total detection time: " << total_time << "ms" << std::endl;
-    }
-
     // Initialize function to load engine and allocate buffers
     void initialize(const string& engineFilePath) override {
         ifstream engineStream(engineFilePath, ios::binary);
@@ -321,13 +292,16 @@ public:
         initialized_ = true;
     }
     // dont use just her because using detector.h abstract class i have to change this.
-    void releaseOutputs(const DetectionOutput&) override {}
+    void releaseOutputs() override {
+        // No-op
+        detections_.clear();    
+    }
 };
 
-Detector* createDetector(const std::string& modelPath, const vector<string>& targetClasses) {
+GenericDetector* createDetector(const string& modelPath, const vector<string>& targetClasses) {
     try {
         return new TensorRTDetector(modelPath, targetClasses);
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         std::cerr << "Failed to create detector: " << e.what() << std::endl;
         return nullptr;
     }

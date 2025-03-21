@@ -22,10 +22,17 @@ bool isInsideBox(const Position& pos, const BoxZone& zone) {
 }
 
 float computeIoU(const cv::Rect& box1, const cv::Rect& box2) {
-    float intersection = (box1 & box2).area();
-    float unionArea = box1.area() + box2.area() - intersection;
-    return unionArea > 0 ? intersection / unionArea : 0;
+    int xA = std::max(box1.x, box2.x);
+    int yA = std::max(box1.y, box2.y);
+    int xB = std::min(box1.x + box1.width, box2.x + box2.width);
+    int yB = std::min(box1.y + box1.height, box2.y + box2.height);
+
+    int intersectionArea = std::max(0, xB - xA) * std::max(0, yB - yA);
+    int unionArea = box1.area() + box2.area() - intersectionArea;
+
+    return unionArea > 0 ? (float)intersectionArea / unionArea : 0.0f;
 }
+
 
 void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int frameHeight) {
     std::vector<Detection> highConfDetections;

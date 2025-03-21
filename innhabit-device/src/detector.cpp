@@ -2,27 +2,27 @@
 #include "common.h"
 #include <algorithm>
 
-// Default constructor for the GenericDetector
+// Implement the constructor (removed initialize call)
 GenericDetector::GenericDetector(const string& model_path, const vector<string>& target_classes)
-    : target_classes_(target_classes), initialized_(false) {
-    // Implementation moved to initialize() which is called by derived classes
+    : target_classes_(target_classes) {
+    // Derived classes must call initialize(model_path) explicitly!
 }
 
-// Main detection function - common for all platforms
+// Implement detect function
 void GenericDetector::detect(cv::Mat& frame) {
     if (!initialized_) {
         ERROR("Detector not properly initialized");
         return;
     }
+    detections_.clear();
 
-    // Common preprocessing
+    // Common processing steps
     preprocess(frame);
     inference(frame);
     postprocess(frame);
-
 }
 
-// Helper function to clamp values
+// Implement helper function to clamp values
 int GenericDetector::clamp(int val, int min_val, int max_val) {
-    return max(min_val, min(val, max_val));
+    return std::max(min_val, std::min(val, max_val));
 }
