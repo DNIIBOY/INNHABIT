@@ -23,31 +23,31 @@ void printUsage(const char* progName) {
     cout << "  (No arguments defaults to webcam)" << endl;
 }
 
-int main(int argc, char** argv) {
-    string modelPath = "../models";
-    string videoFile;
-    string imageFile;
-    
+Config loadSettings(const string& settingsFile) {
+    ifstream file(settingsFile);
     try {
-        config = loadConfig("../settings.json");
+        return loadConfig("../settings.json");
         LOG("Loaded config for device: " << config.deviceName);
     } catch (const std::exception& e) {
         ERROR("Error loading config: " << e.what());
-        return -1;
+        return Config();
     }
+}
+
+int main(int argc, char** argv) {
+    string videoFile;
+    string modelPath;
+    config = loadSettings("../settings.json");
     
     string apiUrl = config.ServerEventAPI;
-    cout << "API URL: " << apiUrl << endl;
     
     PeopleTracker tracker;
-    tracker.setMovementCallback(movementEventCallback);
+    tracker.setMovementCallback(movementEventCallback); // Set callback function
     tracker.setEntranceZones(config.entranceZones);  // Pass vector of zones
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--video") == 0 && i + 1 < argc) {
             videoFile = argv[++i];
-        } else if (strcmp(argv[i], "--image") == 0 && i + 1 < argc) {
-            imageFile = argv[++i];
         } else if (strcmp(argv[i], "--model") == 0 && i + 1 < argc) {
             modelPath = argv[++i];
         } else {
@@ -57,13 +57,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (!videoFile.empty() && !imageFile.empty()) {
-        cerr << "Error: Cannot specify both --video and --image" << endl;
-        printUsage(argv[0]);
-        return -1;
-    }
-    
-    vector<string> targetClasses = {"person"};
 
     try {
         apiHandler.reset(new ApiHandler(apiUrl));
@@ -73,14 +66,13 @@ int main(int argc, char** argv) {
         cerr << "The application will continue without API connectivity." << endl;
     }
 
-    Detector* detector = createDetector(modelPath, targetClasses);
+    Detector* detector = createDetector(modelPath, {"person"});
     if (!detector) {
         cerr << "Error: Failed to initialize detector." << endl;
         return -1;
     }
-    
     cv::Mat frame;
-    VideoCapture cap;
+    cv::VideoCapture cap;
 
     if (!videoFile.empty()) {
         cap.open(videoFile);
@@ -90,14 +82,6 @@ int main(int argc, char** argv) {
         }
         cout << "Video file opened successfully. Resolution: " 
              << cap.get(CAP_PROP_FRAME_WIDTH) << "x" << cap.get(CAP_PROP_FRAME_HEIGHT) << endl;
-    } else if (!imageFile.empty()) {
-        frame = imread(imageFile);
-        if (frame.empty()) {
-            cerr << "Error: Could not open image file: " << imageFile << endl;
-            return -1;
-        }
-        cout << "Image file opened successfully. Resolution: " 
-             << frame.cols << "x" << frame.rows << endl;
     } else {
         cap.open(0);
         if (!cap.isOpened()) {
@@ -110,16 +94,16 @@ int main(int argc, char** argv) {
             cap.release();
             return -1;
         }
-        cout << "Camera opened successfully. Resolution: " 
-             << frame.cols << "x" << frame.rows << endl;
     }
+
+    cout << "Video opened successfully. Resolution: " << cap.get(CAP_PROP_FRAME_WIDTH) << "x" << cap.get(CAP_PROP_FRAME_HEIGHT) << endl;
+    cout << "Press 'q' to quit." << endl;
 
     const int fpsBufferSize = 16;
     float fpsBuffer[fpsBufferSize] = {0.0};
     int frameCount = 0;
     chrono::steady_clock::time_point startTime;
 
-    cout << "Press 'q' to quit." << endl;
     while (true) {
         startTime = chrono::steady_clock::now();
         
@@ -128,25 +112,12 @@ int main(int argc, char** argv) {
             cerr << "Error: Frame capture failed during loop." << endl;
             break;
         }
-        std::cout << "================== time ===================" << std::endl;
-        auto detection_start = std::chrono::high_resolution_clock::now();
         detector->detect(frame);
-        auto detection_end = std::chrono::high_resolution_clock::now();
-        double detect_time = std::chrono::duration<double, std::milli>(detection_end - detection_start).count();
-        
-        auto tracker_update_start = std::chrono::high_resolution_clock::now();
+
         tracker.update(detector->getDetections(), frame.rows);
-        auto tracker_update_end = std::chrono::high_resolution_clock::now();
-        double tracker_update_time = std::chrono::duration<double, std::milli>(tracker_update_end - tracker_update_start).count();
-        
-        auto tracker_draw_start = std::chrono::high_resolution_clock::now();
+
         tracker.draw(frame);
-        auto tracker_draw_end = std::chrono::high_resolution_clock::now();
-        double tracker_draw_time = std::chrono::duration<double, std::milli>(tracker_update_end - tracker_update_start).count();
-        
-        std::cout << "detect time: " << detect_time << "ms" << std::endl;
-        std::cout << "tracker update time: " << tracker_update_time << "ms" << std::endl;
-        std::cout << "tracker draw time: " << tracker_draw_time << "ms" << std::endl;
+
 
         auto endTime = chrono::steady_clock::now();
         float frameTimeMs = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
@@ -168,9 +139,9 @@ int main(int argc, char** argv) {
         if (waitKey(1) == 'q') break;
     }
 
+    // Clean up
     cap.release();
     destroyAllWindows();
     apiHandler.reset();
-    
     return 0;
 }
