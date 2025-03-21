@@ -55,7 +55,7 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
 
         for (size_t d = 0; d < highConfDetections.size(); ++d) {
             if (detMatched[d]) continue;
-            float IoU = computeIoU(people[t].getBoundingBox(), highConfDetections[d].box);
+            float IoU = computeIoU(people[t].getBoundingBox(), highConfDetections[d].bounding_box);
             if (IoU > highestIoU && IoU > iouThresholdHigh) {
                 highestIoU = IoU;
                 bestDetIdx = d;
@@ -64,12 +64,12 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
 
         if (bestDetIdx >= 0) {
             Position pos = {
-                highConfDetections[bestDetIdx].box.x + highConfDetections[bestDetIdx].box.width / 2,
-                highConfDetections[bestDetIdx].box.y + highConfDetections[bestDetIdx].box.height / 2
+                highConfDetections[bestDetIdx].bounding_box.x + highConfDetections[bestDetIdx].bounding_box.width / 2,
+                highConfDetections[bestDetIdx].bounding_box.y + highConfDetections[bestDetIdx].bounding_box.height / 2
             };
             BoxSize size = {
-                highConfDetections[bestDetIdx].box.width,
-                highConfDetections[bestDetIdx].box.height
+                highConfDetections[bestDetIdx].bounding_box.width,
+                highConfDetections[bestDetIdx].bounding_box.height
             };
             people[t].update(pos, size, highConfDetections[bestDetIdx].confidence);
             trackMatched[t] = true;
@@ -87,7 +87,7 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
 
         for (size_t d = 0; d < lowConfDetections.size(); ++d) {
             if (detMatched[d + highConfDetections.size()]) continue;
-            float IoU = computeIoU(people[t].getBoundingBox(), lowConfDetections[d].box);
+            float IoU = computeIoU(people[t].getBoundingBox(), lowConfDetections[d].bounding_box);
             if (IoU > highestIoU && IoU > iouThresholdLow) {
                 highestIoU = IoU;
                 bestDetIdx = d;
@@ -96,12 +96,12 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
 
         if (bestDetIdx >= 0) {
             Position pos = {
-                lowConfDetections[bestDetIdx].box.x + lowConfDetections[bestDetIdx].box.width / 2,
-                lowConfDetections[bestDetIdx].box.y + lowConfDetections[bestDetIdx].box.height / 2
+                lowConfDetections[bestDetIdx].bounding_box.x + lowConfDetections[bestDetIdx].bounding_box.width / 2,
+                lowConfDetections[bestDetIdx].bounding_box.y + lowConfDetections[bestDetIdx].bounding_box.height / 2
             };
             BoxSize size = {
-                lowConfDetections[bestDetIdx].box.width,
-                lowConfDetections[bestDetIdx].box.height
+                lowConfDetections[bestDetIdx].bounding_box.width,
+                lowConfDetections[bestDetIdx].bounding_box.height
             };
             people[t].update(pos, size, lowConfDetections[bestDetIdx].confidence);
             trackMatched[t] = true;
@@ -129,12 +129,12 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
     for (size_t d = 0; d < highConfDetections.size(); ++d) {
         if (!detMatched[d]) {
             Position pos = {
-                highConfDetections[d].box.x + highConfDetections[d].box.width / 2,
-                highConfDetections[d].box.y + highConfDetections[d].box.height / 2
+                highConfDetections[d].bounding_box.x + highConfDetections[d].bounding_box.width / 2,
+                highConfDetections[d].bounding_box.y + highConfDetections[d].bounding_box.height / 2
             };
             BoxSize size = {
-                highConfDetections[d].box.width,
-                highConfDetections[d].box.height
+                highConfDetections[d].bounding_box.width,
+                highConfDetections[d].bounding_box.height
             };
             TrackedPerson newPerson(nextId++, pos, size, highConfDetections[d].confidence, frameHeight, entranceZones);
             newPeople.push_back(newPerson);

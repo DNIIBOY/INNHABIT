@@ -10,70 +10,56 @@ using namespace std;
 
 // Structure for storing detection results
 struct Detection {
-    string classId;
+    string class_id;  // Renamed from classId
     float confidence;
-    Rect box;
+    Rect bounding_box; // Renamed from box
 };
 
 // Structure for storing platform-specific inference outputs
 struct DetectionOutput {
     vector<void*> buffers;   // Pointers to output buffers
-    vector<float> scales;    // Scale factors for quantized outputs
-    vector<int32_t> zps;     // Zero points for quantized outputs
-    int num_outputs;         // Number of output tensors
     vector<Mat> outputs;     // For OpenCV DNN outputs
-
-    // Default constructor
-    DetectionOutput() : num_outputs(0) {}
-
     // Clear all data
     void clear() const {
-        // Clear all vectors
         const_cast<vector<void*>&>(buffers).clear();
-        const_cast<vector<float>&>(scales).clear();
-        const_cast<vector<int32_t>&>(zps).clear();
-        const_cast<int&>(num_outputs) = 0;
         const_cast<vector<Mat>&>(outputs).clear();
     }
 };
 
 // Abstract base class for all detectors
 class Detector {
+protected:
+    vector<Detection> detections_;
 public:
     virtual ~Detector() = default;
     virtual void detect(Mat& frame) = 0;
-    virtual const vector<Detection>& getDetections() const = 0;
+    virtual const vector<Detection>& getDetections() const { return detections_; }
 };
 
 // Generic detector implementation with common functionality
 class GenericDetector : public Detector {
 protected:
-    vector<string> targetClasses;
-    bool initialized;
-    int width, height, channel;
-    vector<Detection> detections;
+    vector<string> target_classes_;  // Renamed from targetClasses
+    bool initialized_;
+    vector<Detection> detections_;
 
     // Virtual methods to be implemented by platform-specific detectors
-    virtual void initialize(const string& modelPath) = 0;
-    virtual DetectionOutput runInference(cv::Mat& input) = 0;
+    virtual void initialize(const string& model_path) = 0;
     virtual void releaseOutputs(const DetectionOutput& output) = 0;
-    virtual void processDetections(const DetectionOutput& output, Mat& frame, float scale, int dx, int dy);
+    int clamp(int value, int min_value, int max_value);  // Renamed parameters for clarity
+    virtual void preprocess(cv::Mat& frame) = 0;
+    virtual void inference(cv::Mat& frame) = 0;
+    virtual void postprocess(cv::Mat& frame) = 0;
 
 public:
-    GenericDetector(const string& modelPath, const vector<string>& targetClasses_);
+    GenericDetector(const string& model_path, const vector<string>& target_classes);
     virtual ~GenericDetector() = default;
-
     void detect(Mat& frame) override;
-    const vector<Detection>& getDetections() const override;
-    int clamp(int val, int min_val, int max_val);
-    bool isInitialized() const { return initialized; } // New public getter
+    const vector<Detection>& getDetections() const { return detections_; }
+    bool isInitialized() const { return initialized_; }
 };
 
 // Factory function to create the appropriate detector
-Detector* createDetector(const string& modelPath, const vector<string>& targetClasses);
-
-// Utility functions declarations
-Mat preprocessImage(const Mat& frame, int targetWidth, int targetHeight, float& scale, int& dx, int& dy);
-void drawDetections(Mat& frame, const vector<Detection>& detections);
+Detector* createDetector(const string& model_path, const vector<string>& target_classes);
 
 #endif // DETECTOR_H

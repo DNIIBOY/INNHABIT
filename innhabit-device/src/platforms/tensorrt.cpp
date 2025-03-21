@@ -23,13 +23,13 @@ Logger logger; // Use the logger from logging.h instead of redefining
 class TensorRTDetector : public GenericDetector {
 private:
         
-    float* gpu_buffers[2];               //!< The vector of device buffers needed for engine execution
-    float* cpu_output_buffer;         //!< The output buffer for the detection attributes
+    float* gpu_buffers[2]{};               //!< The vector of device buffers needed for engine execution
+    float* cpu_output_buffer{nullptr};         //!< The output buffer for the detection attributes
 
-    cudaStream_t stream;                //!< CUDA stream for the execution
-    IRuntime* runtime;                 //!< The TensorRT runtime used to deserialize the engine
-    ICudaEngine* engine;               //!< The TensorRT engine used to run the network
-    IExecutionContext* context;        //!< The context for executing inference using an ICudaEngine
+    cudaStream_t stream{nullptr};                //!< CUDA stream for the execution
+    IRuntime* runtime{nullptr};                 //!< The TensorRT runtime used to deserialize the engine
+    ICudaEngine* engine{nullptr};               //!< The TensorRT engine used to run the network
+    IExecutionContext* context{nullptr};        //!< The context for executing inference using an ICudaEngine
 
     // Model parameters
     int model_input_w; // Model input width
@@ -46,10 +46,10 @@ private:
         size_t displayCount = std::min<size_t>(detections.size(), 3);
         for (size_t i = 0; i < displayCount; ++i) {
             const Detection& det = detections[i];
-            std::cout << "  Detection " << i + 1 << ": Class=" << det.classId 
-                      << ", Conf=" << det.confidence << ", Box=[x=" << det.box.x 
-                      << ",y=" << det.box.y << ",w=" << det.box.width 
-                      << ",h=" << det.box.height << "]" << std::endl;
+            std::cout << "  Detection " << i + 1 << ": Class=" << det.class_id 
+                      << ", Conf=" << det.confidence << ", Box=[x=" << det.bounding_box.x 
+                      << ",y=" << det.bounding_box.y << ",w=" << det.bounding_box.width 
+                      << ",h=" << det.bounding_box.height << "]" << std::endl;
         }
         if (detections.size() > displayCount) {
             std::cout << "... and " << (detections.size() - displayCount) << " more" << std::endl;
@@ -114,20 +114,20 @@ private:
         return true;
     }
     // call preprocess function in preprocess.cu
-    void preprocess(cv::Mat& frame) {
+    void preprocess(cv::Mat& frame) override {
         // Preprocessing data on gpu
         cuda_preprocess(frame.ptr(), frame.cols, frame.rows, gpu_buffers[0], model_input_w, model_input_h, stream);
         CUDA_CHECK(cudaStreamSynchronize(stream));
     }
     // call inference function in tensorrt
-    void inference(cv::Mat& frame) {
+    void inference(cv::Mat& frame) override {
         void* buffers[] = { gpu_buffers[0], gpu_buffers[1]};
         context->enqueueV2(buffers, stream, nullptr);
     }
     // process outputs from gpu
-    void postprocess(std::vector<Detection>& output, cv::Mat& frame) {
+    void postprocess(cv::Mat& frame) override {
         // Pre-allocate output vector to avoid dynamic resizing
-        output.reserve(100); // Adjust based on expected max detections
+        detections_.reserve(100); // Adjust based on expected max detections
 
         // Synchronize and copy data from GPU to CPU
         CUDA_CHECK(cudaMemcpyAsync(cpu_output_buffer, gpu_buffers[1], 
@@ -181,10 +181,10 @@ private:
         // Populate output directly
         for (int idx : nms_result) {
             Detection result;
-            result.classId = COCO_LABELS[class_Id]; // Single-class (use 0 if classId is int)
+            result.class_id = COCO_LABELS[class_Id]; // Single-class (use 0 if classId is int)
             result.confidence = confidences[idx];
-            result.box = boxes[idx];
-            output.push_back(std::move(result)); // Move to avoid copying
+            result.bounding_box = boxes[idx];
+            detections_.push_back(std::move(result)); // Move to avoid copying
         }
     }
 
@@ -222,13 +222,13 @@ public:
 
     // Detect function
     void detect(cv::Mat& frame) override {
-        if (!initialized) {
+        if (!initialized_) {
             std::cerr << "Detector not initialized" << std::endl;
             return;
         }
 
         // Clear previous detections
-        detections.clear();
+        detections_.clear();
 
         // Total start time
         auto total_start = std::chrono::high_resolution_clock::now();
@@ -247,7 +247,7 @@ public:
 
         // Postprocessing
         auto postprocess_start = std::chrono::high_resolution_clock::now();
-        postprocess(detections, frame);
+        postprocess(frame);
         auto postprocess_end = std::chrono::high_resolution_clock::now();
         double postprocess_time = std::chrono::duration<double, std::milli>(postprocess_end - postprocess_start).count();
         // Total end time
@@ -318,12 +318,9 @@ public:
             }
             LOG("model warmup 10 times");
         }
-        initialized = true;
+        initialized_ = true;
     }
     // dont use just her because using detector.h abstract class i have to change this.
-    DetectionOutput runInference(cv::Mat& input) override {
-        return DetectionOutput();
-    }
     void releaseOutputs(const DetectionOutput&) override {}
 };
 
