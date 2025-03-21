@@ -88,7 +88,8 @@ __global__ void warpaffine_kernel(
     c1 = c1 / 255.0f;
     c2 = c2 / 255.0f;
 
-    // Store in channel-separated format (rrrgggbbb)
+    
+    // Store in channel-separated format (rrrgggbbb) NCHW opencv stores in NHWC (rgbrgbrgb) tensorrt expects NCHW
     int area = dst_width * dst_height;
     float* pdst_c0 = dst + dy * dst_width + dx;
     float* pdst_c1 = pdst_c0 + area;
@@ -108,7 +109,7 @@ void cuda_preprocess(
     // Copy source image to pinned host memory
     memcpy(img_buffer_host, src, img_size);
 
-    // Transfer to device
+    // Transfer imgage to device
     CUDA_CHECK(cudaMemcpyAsync(img_buffer_device, img_buffer_host, img_size, 
                                cudaMemcpyHostToDevice, stream));
 
@@ -116,6 +117,7 @@ void cuda_preprocess(
     AffineMatrix s2d, d2s;
     float scale = std::min(static_cast<float>(dst_height) / src_height, 
                            static_cast<float>(dst_width) / src_width);
+
 
     s2d.value[0] = scale;
     s2d.value[1] = 0;
@@ -125,7 +127,9 @@ void cuda_preprocess(
     s2d.value[5] = -scale * src_height * 0.5f + dst_height * 0.5f;
 
     cv::Mat m2x3_s2d(2, 3, CV_32F, s2d.value);
+
     cv::Mat m2x3_d2s(2, 3, CV_32F, d2s.value);
+    
     cv::invertAffineTransform(m2x3_s2d, m2x3_d2s);
     memcpy(d2s.value, m2x3_d2s.ptr<float>(0), sizeof(d2s.value));
 

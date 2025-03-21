@@ -24,22 +24,22 @@ class TensorRTDetector : public GenericDetector {
 private:
         
     float* gpu_buffers[2];               //!< The vector of device buffers needed for engine execution
-    float* cpu_output_buffer;
+    float* cpu_output_buffer;         //!< The output buffer for the detection attributes
 
-    cudaStream_t stream;
+    cudaStream_t stream;                //!< CUDA stream for the execution
     IRuntime* runtime;                 //!< The TensorRT runtime used to deserialize the engine
     ICudaEngine* engine;               //!< The TensorRT engine used to run the network
     IExecutionContext* context;        //!< The context for executing inference using an ICudaEngine
 
     // Model parameters
-    int model_input_w;
-    int model_input_h;
-    int num_detections;
-    int detection_attribute_size;
-    int num_classes = 1;
-    const int MAX_IMAGE_SIZE = 2048 * 2048;
-    float conf_threshold = BOX_THRESH;
-    float nms_threshold = NMS_THRESH;
+    int model_input_w; // Model input width
+    int model_input_h; // Model input height
+    int num_detections; // Number of detections (e.g. 8400)
+    int detection_attribute_size; // Detection attribute size (e.g. 5)
+    int num_classes = 1; // Number of classes (e.g. 1, 80 for COCO multi-class)
+    const int MAX_IMAGE_SIZE = 2048 * 2048; // Maximum image size for preprocessing 
+    float conf_threshold = BOX_THRESH; // Confidence threshold
+    float nms_threshold = NMS_THRESH; // NMS threshold
     
     
     void printDetections(const std::vector<Detection>& detections) const {
@@ -113,18 +113,23 @@ private:
         }
         return true;
     }
-    
+    // call preprocess function in preprocess.cu
     void preprocess(cv::Mat& frame) {
         // Preprocessing data on gpu
         cuda_preprocess(frame.ptr(), frame.cols, frame.rows, gpu_buffers[0], model_input_w, model_input_h, stream);
         CUDA_CHECK(cudaStreamSynchronize(stream));
     }
-    
+    // call inference function in tensorrt
+    void inference(cv::Mat& frame) {
+        void* buffers[] = { gpu_buffers[0], gpu_buffers[1]};
+        context->enqueueV2(buffers, stream, nullptr);
+    }
+    // process outputs from gpu
     void postprocess(std::vector<Detection>& output, cv::Mat& frame) {
         // Pre-allocate output vector to avoid dynamic resizing
         output.reserve(100); // Adjust based on expected max detections
 
-        // Synchronize and copy data from GPU
+        // Synchronize and copy data from GPU to CPU
         CUDA_CHECK(cudaMemcpyAsync(cpu_output_buffer, gpu_buffers[1], 
                                 detection_attribute_size * num_detections * sizeof(float), 
                                 cudaMemcpyDeviceToHost, stream));
@@ -133,9 +138,9 @@ private:
         // Use a single pass to filter and scale boxes
         const Mat det_output(detection_attribute_size, num_detections, CV_32F, cpu_output_buffer);
         
-        // Scaling factors (assuming these are class members or passed in)
-        const float ratio_h = static_cast<float>(model_input_h) / frame.rows; // Video height: 1280x720
-        const float ratio_w = static_cast<float>(model_input_w) / frame.cols; // Video width: 1280x720
+        // Scaling factors and offsets
+        const float ratio_h = static_cast<float>(model_input_h) / frame.rows;
+        const float ratio_w = static_cast<float>(model_input_w) / frame.cols; 
         const float scale = std::min(ratio_h, ratio_w);
         const float offset_x = (ratio_h > ratio_w) ? 0.0f : (model_input_w - ratio_h * frame.cols) * 0.5f;
         const float offset_y = (ratio_h > ratio_w) ? (model_input_h - ratio_w * frame.rows) * 0.5f : 0.0f;
@@ -184,6 +189,7 @@ private:
     }
 
 public:
+    // Constructor with model path and target classes
     TensorRTDetector(const std::string& model_path, const vector<string>& targetClasses)
             : GenericDetector(model_path, targetClasses) {
             if (model_path.find(".onnx") == std::string::npos) {
@@ -193,7 +199,7 @@ public:
                 saveEngine(model_path);
             }
         }
-
+    // destructor cleanup
     ~TensorRTDetector() {
         // Memory free
         CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -214,6 +220,7 @@ public:
         delete runtime;
     }
 
+    // Detect function
     void detect(cv::Mat& frame) override {
         if (!initialized) {
             std::cerr << "Detector not initialized" << std::endl;
@@ -234,7 +241,7 @@ public:
 
         // Inference
         auto inference_start = std::chrono::high_resolution_clock::now();
-        runInference(frame);
+        inference(frame);
         auto inference_end = std::chrono::high_resolution_clock::now();
         double inference_time = std::chrono::duration<double, std::milli>(inference_end - inference_start).count();
 
@@ -254,45 +261,7 @@ public:
         std::cout << "Total detection time: " << total_time << "ms" << std::endl;
     }
 
-    void draw(Mat& image, const vector<Detection>& output)
-    {
-        const float ratio_h = model_input_h / (float)image.rows;
-        const float ratio_w = model_input_w / (float)image.cols;
-
-        for (int i = 0; i < output.size(); i++)
-        {
-            auto detection = output[i];
-            auto box = detection.box;
-            auto class_id = detection.classId;
-            auto conf = detection.confidence;
-            cv::Scalar color = cv::Scalar(144, 144, 144);
-
-            if (ratio_h > ratio_w)
-            {
-                box.x = box.x / ratio_w;
-                box.y = (box.y - (model_input_h - ratio_w * image.rows) / 2) / ratio_w;
-                box.width = box.width / ratio_w;
-                box.height = box.height / ratio_w;
-            }
-            else
-            {
-                box.x = (box.x - (model_input_w - ratio_h * image.cols) / 2) / ratio_h;
-                box.y = box.y / ratio_h;
-                box.width = box.width / ratio_h;
-                box.height = box.height / ratio_h;
-            }
-
-            rectangle(image, Point(box.x, box.y), Point(box.x + box.width, box.y + box.height), color, 3);
-
-            // Detection box text
-            string class_string = "person" + ' ' + to_string(conf).substr(0, 4);
-            Size text_size = getTextSize(class_string, FONT_HERSHEY_DUPLEX, 1, 2, 0);
-            Rect text_rect(box.x, box.y - 40, text_size.width + 10, text_size.height + 20);
-            rectangle(image, text_rect, color, FILLED);
-            putText(image, class_string, Point(box.x + 5, box.y - 10), FONT_HERSHEY_DUPLEX, 1, Scalar(0, 0, 0), 2, 0);
-    }
-    }
-
+    // Initialize function to load engine and allocate buffers
     void initialize(const string& engineFilePath) override {
         ifstream engineStream(engineFilePath, ios::binary);
         engineStream.seekg(0, ios::end);
@@ -345,17 +314,15 @@ public:
             for (int i = 0; i < 10; i++) {
                 LOG("Warmup iteration " << i + 1);
                 preprocess(dummyFrame);
-                this->runInference(dummyFrame);
+                this->inference(dummyFrame);
             }
             LOG("model warmup 10 times");
         }
         initialized = true;
     }
- 
-    DetectionOutput runInference(cv::Mat& frame) override {
-        void* buffers[] = { gpu_buffers[0], gpu_buffers[1]};
-        context->enqueueV2(buffers, stream, nullptr);
-        return DetectionOutput{};
+    // dont use just her because using detector.h abstract class i have to change this.
+    DetectionOutput runInference(cv::Mat& input) override {
+        return DetectionOutput();
     }
     void releaseOutputs(const DetectionOutput&) override {}
 };
