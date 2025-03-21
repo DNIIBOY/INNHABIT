@@ -3,7 +3,7 @@
         <div class="w-full">
             <h5 class="text-3xl font-bold">Aktivitet</h5>
             <p class="w-full hidden lg:block text-xl">
-                Aktivitet idag sammenlignet med en gennemsnitlig onsdag
+                Aktivitet idag sammenlignet med en gennemsnitlig {{ weekday|lower }}
             </p>
         </div>
     </div>
@@ -14,7 +14,7 @@
         </div>
         <div class="flex items-center gap-1">
             <div class="w-3 h-3 rounded-full bg-aau"></div>
-            <p class="text-nowrap">Gennemsnitlig onsdag</p>
+            <p class="text-nowrap">Gennemsnitlig {{ weekday|lower }}</p>
         </div>
     </div>
 </div>
