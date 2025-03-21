@@ -9,6 +9,16 @@ from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent
 
+WEEKDAYS = [
+    "Mandag",
+    "Tirsdag",
+    "Onsdag",
+    "Torsdag",
+    "Fredag",
+    "Lørdag",
+    "Søndag",
+]
+
 
 def extract_count_per_interval(queryset: QuerySet, interval: int) -> np.array:
     assert 60 % interval == 0, "Interval must be a divisor of 60"
@@ -101,6 +111,7 @@ class ComparisonPlot(Component):
                     labels.append("")  # Empty labels for minutes
 
         context = {
+            "weekday": WEEKDAYS[today.weekday()],
             "labels": labels,
             "today_counts": today_counts.tolist()[: current_time + 1],
             "avg_weekday_counts": avg_weekday_counts.tolist(),
