@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
         cerr << "The application will continue without API connectivity." << endl;
     }
 
-    Detector* detector = createDetector(modelPath, {"person"});
+    GenericDetector* detector = createDetector(modelPath, {"person"});
     if (!detector) {
         cerr << "Error: Failed to initialize detector." << endl;
         return -1;
