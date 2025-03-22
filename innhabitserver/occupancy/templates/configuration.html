@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col w-full items-center gap-20">
+    <h1 class="text-6xl">System</h1>
+    <div class="w-full xl:w-1/2">
+        {% component "card" %}
+        {% fill "content" %}
+        {% component "table" %}
+        {% fill "head" %}
+        <th class="text-left">Navn</th>
+        <th>Enheder</th>
+        <th class="text-right">Sidste besked</th>
+        {% endfill %}
+        {% fill "body" %}
+        {% for entrance in entrances %}
+        <tr>
+            <td>
+                <div class="flex ml-6 py-1">
+                    <div class="flex items-center">
+                        <a class="hover:underline">{{ entrance.name }}</a>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <p class="font-semibold">1</p>
+            </td>
+            <td class="text-right">
+                <p class="mr-6">{{ entrance.latest_entry|date:"H:i, d M" }}</p>
+            </td>
+        </tr>
+        {% endfor %}
+        {% endfill %}
+        {% endcomponent %}
+        <a class="w-full flex justify-center border-t-2 p-1 border-black/15 text-2xl group hover:bg-slate-200 transition-all">
+            <i class="bi-plus-lg text-3xl inline-flex align-middle group-hover:-translate-y-0.5 group-hover:text-slate-700 transition-all"></i>
+        </a>
+        {% endfill %}
+        {% endcomponent %}
+    </div>
+</div>
+{% endblock %}
