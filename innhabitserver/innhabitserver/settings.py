@@ -41,6 +41,7 @@ if not DEBUG:
     sentry_sdk.init(
         dsn=env("SENTRY_DSN"),
         traces_sample_rate=1.0,
+        send_default_pii=True,
         _experiments={
             "continuous_profiling_auto_start": True,
         },
