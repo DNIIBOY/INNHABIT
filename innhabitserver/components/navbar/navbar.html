@@ -27,7 +27,7 @@
             {% if perms.dashboard.view_labelleddate %}
                 {% component "navitem" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
             {% endif %}
-            {% component "navitem" content="System" icon="gear-wide-connected" %}{% endcomponent %}
+            {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" %}{% endcomponent %}
         </ul>
     </div>
     <div class="w-full flex flex-col items-center">
