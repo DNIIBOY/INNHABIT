@@ -32,6 +32,10 @@ class GenericDetector {
 protected:
     vector<string> target_classes_;  // Renamed from targetClasses
     bool initialized_ = false;
+    std::vector<float> preprocess_times_;
+    std::vector<float> inference_times_;
+    std::vector<float> postprocess_times_;
+    int frame_count_;
     vector<Detection> detections_;
 
     // Virtual methods to be implemented by platform-specific detectors

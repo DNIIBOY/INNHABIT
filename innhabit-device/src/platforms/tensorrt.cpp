@@ -26,7 +26,7 @@ private:
     float* gpu_buffers[2]{};               //!< The vector of device buffers needed for engine execution
     float* cpu_output_buffer{nullptr};         //!< The output buffer for the detection attributes
 
-    cudaStream_t stream{nullptr};                //!< CUDA stream for the execution
+    cudaStream_t preprocessStream, inferenceStream; //!< CUDA streams for preprocessing and inference
     IRuntime* runtime{nullptr};                 //!< The TensorRT runtime used to deserialize the engine
     ICudaEngine* engine{nullptr};               //!< The TensorRT engine used to run the network
     IExecutionContext* context{nullptr};        //!< The context for executing inference using an ICudaEngine
@@ -37,7 +37,7 @@ private:
     int num_detections; // Number of detections (e.g. 8400)
     int detection_attribute_size; // Detection attribute size (e.g. 5)
     int num_classes = 1; // Number of classes (e.g. 1, 80 for COCO multi-class)
-    const int MAX_IMAGE_SIZE = 2048 * 2048; // Maximum image size for preprocessing 
+    const int MAX_IMAGE_SIZE = 1500 * 1500; // Maximum image size for preprocessing 
     float conf_threshold = BOX_THRESH; // Confidence threshold
     float nms_threshold = NMS_THRESH; // NMS threshold
     
@@ -129,24 +129,26 @@ private:
     // call preprocess function in preprocess.cu
     void preprocess(cv::Mat& frame) override {
         // Preprocessing data on gpu
-        cuda_preprocess(frame.ptr(), frame.cols, frame.rows, gpu_buffers[0], model_input_w, model_input_h, stream);
-        CUDA_CHECK(cudaStreamSynchronize(stream));
+        cuda_preprocess(frame.ptr(), frame.cols, frame.rows, gpu_buffers[0], 
+        model_input_w, model_input_h, preprocessStream);
     }
     // call inference function in tensorrt
     void inference(cv::Mat& frame) override {
-        void* buffers[] = { gpu_buffers[0], gpu_buffers[1]};
-        context->enqueueV2(buffers, stream, nullptr);
+        CUDA_CHECK(cudaStreamSynchronize(preprocessStream)); // Wait for preprocess
+        void* buffers[] = {gpu_buffers[0], gpu_buffers[1]};
+        context->enqueueV2(buffers, inferenceStream, nullptr);
     }
     // process outputs from gpu
     void postprocess(cv::Mat& frame) override {
         // Pre-allocate output vector to avoid dynamic resizing
-        detections_.reserve(100); // Adjust based on expected max detections
+        detections_.clear(); 
+        detections_.reserve(50); // Adjust based on expected max detections
 
         // Synchronize and copy data from GPU to CPU
         CUDA_CHECK(cudaMemcpyAsync(cpu_output_buffer, gpu_buffers[1], 
                                 detection_attribute_size * num_detections * sizeof(float), 
-                                cudaMemcpyDeviceToHost, stream));
-        CUDA_CHECK(cudaStreamSynchronize(stream));
+                                cudaMemcpyDeviceToHost, inferenceStream));
+        CUDA_CHECK(cudaStreamSynchronize(inferenceStream));
 
         // Use a single pass to filter and scale boxes
         const Mat det_output(detection_attribute_size, num_detections, CV_32F, cpu_output_buffer);
@@ -162,8 +164,8 @@ private:
         std::vector<Rect> boxes;
         std::vector<float> confidences;
         int class_Id;
-        boxes.reserve(100); // Pre-allocate to avoid resizing
-        confidences.reserve(100);
+        boxes.reserve(50); // Pre-allocate to avoid resizing
+        confidences.reserve(50);
 
         // Single pass: filter and scale
         for (int i = 0; i < num_detections; ++i) {
@@ -215,8 +217,10 @@ public:
     // destructor cleanup
     ~TensorRTDetector() {
         // Memory free
-        CUDA_CHECK(cudaStreamSynchronize(stream));
-        CUDA_CHECK(cudaStreamDestroy(stream));
+        CUDA_CHECK(cudaStreamSynchronize(preprocessStream));
+        CUDA_CHECK(cudaStreamDestroy(preprocessStream));
+        CUDA_CHECK(cudaStreamSynchronize(inferenceStream));
+        CUDA_CHECK(cudaStreamDestroy(inferenceStream));
         for (float*& buffer : gpu_buffers) {
             if (buffer) {
                 cudaError_t err = cudaFree(buffer);
@@ -277,7 +281,8 @@ public:
         cpu_output_buffer = new float[detection_attribute_size * num_detections]; // 5 * 8400
 
         cuda_preprocess_init(MAX_IMAGE_SIZE);
-        CUDA_CHECK(cudaStreamCreate(&stream));
+        CUDA_CHECK(cudaStreamCreate(&preprocessStream));
+        CUDA_CHECK(cudaStreamCreate(&inferenceStream));
 
         if (warmup) {
             LOG("Starting warmup...");
@@ -289,6 +294,9 @@ public:
             }
             LOG("model warmup 10 times");
         }
+        preprocess_times_.reserve(100);
+        inference_times_.reserve(100);
+        postprocess_times_.reserve(100);
         initialized_ = true;
     }
     // dont use just her because using detector.h abstract class i have to change this.

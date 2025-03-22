@@ -100,78 +100,43 @@ Example: Process a video file
 
 ---
 
-# Code Overview
+# Model export
 
-## Directory Structure
 
-```
-.
-├── include/
-│   ├── detector.h
-│   ├── postprocess.h
-│   └── tracker.h
-├── models/
-├── src/
-│   ├── platforms/
-│   │   ├── cpu.cpp         # Optimized for x86_64
-│   │   ├── jetson.cpp      # Optimized for Jetson Nano (CUDA)
-│   │   └── rk3588.cpp     # Optimized for RK3588 (NPU)
-│   ├── detector.cpp       # Platform-independent wrapper
-│   ├── tracker.cpp        # Tracks detected objects
-│   ├── postprocess.cpp    # Post-processes detection outputs
-│   └── main.cpp           # Main entry point
-└── build/
+```python
+model = YOLO('best.pt')
+
+model.export(
+    format="onnx",
+    imgsz=512,
+    simplify=True,
+    half=True,
+)
 ```
 
-## Key Components
+```bash
+ trtexec --onnx=best.onnx --saveEngine=best512.engine --fp16
+```
+304.637 qps
 
-### `detector.cpp`
-
-- Provides a unified interface for object detection.
-- Uses platform-specific implementations based on the target hardware.
-
-### `tracker.cpp`
-
-- Implements object tracking for detected entities.
-
-### `postprocess.cpp`
-
-- Handles post-processing of raw YOLO model outputs (e.g., bounding box parsing).
-
-### `main.cpp`
-
-- Main entry point combining detection and tracking.
-
----
-
-
-# Debug
-
-- Ensure all required model files are placed in the `models/` directory.
-- Use the appropriate target platform flag when building.
-- For additional optimizations, adjust platform-specific code in the `src/platforms` directory.
-
-[INFO] Postprocessing - Frame size: 1280x720
-[INFO] Found 10 boxes above threshold 0.1
-[INFO] Postprocess: 1 detections after NMS
-[INFO] Detect Timing (ms):
-[INFO]   Preprocess: 19.1639
-[INFO]   H2D Copy: 0.089062
-[INFO]   Inference: 54.3678
-[INFO]   D2H Copy: 0.07875
-[INFO]   Sync: 0.04599
-[INFO]   Postprocess: 1.50042
-[INFO]   Draw: 0.134896
-[INFO]   Total: 76.131
-[INFO] Postprocessing - Frame size: 1280x720
-[INFO] Found 10 boxes above threshold 0.1
-[INFO] Postprocess: 1 detections after NMS
-[INFO] Detect Timing (ms):
-[INFO]   Preprocess: 19.1259
-[INFO]   H2D Copy: 0.08276
-[INFO]   Inference: 54.3921
-[INFO]   D2H Copy: 0.076562
-[INFO]   Sync: 0.044948
-[INFO]   Postprocess: 1.52729
-[INFO]   Draw: 0.142344
-[INFO]   Total: 76.1747
+## performance
+Average timing over 100 frames:
+  Preprocess: 0.516046 ms
+  Inference: 1.67796 ms
+  Postprocess: 1.40035 ms
+  Total: 3.59435 ms
+Average timing over 100 frames:
+  Preprocess: 0.528373 ms
+  Inference: 2.21991 ms
+  Postprocess: 1.15734 ms
+  Total: 3.90562 ms
+Average timing over 100 frames:
+  Preprocess: 0.534024 ms
+  Inference: 2.20707 ms
+  Postprocess: 1.17203 ms
+  Total: 3.91312 ms
+Average timing over 100 frames:
+  Preprocess: 0.536733 ms
+  Inference: 3.46766 ms
+  Postprocess: 0.9452 ms
+  Total: 4.94959 ms
