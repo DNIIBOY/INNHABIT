@@ -137,6 +137,7 @@ private:
         CUDA_CHECK(cudaStreamSynchronize(preprocessStream)); // Wait for preprocess
         void* buffers[] = {gpu_buffers[0], gpu_buffers[1]};
         context->enqueueV2(buffers, inferenceStream, nullptr);
+        CUDA_CHECK(cudaStreamSynchronize(inferenceStream));
     }
     // process outputs from gpu
     void postprocess(cv::Mat& frame) override {
@@ -148,7 +149,7 @@ private:
         CUDA_CHECK(cudaMemcpyAsync(cpu_output_buffer, gpu_buffers[1], 
                                 detection_attribute_size * num_detections * sizeof(float), 
                                 cudaMemcpyDeviceToHost, inferenceStream));
-        CUDA_CHECK(cudaStreamSynchronize(inferenceStream));
+
 
         // Use a single pass to filter and scale boxes
         const Mat det_output(detection_attribute_size, num_detections, CV_32F, cpu_output_buffer);
