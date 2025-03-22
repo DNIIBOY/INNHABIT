@@ -1,0 +1,9 @@
+<div class="flex flex-col items-center gap-4">
+    {% if diff > 0 %}
+        <h3 class="text-6xl">Der er {{ percentage }}% flere besøgende end i går</h3>
+    {% elif diff < 0 %}
+        <h3 class="text-6xl">Der er {{ percentage }}% færre besøgende end i går</h3>
+    {% else %}
+        <h3 class="text-6xl">Der er præcist lige så mange besøgende i dag som der var i går</h3>
+    {% endif %}
+</div>
