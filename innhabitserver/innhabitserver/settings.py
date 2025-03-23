@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 import environ
+import sentry_sdk
 from django.core.management.utils import get_random_secret_key
 from django_components import ComponentsSettings
 
@@ -26,6 +27,7 @@ env = environ.Env(
         str,
         get_random_secret_key(),
     ),
+    SENTRY_DSN=(str, ""),
     MAILGUN_API_KEY=(str, ""),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
@@ -34,6 +36,17 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env("SECRET_KEY")
 MAILGUN_API_KEY = env("MAILGUN_API_KEY")
 DEBUG = env("DEBUG")
+
+if not DEBUG:
+    sentry_sdk.init(
+        dsn=env("SENTRY_DSN"),
+        traces_sample_rate=1.0,
+        send_default_pii=True,
+        _experiments={
+            "continuous_profiling_auto_start": True,
+        },
+    )
+
 
 ALLOWED_HOSTS = [
     "innhabit.dk",

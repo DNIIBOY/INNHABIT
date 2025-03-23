@@ -1,0 +1,11 @@
+<div class="flex flex-col items-center gap-4">
+    <div class="flex flex-col items-center">
+        {% if label %}
+        <h2 class="text-9xl">{{ label }}</h2>
+        <h4 class="text-4xl text-slate-400">{{ date }}</h4>
+        {% else %}
+        <h2 class="text-9xl">{{ date }}</h2>
+        {% endif %}
+    </div>
+    <h3 class="text-6xl">Havde {{ count }} besøgende på en dag</h3>
+</div>

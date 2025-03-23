@@ -1,8 +1,10 @@
 import random
 
+from dashboard.models import LabelledDate
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django_components import DynamicComponent
 
 
@@ -13,10 +15,17 @@ def index(request: HttpRequest) -> HttpResponse:
 
 
 def insights(request: HttpRequest) -> HttpResponse:
+    today = timezone.localtime().date()
     components = [
-        "current_occupancy",
         "cafeteria_day",
+        "current_occupancy",
+        "daily_comparison",
+        "top_days",
+        "visitors_today",
     ]
+    if LabelledDate.objects.filter(date__gt=today).exists():
+        components.append("upcoming_event")
+
     locked_insight = False
     insight = request.GET.get("insight", None)
     if insight:
