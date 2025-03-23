@@ -295,9 +295,6 @@ public:
             }
             LOG("model warmup 10 times");
         }
-        preprocess_times_.reserve(100);
-        inference_times_.reserve(100);
-        postprocess_times_.reserve(100);
         initialized_ = true;
     }
     // dont use just her because using detector.h abstract class i have to change this.
