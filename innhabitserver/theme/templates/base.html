@@ -21,10 +21,10 @@
         {% tailwind_css %}
     </head>
 
+    {% url "insights" as insights_url %}
     <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex w-full
         {% if request.path == insights_url %} bg-aau {% else %} bg-gray-50 {% endif %}
         ">
-        {% url "insights-dashboard" as insights_url %}
         {% url "login" as login_url %}
         {% if request.user.is_authenticated and request.path != insights_url %}
             {% component "navbar" %}{% endcomponent %}
