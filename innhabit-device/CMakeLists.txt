@@ -69,6 +69,9 @@ set(COMMON_SOURCES
     src/detector.cpp
     src/tracker.cpp
     src/api_handler.cpp
+    src/cameraThread.cpp
+    src/displayThread.cpp
+    src/detectionThread.cpp
 )
 
 # Define platform-specific source files

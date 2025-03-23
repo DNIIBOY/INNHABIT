@@ -15,22 +15,10 @@ using json = nlohmann::json;
 
 // Detection threshold constants
 #ifndef BOX_THRESH
-#define BOX_THRESH 0.10
+#define BOX_THRESH 0.20
 #endif
 #ifndef NMS_THRESH
 #define NMS_THRESH 0.30
-#endif
-
-
-// Default image dimensions
-#ifndef DETECTOR_WIDTH
-#define DETECTOR_WIDTH 640
-#endif
-#ifndef DETECTOR_HEIGHT
-#define DETECTOR_HEIGHT 640
-#endif
-#ifndef DETECTOR_CHANNELS
-#define DETECTOR_CHANNELS 3
 #endif
 
 // Logging helpers
@@ -106,10 +94,5 @@ inline Config loadConfig(const std::string& configFilePath) {
 
     return config;
 }
-
-// Existing utility functions
-void printUsage(const string& programName);
-Mat preprocessImage(const Mat& frame, int targetWidth, int targetHeight, float& scale, int& dx, int& dy);
-void drawDetections(Mat& frame, const vector<Detection>& detections);
 
 #endif // COMMON_H

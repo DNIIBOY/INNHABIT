@@ -10,15 +10,36 @@
 using namespace std;
 using json = nlohmann::json;
 
-ApiHandler::ApiHandler(const string& url) : baseUrl(url) {
+ApiHandler::ApiHandler(const string& url) 
+    : baseUrl(url), 
+      curl(nullptr), 
+      m_shouldExit(false) {
     Initialize();
 }
 
 ApiHandler::~ApiHandler() {
+    shutdown();
+    join();
+    
     if (curl) {
         curl_easy_cleanup(curl);
     }
     curl_global_cleanup();
+}
+
+void ApiHandler::start() {
+    m_thread = std::thread(&ApiHandler::processEvents, this);
+}
+
+void ApiHandler::shutdown() {
+    m_shouldExit = true;
+    m_queueCV.notify_one();
+}
+
+void ApiHandler::join() {
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
 }
 
 void ApiHandler::Initialize() {
@@ -26,6 +47,86 @@ void ApiHandler::Initialize() {
     curl = curl_easy_init();
     if (!curl) {
         throw runtime_error("CURL initialization failed");
+    }
+}
+
+void ApiHandler::processEvents() {
+    while (!m_shouldExit) {
+        ApiEvent event;
+        bool hasEvent = false;
+        
+        // Get event from queue
+        {
+            std::unique_lock<std::mutex> lock(m_queueMutex);
+            m_queueCV.wait(lock, [this] { 
+                return !m_eventQueue.empty() || m_shouldExit; 
+            });
+            
+            if (m_shouldExit && m_eventQueue.empty()) {
+                break;
+            }
+            
+            if (!m_eventQueue.empty()) {
+                event = m_eventQueue.front();
+                m_eventQueue.pop();
+                hasEvent = true;
+            }
+        }
+        
+        // Process the event
+        if (hasEvent) {
+            try {
+                json request_data = {
+                    {"timestamp", event.timestamp},
+                    {"entrance", 1} // Adjust based on actual logic (e.g., zone ID)
+                };
+                
+                json response;
+                if (event.eventType == "entered") {
+                    response = sendPostRequest("/exits/", request_data); // Note: Seems reversed?
+                } else if (event.eventType == "exited") {
+                    response = sendPostRequest("/entries/", request_data);
+                } else {
+                    ERROR("Apihandler: Unknown event type: " << event.eventType);
+                    continue;
+                }
+
+                if (response.is_null() || response.empty()) {
+                    ERROR("Empty or null response from server");
+                } else {
+                    cout << "API response success: " << response.dump() << endl;
+                }
+            } catch (const exception& e) {
+                cerr << "Error sending event to server: " << e.what() << endl;
+            }
+        }
+    }
+    
+    // Process any remaining events in the queue before exiting
+    std::unique_lock<std::mutex> lock(m_queueMutex);
+    while (!m_eventQueue.empty()) {
+        ApiEvent event = m_eventQueue.front();
+        m_eventQueue.pop();
+        lock.unlock();
+        
+        // Similar processing as above, but simplified error handling
+        try {
+            json request_data = {
+                {"timestamp", event.timestamp},
+                {"entrance", 1}
+            };
+            
+            if (event.eventType == "entered") {
+                sendPostRequest("/exits/", request_data);
+            } else if (event.eventType == "exited") {
+                sendPostRequest("/entries/", request_data);
+            }
+        } catch (...) {
+            // Just log the error and continue processing remaining events
+            cerr << "Error processing final event" << endl;
+        }
+        
+        lock.lock();
     }
 }
 
@@ -102,32 +203,22 @@ string ApiHandler::getTimestampISO() {
     return string(buffer);
 }
 
-bool ApiHandler::onPersonEvent(const TrackedPerson& person, const std::string& eventType) {
+bool ApiHandler::onPersonEvent(const std::string& eventType) {
     try {
-        string timestamp_str = getTimestampISO();
-        json request_data = {
-            {"timestamp", timestamp_str},
-            {"entrance", 1} // Adjust based on actual logic (e.g., zone ID)
-        };
-        json response;
-        if (eventType == "entered") {
-            response = sendPostRequest("/exits/", request_data); // Note: Seems reversed?
-        } else if (eventType == "exited") {
-            response = sendPostRequest("/entries/", request_data);
-        } else {
-            cerr << "Unknown event type: " << eventType << endl;
-            return false;
+        // Create event and add to queue
+        ApiEvent event;
+        event.eventType = eventType;
+        event.timestamp = getTimestampISO();
+        
+        {
+            std::lock_guard<std::mutex> lock(m_queueMutex);
+            m_eventQueue.push(event);
         }
-
-        if (response.is_null() || response.empty()) {
-            cerr << "Empty or null response from server" << endl;
-            return false;
-        } else {
-            cout << "API response success: " << response.dump() << endl;
-            return true;
-        }
+        
+        m_queueCV.notify_one();
+        return true;
     } catch (const exception& e) {
-        cerr << "Error sending event to server: " << e.what() << endl;
+        cerr << "Error queueing event: " << e.what() << endl;
         return false;
     }
 }
