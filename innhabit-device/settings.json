@@ -1,4 +1,6 @@
 {
+    "ModelEnginePath": "../models/yolov11n512_op.engine",
+    "ModelOnnxPath": "../models/yolov11n512.onnx",
     "DeviceName": "Jetson Nano 1",
     "DeviceLokation": "Indgang A",
     "ServerIP": "127.0.0.1",
