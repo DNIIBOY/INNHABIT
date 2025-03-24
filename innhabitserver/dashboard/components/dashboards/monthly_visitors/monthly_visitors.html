@@ -6,7 +6,7 @@
                 <h5 class="flex text-4xl items-center gap-2 text-nowrap">
                     {{ monthly_visitors }}
                     {% if last_month_diff > 0 %}
-                        <span class="font-semibold text-lime-500">+ {{ last_month_percentage|floatformat:0 }}%
+                        <span class="font-semibold text-lime-500">+{{ last_month_percentage|floatformat:0 }}%
                         </span>
                     {% elif last_month_diff < 0 %}
                         <span class="font-bold text-red-500">{{ last_month_percentage|floatformat:0 }}%

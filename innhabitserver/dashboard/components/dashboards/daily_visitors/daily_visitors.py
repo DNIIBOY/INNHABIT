@@ -11,7 +11,7 @@ class DailyVisitors(Component):
 
     def get_context_data(self) -> dict:
 
-        weekdays = ["MAN", "TIR", "ONS", "TOR", "FRE", "LØR", "SØN"]
+        weekdays = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"]
 
         today = timezone.localtime().date()
         start_of_this_day = today - timedelta(days=today.weekday())

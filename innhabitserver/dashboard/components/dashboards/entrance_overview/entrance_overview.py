@@ -22,7 +22,7 @@ class EntranceOverview(Component):
                 "entries", filter=Q(entries__timestamp__date=today), distinct=True
             ),
             exit_count=Count(
-                "exits", filter=Q(entries__timestamp__date=today), distinct=True
+                "exits", filter=Q(exits__timestamp__date=today), distinct=True
             ),
             event_count=F("entry_count") + F("exit_count"),
         ).order_by("name")
