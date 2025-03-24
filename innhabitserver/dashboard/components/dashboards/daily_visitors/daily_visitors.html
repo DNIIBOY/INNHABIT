@@ -2,11 +2,11 @@
     <div class="flex flex-row justify-between items-center">
         <div class="flex-none w-2/3 max-w-full">
             <div>
-                <h4 class="font-semibold text-2xl text-nowrap">Besøgende idag {{ day_number }}</h4>
+                <h4 class="font-semibold text-2xl text-nowrap">Besøgende i dag</h4>
                 <h5 class="flex text-4xl items-center gap-2 text-nowrap">
                     {{ daily_visitors }}
                     {% if last_day_diff > 0 %}
-                        <span class="font-semibold text-lime-500">+ {{ last_day_percentage|floatformat:0 }}%</span>
+                        <span class="font-semibold text-lime-500">+{{ last_day_percentage|floatformat:0 }}%</span>
                     {% elif last_day_diff < 0 %}
                         <span class="font-bold text-red-500">{{ last_day_percentage|floatformat:0 }}%</span>
                     {% else %}
@@ -18,7 +18,7 @@
             <div class="relative">
                 <i class="bi-calendar text-5xl inline-flex align-middle"></i>
                 <div class="absolute top-3.5 select-none w-full flex justify-center text-xl font-semibold">
-                    <p>{{ weekday }}</p>
+                    <p>{{ weekday|upper }}</p>
                 </div>
             </div>
         </div>
