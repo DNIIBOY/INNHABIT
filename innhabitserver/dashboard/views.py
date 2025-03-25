@@ -46,3 +46,7 @@ def insights(request: HttpRequest) -> HttpResponse:
 
 def dates(request: HttpRequest) -> HttpResponse:
     return render(request, "dates.html")
+
+
+def new_dates(request: HttpRequest) -> HttpResponse:
+    return render(request, "new_dates.html")

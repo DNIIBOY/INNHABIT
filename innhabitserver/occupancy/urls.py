@@ -1,4 +1,4 @@
-from dashboard.views import dates
+from dashboard.views import dates, new_dates
 from django.urls import path
 
 from . import views
@@ -11,4 +11,5 @@ urlpatterns = [
     ),
     path("configuration/<int:device_id>/api_key/", views.api_key_view, name="api_key"),
     path("dates/", dates, name="dates"),
+    path("dates/new/", new_dates, name="new_dates"),
 ]
