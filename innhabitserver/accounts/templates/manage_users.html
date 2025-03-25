@@ -16,9 +16,9 @@
                         <tr>
                             <td>
                                 <div class="flex ml-6 py-1">
-                                    <div class="flex items-center">
+                                    <a href="{% url 'user' user.id %}" class="flex items-center hover:underline">
                                         {{ user.get_full_name }}
-                                    </div>
+                                    </a>
                                 </div>
                             </td>
                             <td>
@@ -26,9 +26,6 @@
                             </td>
                             <td>
                                 <span>{{ user.last_login|date:"H:i, d/m/Y" }}</span>
-                            </td>
-                            <td>
-                                <a href="{% url 'user' user.id %}" class="bi-eye bg-green-400 px-1 text-white align-middle flex rounded-lg"></a>
                             </td>
                             
                         </tr>
