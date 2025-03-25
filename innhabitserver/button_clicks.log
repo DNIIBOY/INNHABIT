@@ -1,0 +1,24 @@
+Watching for file changes with StatReloader
+"GET /admin/ HTTP/1.1" 200 10157
+"GET / HTTP/1.1" 200 7179
+"GET /static/css/dist/styles.css?v=1742899870 HTTP/1.1" 200 36014
+"GET /accounts/users/ HTTP/1.1" 200 9202
+"GET /static/css/dist/styles.css?v=1742899873 HTTP/1.1" 200 36014
+"GET /accounts/users/ HTTP/1.1" 200 9202
+"GET /static/css/dist/styles.css?v=1742899875 HTTP/1.1" 200 36014
+"GET /dashboard/ HTTP/1.1" 200 27590
+"GET /static/css/dist/styles.css?v=1742899876 HTTP/1.1" 200 36014
+Not Found: /favicon.ico
+"GET /accounts/users/ HTTP/1.1" 200 9202
+"GET /static/css/dist/styles.css?v=1742899878 HTTP/1.1" 200 36014
+"GET /accounts/users/1/ HTTP/1.1" 200 8919
+"GET /static/css/dist/styles.css?v=1742899999 HTTP/1.1" 200 36014
+/home/patrick/Documents/INNHABIT/innhabitserver/dashboard/admin.py changed, reloading.
+Watching for file changes with StatReloader
+"GET /accounts/users/1/ HTTP/1.1" 200 8919
+"GET /static/css/dist/styles.css?v=1742900057 HTTP/1.1" 200 36014
+"GET /admin/ HTTP/1.1" 200 10157
+/home/patrick/Documents/INNHABIT/innhabitserver/accounts/utils.py changed, reloading.
+Watching for file changes with StatReloader
+"GET /admin/ HTTP/1.1" 200 10157
+/home/patrick/Documents/INNHABIT/innhabitserver/accounts/views.py changed, reloading.

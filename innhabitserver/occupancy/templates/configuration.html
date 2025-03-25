@@ -18,7 +18,7 @@
             <td>
                 <div class="flex ml-6 py-1">
                     <div class="flex items-center">
-                        <a class="hover:underline">{{ entrance.name }}</a>
+                        <a href="{% url 'configure_entrance' entrance.id %}" class="hover:underline">{{ entrance.name }}</a>
                     </div>
                 </div>
             </td>
@@ -26,7 +26,7 @@
                 <p class="font-semibold">1</p>
             </td>
             <td class="text-right">
-                <p class="mr-6">{{ entrance.latest_entry|date:"H:i, d M" }}</p>
+                <p class="mr-6">{{ entrance.latest_event|date:"H:i, d M" }}</p>
             </td>
         </tr>
         {% endfor %}

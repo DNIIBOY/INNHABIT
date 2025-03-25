@@ -42,3 +42,11 @@ def insights(request: HttpRequest) -> HttpResponse:
         )
     context = {"insight_name": insight, "locked_insight": locked_insight}
     return render(request, "insights.html", context=context)
+
+
+def dates(request: HttpRequest) -> HttpResponse:
+    return render(request, "dates.html")
+
+
+def new_dates(request: HttpRequest) -> HttpResponse:
+    return render(request, "new_dates.html")

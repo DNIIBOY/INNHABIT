@@ -25,7 +25,7 @@
                 {% component "navitem" url_name="users" content="Brugere" icon="people" %}{% endcomponent %}
             {% endif %}
             {% if perms.dashboard.view_labelleddate %}
-                {% component "navitem" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
+                {% component "navitem" url_name="dates" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
             {% endif %}
             {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" %}{% endcomponent %}
         </ul>
