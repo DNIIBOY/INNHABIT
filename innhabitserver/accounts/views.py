@@ -1,3 +1,4 @@
+from django.contrib.admin.models import ADDITION, CHANGE
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
@@ -8,7 +9,7 @@ from django.utils.http import urlsafe_base64_decode
 
 from .forms import AddUserForm, SetupUserForm
 from .tokens import account_activation_token
-from .utils import send_activation_email
+from .utils import log_admin_action, send_activation_email
 
 User = get_user_model()
 
@@ -36,6 +37,7 @@ def add_user(request: HttpRequest) -> HttpResponse:
         is_active=False,
     )
     send_activation_email(user_object, host=request.get_host())
+    log_admin_action(request.user, user_object, ADDITION, [{"added": {}}])
     return redirect("users")
 
 
@@ -48,6 +50,9 @@ def user(request: HttpRequest, user_id: int) -> HttpResponse:
             raise PermissionDenied
         user_object.is_active = False
         user_object.save()
+        log_admin_action(
+            request.user, user_object, CHANGE, [{"changed": {"fields": ["is_active"]}}]
+        )
     context = {"viewed_user": user_object}
     template = "view_user.html"
     if request.htmx:
