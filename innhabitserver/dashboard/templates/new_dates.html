@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+<div class="flex flex-col items-center">
+    <h1 class="text-4xl">Opret ny begivenhed</h1>
+    <div class="flex flex-col h-full justify-center">
+        <form action="/action_page.php">
+            <label for="event">Ny Begivenhed:</label>
+            <input type="date" id="event" name="event">
+            <input type="submit">
+        </form>
+    </div>
+</div>
+{% endblock %}
