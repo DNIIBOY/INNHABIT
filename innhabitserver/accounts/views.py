@@ -1,4 +1,4 @@
-from django.contrib.admin.models import CHANGE
+from django.contrib.admin.models import ADDITION, CHANGE
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
@@ -37,6 +37,7 @@ def add_user(request: HttpRequest) -> HttpResponse:
         is_active=False,
     )
     send_activation_email(user_object, host=request.get_host())
+    log_admin_action(request.user, user_object, ADDITION, [{"added": {}}])
     return redirect("users")
 
 
