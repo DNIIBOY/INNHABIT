@@ -72,6 +72,7 @@ set(COMMON_SOURCES
     src/cameraThread.cpp
     src/displayThread.cpp
     src/detectionThread.cpp
+    src/rtspStreamManager.cpp
 )
 
 # Define platform-specific source files
