@@ -31,9 +31,16 @@ class APIKeyManager(models.Manager):
 
 
 class DeviceAPIKey(models.Model):
-    device = models.OneToOneField(Device, on_delete=models.CASCADE)
+    device = models.OneToOneField(
+        Device,
+        on_delete=models.CASCADE,
+        related_name="api_key",
+    )
     prefix = models.CharField(max_length=16, unique=True, editable=False)
     key = models.CharField(max_length=256, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = APIKeyManager()
+
+    def __str__(self) -> str:
+        return f"inn-{self.prefix}-{'*' * 8}"
