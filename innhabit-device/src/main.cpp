@@ -4,7 +4,7 @@
 #include "common.h"
 #include "cameraThread.h"
 #include "detectionThread.h"
-#include "displayThread.h"
+#include "rtspStreamManager.h"  // Updated include
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -77,35 +77,45 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // intialize the camera
-    VideoCapture cap;
-    cap.open(0, CAP_V4L2);
-    cap.set(CAP_PROP_AUTO_EXPOSURE, 3);
-    //cap.set(CAP_PROP_FRAME_WIDTH, 640);
-    //cap.set(CAP_PROP_FRAME_HEIGHT, 480);
-    //cap.set(CAP_PROP_FPS, 30);
+    // Initialize the camera
+    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    LOG("Attempting to open pipeline: " << pipeline);
+    cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Could not open camera with GStreamer pipeline." << std::endl;
+        // Fallback to V4L2
+        LOG("Falling back to V4L2...");
+        cap.open(0, cv::CAP_V4L2);
+        if (!cap.isOpened()) {
+            std::cerr << "Error: Could not open camera with V4L2 either." << std::endl;
+            return -1;
+        }
+        cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+        cap.set(cv::CAP_PROP_FPS, 30);
+    }
     
     LOG("Camera opened successfully. Resolution: " 
         << cap.get(CAP_PROP_FRAME_WIDTH) << "x" << cap.get(CAP_PROP_FRAME_HEIGHT) 
         << " framerate: " << cap.get(CAP_PROP_FPS));
     
-    LOG("Press 'q' to quit.");
+    LOG("Streaming to RTSP server...");
 
     // Create and start threads
     FrameCapturer capturer(frameQueue, frameMutex, frameCV, shouldExit, MAX_QUEUE_SIZE);
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                               displayQueue, displayMutex, displayCV, 
                               shouldExit, MAX_QUEUE_SIZE);
-    DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
+    RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit);  // Updated class name
     
     capturer.start(cap);
     processor.start(detector, tracker);
-    display.start();
+    streamManager.start();  // Updated variable name
     
     // Wait for threads to complete
     capturer.join();
     processor.join();
-    display.join();
+    streamManager.join();  // Updated variable name
     
     // Properly shutdown the API handler
     apiHandler->shutdown();
@@ -114,7 +124,6 @@ int main(int argc, char** argv) {
 
     // Cleanup
     cap.release();
-    destroyAllWindows();
     delete detector;
     
     return 0;

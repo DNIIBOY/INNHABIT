@@ -1,5 +1,5 @@
 {
-    "ModelEnginePath": "../models/yolov11n512_op.engine",
+    "ModelEnginePath": "../models/best.engine",
     "ModelOnnxPath": "../models/yolov11n512.onnx",
     "DeviceName": "Jetson Nano 1",
     "DeviceLokation": "Indgang A",
