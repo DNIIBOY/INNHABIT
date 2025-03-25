@@ -1,26 +1,42 @@
 from django.db.models import BooleanField, Value
 from django_components import Component, register
-from occupancy.models import EntryEvent, ExitEvent
+from occupancy.models import Entrance, EntryEvent, ExitEvent
 
 
 @register("latest_events")
 class LatestEvents(Component):
     template_name = "latest_events.html"
 
-    def get_context_data(self, items: int = 4) -> dict:
+    def get_context_data(
+        self, items: int = 4, entrance: Entrance | None = None
+    ) -> dict:
         entry_events = EntryEvent.objects.annotate(
             is_entry=Value(True, output_field=BooleanField())
         ).prefetch_related("entrance")
-        if not self.request.user.has_perm("occupancy.view_exit_event"):
-            return {"events": entry_events.order_by("-timestamp")[:items]}
+        if entrance:
+            entry_events = entry_events.filter(entrance=entrance)
 
         exit_events = ExitEvent.objects.annotate(
             is_entry=Value(False, output_field=BooleanField())
         ).prefetch_related("entrance")
-        if not self.request.user.has_perm("occupancy.view_entry_event"):
-            return {"events": exit_events.order_by("-timestamp")[:items]}
+        if entrance:
+            exit_events = exit_events.filter(entrance=entrance)
 
-        latest_events = entry_events.union(exit_events).order_by("-timestamp")[:items]
+        view_entry = self.request.user.has_perm("occupancy.view_entry_event")
+        view_exit = self.request.user.has_perm("occupancy.view_exit_event")
+
+        if view_entry and view_exit:
+            events = entry_events.union(exit_events)
+        elif view_entry and not view_exit:
+            events = entry_events
+        elif view_exit and not view_entry:
+            events = exit_events
+        else:
+            events = EntryEvent.objects.none()
+
+        events = entry_events.union(exit_events)
+        latest_events = events.order_by("-timestamp")[:items]
+
         return {
             "events": latest_events,
         }
