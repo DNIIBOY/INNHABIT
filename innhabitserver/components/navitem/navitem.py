@@ -10,7 +10,6 @@ class Navitem(Component):
         self, url_name: str = "", content: str = "Nav Item", icon: str = "question"
     ) -> dict:
         url = reverse(url_name) if url_name else ""
-        print(url, self.request.path)
         return {
             "active": url in self.request.path,
             "icon": icon,
