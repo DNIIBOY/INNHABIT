@@ -29,20 +29,18 @@ void RTSPStreamManager::join() {
 
 void RTSPStreamManager::displayFrames() {
     auto lastDetectionTime = std::chrono::steady_clock::now();
-    const int fpsBufferSize = 16;
-    float fpsBuffer[fpsBufferSize] = {0.0};
     int frameCount = 0;
     
-    // Updated pipeline using rtspclientsink
     std::string gstreamerPipeline = 
         "appsrc ! videoconvert ! "
-        "x264enc tune=zerolatency bitrate=500 speed-preset=ultrafast ! "
+        "nvvidconv ! "
+        "nvv4l2h264enc bitrate=300000 preset-level=1 iframeinterval=15 maxperf-enable=true ! "
         "h264parse ! "
         "rtspclientsink location=rtsp://" + m_host + ":" + std::to_string(m_port) + m_rtspPath;
     
     cv::VideoWriter writer;
     bool writerInitialized = false;
-    const double outputFps = 30.0;
+    const double outputFps = 15.0;
     cv::Size frameSize;
     
     while (!m_shouldExit) {
@@ -54,55 +52,49 @@ void RTSPStreamManager::displayFrames() {
             });
             if (m_shouldExit) break;
             if (!m_displayQueue.empty()) {
-                frame = m_displayQueue.front();
+                frame = std::move(m_displayQueue.front());
                 m_displayQueue.pop();
                 frameSize = frame.size();
-                std::cout << "Popped frame: " << frame.cols << "x" << frame.rows << std::endl;
             } else {
-                std::cout << "Display queue empty" << std::endl;
                 continue;
             }
         }
         m_displayCV.notify_one();
         
         if (!frame.empty()) {
-            // FPS calculation
-            auto currentTime = std::chrono::steady_clock::now();
-            float frameTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDetectionTime).count();
-            lastDetectionTime = currentTime;
-            float fps = (frameTimeMs > 0) ? std::min(1000.0f / frameTimeMs, 30.0f) : 0.0f;
-            fpsBuffer[frameCount % fpsBufferSize] = fps;
-            frameCount++;
-            float avgFps = 0.0;
-            for (int i = 0; i < std::min(frameCount, fpsBufferSize); i++) {
-                avgFps += fpsBuffer[i];
+            cv::Mat resizedFrame;
+            cv::resize(frame, resizedFrame, cv::Size(640, 360), 0, 0, cv::INTER_LINEAR);
+            frame = resizedFrame;
+
+            if (frameCount % 10 == 0) {
+                auto currentTime = std::chrono::steady_clock::now();
+                float frameTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDetectionTime).count();
+                lastDetectionTime = currentTime;
+                float fps = (frameTimeMs > 0) ? 1000.0f / frameTimeMs : 0.0f;
+                cv::putText(frame, cv::format("FPS: %.2f", fps), cv::Point(10, 30), 
+                            cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
             }
-            avgFps /= std::min(frameCount, fpsBufferSize);
-            
-            cv::putText(frame, cv::format("FPS: %.2f", avgFps), cv::Point(10, 30), 
-                        cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
-            
-            if (!writerInitialized && !frame.empty()) {
-                writer.open(gstreamerPipeline, cv::CAP_GSTREAMER, 0, outputFps, frameSize, true);
+            frameCount++;
+
+            if (!writerInitialized) {
+                writer.open(gstreamerPipeline, cv::CAP_GSTREAMER, 0, outputFps, frame.size(), true);
                 if (!writer.isOpened()) {
-                    std::cerr << "Failed to open GStreamer writer. Ensure MediaMTX is running on " 
-                              << m_host << ":" << m_port << std::endl;
+                    std::cerr << "Failed to open GStreamer writer." << std::endl;
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                     continue;
                 }
-                std::cout << "GStreamer writer initialized successfully for rtsp://" 
-                          << m_host << ":" << m_port << m_rtspPath << std::endl;
+                std::cout << "GStreamer writer initialized successfully." << std::endl;
                 writerInitialized = true;
             }
             
-            if (writerInitialized) {
-                writer.write(frame); // send frame
-            } 
+            if (writerInitialized && frameCount % 2 == 0) {
+                writer.write(frame);
+            }
         }
     }
     
     if (writerInitialized) {
         writer.release();
-        std::cout << "GStreamer writer released" << std::endl;
+        std::cout << "GStreamer writer released." << std::endl;
     }
 }

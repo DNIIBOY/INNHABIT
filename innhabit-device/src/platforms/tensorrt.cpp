@@ -43,7 +43,7 @@ private:
     int num_detections; // Number of detections (e.g. 8400)
     int detection_attribute_size; // Detection attribute size (e.g. 5)
     int num_classes = 1; // Number of classes (e.g. 1, 80 for COCO multi-class)
-    const int MAX_IMAGE_SIZE = 1500 * 1500; // Maximum image size for preprocessing 
+    const int MAX_IMAGE_SIZE = 1280 * 720; // Maximum image size for preprocessing 
     float conf_threshold = BOX_THRESH; // Confidence threshold
     float nms_threshold = NMS_THRESH; // NMS threshold
     

@@ -42,7 +42,7 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
 
     // ByteTrack parameters
     const float confThresholdHigh = 0.6f;
-    const float confThresholdLow = 0.1f;
+    const float confThresholdLow = 0.2f;
     const float iouThresholdHigh = 0.3f;
     const float iouThresholdLow = 0.4f;
 
@@ -204,7 +204,8 @@ void PeopleTracker::draw(cv::Mat& frame) {
         cv::Rect bbox = person.getBoundingBox();
         cv::rectangle(frame, bbox, person.color, 2);
 
-        string label = "ID: " + to_string(person.id);
+        // Include confidence in the label
+        string label = "ID: " + to_string(person.id) + " Conf: " + to_string(person.confidence);
         if (person.wasInZone) {
             label += " (In Zone)";
         }
@@ -233,7 +234,6 @@ void PeopleTracker::draw(cv::Mat& frame) {
                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255 - (i * 50 % 255), i * 50 % 255), 2);
     }
 }
-
 const std::vector<TrackedPerson>& PeopleTracker::getTrackedPeople() const {
     return people;
 }
