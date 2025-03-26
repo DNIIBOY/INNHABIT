@@ -63,7 +63,7 @@ class ComparisonPlot(Component):
             context = self.get_context_data()
         return render(request, self.template_name + "#json_element", context)
 
-    def get_context_data(self, interval: int = 30) -> dict:
+    def get_context_data(self, interval: int = 10) -> dict:
         assert 60 % interval == 0, "Interval must be a divisor of 60"
 
         now = timezone.localtime()
