@@ -1,6 +1,9 @@
 import json
 
+from dashboard.utils import FakeMetadata
 from django.db.models import Count, F, Q
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import Entrance
@@ -14,6 +17,14 @@ class EntranceOverview(Component):
 
     class Media:
         js = ["https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.0.2/chart.min.js"]
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        if not request.htmx:
+            return self.render_to_response(request=request)
+
+        with self._with_metadata(FakeMetadata(request)):
+            context = self.get_context_data()
+        return render(request, self.template_name + "#json_element", context)
 
     def get_context_data(self) -> dict:
         today = timezone.localtime().date()

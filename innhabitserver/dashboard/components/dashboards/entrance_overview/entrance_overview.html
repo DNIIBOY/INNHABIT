@@ -1,3 +1,4 @@
+{% load partials %}
 <div class="p-6 pb-0 flex flex-col justify-between gap-1">
     <h5 class="text-3xl font-bold">Brug af indgange</h5>
     <div class="grid grid-cols-2 text-xs lg:text-sm justify-between lg:hidden 2xl:grid">
@@ -10,6 +11,16 @@
     </div>
 </div>
 <div class="flex w-full justify-center pb-4">
-    <canvas id="entrance-chart" width="900" height="900" class="block box-border w-56 aspect-square"></canvas>
+    <canvas id="entrance-chart" class="block box-border w-56 aspect-square"></canvas>
 </div>
-<div id="entrance-json-element" hidden data-json="{{ json_data }}"></div>
+<div
+    hx-get="{% url 'entrance_overview' %}"
+    hx-trigger="every 5m"
+    hx-target="#entrance-json-element"
+    hx-swap="outerHTML"
+    hidden
+>
+    {% partialdef json_element inline %}
+    <div id="entrance-json-element" hidden data-json="{{ json_data }}"></div>
+    {% endpartialdef json_element %}
+</div>
