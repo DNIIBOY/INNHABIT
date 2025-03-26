@@ -1,6 +1,7 @@
 import random
 
 from dashboard.models import LabelledDate
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -12,6 +13,11 @@ def index(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return render(request, "admin_dashboard.html")
     return render(request, "public_dashboard.html")
+
+
+@login_required
+def top_row(request: HttpRequest) -> HttpResponse:
+    return render(request, "admin_dashboard.html#top_row")
 
 
 def insights(request: HttpRequest) -> HttpResponse:

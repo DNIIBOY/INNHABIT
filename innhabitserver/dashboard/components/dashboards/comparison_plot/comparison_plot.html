@@ -1,3 +1,4 @@
+{% load partials %}
 <div class="p-6 pb-0 flex justify-between">
     <div class="flex w-full">
         <div class="w-full">
@@ -18,9 +19,17 @@
         </div>
     </div>
 </div>
-<div class="h-full p-4 pb-0">
-    <div class="h-64">
-        <canvas id="comparison-chart" height="900" width="2142" class="block box-border w-full h-full"></canvas>
-    </div>
+<div class="h-full px-4">
+        <canvas id="comparison-chart" height="280" class="block box-border w-full h-full"></canvas>
 </div>
-<div id="comparison-json-element" hidden data-json="{{ json_data }}"></div>
+<div
+    hx-get="{% url 'comparison_plot' %}"
+    hx-trigger="every 5m"
+    hx-target="#comparison-json-element"
+    hx-swap="outerHTML"
+    hidden
+>
+    {% partialdef json_element inline %}
+    <div id="comparison-json-element" hidden data-json="{{ json_data }}"></div>
+    {% endpartialdef json_element %}
+</div>
