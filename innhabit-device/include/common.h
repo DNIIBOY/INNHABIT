@@ -18,7 +18,7 @@ using json = nlohmann::json;
 #define BOX_THRESH 0.20
 #endif
 #ifndef NMS_THRESH
-#define NMS_THRESH 0.30
+#define NMS_THRESH 0.45
 #endif
 
 // Logging helpers

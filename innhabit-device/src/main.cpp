@@ -5,6 +5,7 @@
 #include "cameraThread.h"
 #include "detectionThread.h"
 #include "rtspStreamManager.h"  // Updated include
+#include "displayThread.h"
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -19,7 +20,7 @@ using namespace std;
 
 // Global variables
 Config config;
-const int MAX_QUEUE_SIZE = 10;
+const int MAX_QUEUE_SIZE = 5;
 
 // Shared resources for threads
 std::queue<Mat> frameQueue; // Queue for frames captured from camera
@@ -81,6 +82,7 @@ int main(int argc, char** argv) {
     std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
     LOG("Attempting to open pipeline: " << pipeline);
     cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    //cv::VideoCapture cap("../Indgang A.mp4");
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open camera with GStreamer pipeline." << std::endl;
         // Fallback to V4L2
@@ -106,8 +108,9 @@ int main(int argc, char** argv) {
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                               displayQueue, displayMutex, displayCV, 
                               shouldExit, MAX_QUEUE_SIZE);
-    RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit);  // Updated class name
-    
+    RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
+    //DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
+
     capturer.start(cap);
     processor.start(detector, tracker);
     streamManager.start();  // Updated variable name
