@@ -4,7 +4,6 @@ import requests
 from django.conf import settings
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.base_user import AbstractBaseUser
-from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
 from django.urls import reverse

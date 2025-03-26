@@ -43,4 +43,4 @@ class DeviceAPIKey(models.Model):
     objects = APIKeyManager()
 
     def __str__(self) -> str:
-        return f"inn-{self.prefix}-{'*' * 8}"
+        return f"inn-{self.prefix}-{'*' * 8}"  # pylint: disable=inconsistent-quotes
