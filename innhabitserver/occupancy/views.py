@@ -9,7 +9,7 @@ from occupancy.models import Device, Entrance
 
 
 def index(request: HttpRequest) -> HttpResponse:
-    return render(request, "index.html")
+    return redirect("dashboard")
 
 
 def configuration(request: HttpRequest) -> HttpResponse:
@@ -40,6 +40,9 @@ def configure_entrance(
     context = {
         "entrance": entrance,
         "device": device,
+        "image": (
+            device.images.order_by("-created_at").first().image if device else None
+        ),
         "api_key": api_key,
         "api_key_available": api_key_available,
     }

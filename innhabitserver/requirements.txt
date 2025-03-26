@@ -30,6 +30,7 @@ mypy-extensions==1.0.0
 nodeenv==1.9.1
 numpy==2.2.4
 packaging==24.2
+pillow==11.1.0
 platformdirs==4.3.7
 pre_commit==4.2.0
 psycopg2-binary==2.9.10
