@@ -1,27 +1,32 @@
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent
+
+MONTHS = [
+    "Januar",
+    "Februar",
+    "Marts",
+    "April",
+    "Maj",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "December",
+]
 
 
 @register("monthly_visitors")
 class MonthlyVisitors(Component):
     template_name = "monthly_visitors.html"
 
+    def get(self, request: HttpRequest) -> HttpResponse:
+        return self.render_to_response(request=request)
+
     def get_context_data(self) -> dict:
-        months = [
-            "Januar",
-            "Februar",
-            "Marts",
-            "April",
-            "Maj",
-            "Juni",
-            "Juli",
-            "August",
-            "September",
-            "Oktober",
-            "November",
-            "December",
-        ]
         today = timezone.localtime().date()
         entries = EntryEvent.objects.filter(
             timestamp__date__year=today.year,
@@ -44,5 +49,5 @@ class MonthlyVisitors(Component):
                 (entries - last_month_entries) / last_month_entries * 100, 2
             ),
             "date": today,
-            "month": months[today.month - 1],
+            "month": MONTHS[today.month - 1],
         }
