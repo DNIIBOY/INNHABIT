@@ -1,4 +1,6 @@
 from django.db.models import BooleanField, Value
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404
 from django_components import Component, register
 from occupancy.models import Entrance, EntryEvent, ExitEvent
 
@@ -7,9 +9,19 @@ from occupancy.models import Entrance, EntryEvent, ExitEvent
 class LatestEvents(Component):
     template_name = "latest_events.html"
 
+    def get(self, request: HttpRequest) -> HttpResponse:
+        items = int(request.GET.get("items", 4))
+        entrance = request.GET.get("entrance")
+        entrance = int(entrance) if entrance else None
+        kwargs = {"items": items, "entrance": entrance}
+
+        return self.render_to_response(request=request, kwargs=kwargs)
+
     def get_context_data(
-        self, items: int = 4, entrance: Entrance | None = None
+        self, items: int = 4, entrance: Entrance | int | None = None
     ) -> dict:
+        if isinstance(entrance, int):
+            entrance = get_object_or_404(Entrance, id=entrance)
         entry_events = EntryEvent.objects.annotate(
             is_entry=Value(True, output_field=BooleanField())
         ).prefetch_related("entrance")
