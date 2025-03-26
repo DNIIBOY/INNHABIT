@@ -86,7 +86,7 @@
             {% component "card" %}
             {% fill "htmx" %}
             hx-get="{% url "busiest_days" %}"
-            hx-trigger="every 10m"
+            hx-trigger="every 60s"
             {% endfill %}
             {% fill "content" %}
             {% component "busiest_days" %}{% endcomponent %}
