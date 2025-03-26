@@ -1,14 +1,20 @@
 from datetime import UTC, datetime
 
+from api.models import DeviceAPIKey
+from django.contrib.auth import get_user_model
 from django.urls import reverse
-from occupancy.models import Entrance, EntryEvent, ExitEvent
+from occupancy.models import Device, Entrance, EntryEvent, ExitEvent
 from rest_framework.test import APIClient, APITestCase
+
+User = get_user_model()
 
 
 class TestEntranceViewset(APITestCase):
     def setUp(self) -> None:
         self.client = APIClient()
         self.entrance = Entrance.objects.create(name="Entrance 1")
+        self.user = User.objects.create_superuser(email="user@example.com")
+        self.client.force_authenticate(self.user)
 
     def test_retrieve(self) -> None:
         url = reverse("entrance-detail", args=[self.entrance.id])
@@ -40,6 +46,7 @@ class TestEntranceViewset(APITestCase):
         self.assertEqual(self.entrance.name, "Test Entrance")
 
     def test_create(self) -> None:
+        self.client.logout()
         url = reverse("entrance-list")
         response = self.client.post(url, {"name": "Test Entrance"}, format="json")
         self.assertEqual(response.status_code, 201)
@@ -56,6 +63,11 @@ class TestEntryEventViewset(APITestCase):
         self.client = APIClient()
         self.time = datetime(2003, 3, 3, 3, 3, 3, 30, tzinfo=UTC)
         self.entrance = Entrance.objects.create(name="Entrance 1")
+        self.device = Device.objects.create(entrance=self.entrance)
+        self.api_key = DeviceAPIKey.objects.create(device=self.device)
+        self.api_key_headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.user = User.objects.create_superuser(email="user@example.com")
+        self.client.force_authenticate(self.user)
         self.event = EntryEvent.objects.create(
             entrance=self.entrance, timestamp=self.time
         )
@@ -90,9 +102,13 @@ class TestEntryEventViewset(APITestCase):
         self.assertEqual(self.event.timestamp, self.time)
 
     def test_create(self) -> None:
+        self.client.logout()
         url = reverse(self.view_base + "-list")
         response = self.client.post(
-            url, {"entrance": self.entrance.id, "timestamp": self.time}, format="json"
+            url,
+            {"entrance": self.entrance.id, "timestamp": self.time},
+            headers=self.api_key_headers,
+            format="json",
         )
         self.assertEqual(response.status_code, 201)
         self.assertEqual(datetime.fromisoformat(response.data["timestamp"]), self.time)
@@ -103,11 +119,9 @@ class TestEntryEventViewset(APITestCase):
 
 class ExitEventViewset(TestEntryEventViewset):
     def setUp(self) -> None:
+        super().setUp()
         self.test_class = ExitEvent
         self.view_base = "exitevent"
-        self.client = APIClient()
-        self.time = datetime(2003, 3, 3, 3, 3, 3, 30, tzinfo=UTC)
-        self.entrance = Entrance.objects.create(name="Entrance 1")
         self.event = ExitEvent.objects.create(
             entrance=self.entrance, timestamp=self.time
         )
