@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent
@@ -8,6 +9,9 @@ from occupancy.models import EntryEvent, ExitEvent
 @register("occupants")
 class Occupants(Component):
     template_name = "occupants.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        return self.render_to_response(request=request)
 
     def get_context_data(self) -> dict:
         now = timezone.localtime()

@@ -1,5 +1,25 @@
+var entranceChart;
+
+document.body.addEventListener("htmx:afterOnLoad", function(event) {
+    if (event.detail.target.id !== "entrance-json-element") {
+        return;
+    }
+    const jsonElement = document.getElementById("entrance-json-element");
+    const data = JSON.parse(jsonElement.dataset.json);
+    entranceChart.data.labels = data["labels"];
+    entranceChart.data.datasets[0].data = data["events"];
+    entranceChart.data.datasets[0].backgroundColor = data["colors"];
+    entranceChart.update()
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const jsonElement = document.getElementById("entrance-json-element");
+    const data = JSON.parse(jsonElement.dataset.json);
+    setupEntranceCharts(data);
+});
+
 function setupEntranceCharts(data){
-    const entranceChart = document.getElementById("entrance-chart").getContext("2d");
+    const chartElement = document.getElementById("entrance-chart").getContext("2d");
 
     const options = {
         responsive: true,
@@ -15,7 +35,7 @@ function setupEntranceCharts(data){
         }
     }
 
-    new Chart(entranceChart, {
+    entranceChart = new Chart(chartElement, {
         type: "doughnut",
         data: {
             labels: data["labels"],
@@ -29,9 +49,3 @@ function setupEntranceCharts(data){
         options: options,
     });
 }
-
-document.addEventListener("DOMContentLoaded", function() {
-    const jsonElement = document.getElementById("entrance-json-element");
-    const data = JSON.parse(jsonElement.dataset.json);
-    setupEntranceCharts(data);
-});

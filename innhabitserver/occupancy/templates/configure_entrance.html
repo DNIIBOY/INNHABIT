@@ -44,7 +44,10 @@
                 <h2 class="text-xl font-semibold">No device installed <i class="bi-x"></i></h2>
                 {% endif %}
             </div>
-            <div>
+            <div
+                hx-get="{% url 'latest_events' %}?entrance={{ entrance.id }}&items=3"
+                hx-trigger="every 5s"
+            >
                 {% component "latest_events" entrance=entrance items=3 %}{% endcomponent %}
             </div>
             {% endfill %}

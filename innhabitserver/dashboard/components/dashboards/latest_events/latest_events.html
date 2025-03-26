@@ -6,32 +6,32 @@
 <div class="px-0 pb-2">
     <div class="overflow-x-auto">
         {% component "table" %}
-            {% fill "head" %}
-                <tr>
-                    <th class="px-6 py-3 text-left">Indgang</th>
-                    <th class="px-6 py-3 text-center">Tidspunkt</th>
-                    <th class="px-6 py-3 text-center">Retning</th>
-                </tr>
-            {% endfill %}
-            {% fill "body" %}
-                {% for event in events %}
-                    <tr>
-                        <td class="pl-6 text-left">
-                            <h6>{{ event.entrance.name }}</h6>
-                        </td>
-                        <td class="text-center align-middle">
-                            <h5 class="font-semibold">{{ event.timestamp|date:"H:i" }}</h5>
-                        </td>
-                        <td class="text-center">
-                            {% if event.is_entry %}
-                                <i class="bi-box-arrow-in-right text-5xl text-green-500 inline-flex align-middle"></i>
-                            {% else %}
-                                <i class="bi-box-arrow-in-left text-5xl ml-6 text-red-500 inline-flex align-middle"></i>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            {% endfill %}
+        {% fill "head" %}
+        <tr>
+            <th class="px-6 py-3 text-left">Indgang</th>
+            <th class="px-6 py-3 text-center">Tidspunkt</th>
+            <th class="px-6 py-3 text-center">Retning</th>
+        </tr>
+        {% endfill %}
+        {% fill "body" %}
+            {% for event in events %}
+            <tr>
+                <td class="pl-6 text-left">
+                    <h6>{{ event.entrance.name }}</h6>
+                </td>
+                <td class="text-center align-middle">
+                    <h5 class="font-semibold">{{ event.timestamp|date:"H:i" }}</h5>
+                </td>
+                <td class="text-center">
+                    {% if event.is_entry %}
+                    <i class="bi-box-arrow-in-right text-5xl text-green-500 inline-flex align-middle"></i>
+                    {% else %}
+                    <i class="bi-box-arrow-in-left text-5xl ml-6 text-red-500 inline-flex align-middle"></i>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        {% endfill %}
         {% endcomponent %}
     </div>
 </div>
