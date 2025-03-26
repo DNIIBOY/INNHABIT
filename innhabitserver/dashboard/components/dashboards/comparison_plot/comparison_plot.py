@@ -2,9 +2,12 @@ import json
 from datetime import timedelta
 
 import numpy as np
+from dashboard.utils import FakeMetadata
 from django.db.models import Count, ExpressionWrapper, IntegerField, Q
 from django.db.models.functions import ExtractHour, ExtractMinute, Floor
 from django.db.models.query import QuerySet
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent
@@ -51,6 +54,14 @@ class ComparisonPlot(Component):
 
     class Media:
         js = ["https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.0.2/chart.min.js"]
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        if not request.htmx:
+            return self.render_to_response(request=request)
+
+        with self._with_metadata(FakeMetadata(request)):
+            context = self.get_context_data()
+        return render(request, self.template_name + "#json_element", context)
 
     def get_context_data(self, interval: int = 30) -> dict:
         assert 60 % interval == 0, "Interval must be a divisor of 60"

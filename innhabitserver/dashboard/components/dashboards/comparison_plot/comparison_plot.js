@@ -1,17 +1,37 @@
+var comparisonChart;
+
+document.body.addEventListener("htmx:afterOnLoad", function(event) {
+    if (event.detail.target.id !== "comparison-json-element") {
+        return;
+    }
+    const jsonElement = document.getElementById("comparison-json-element");
+    const data = JSON.parse(jsonElement.dataset.json);
+    comparisonChart.data.labels = data["labels"];
+    comparisonChart.data.datasets[0].data = data["today_counts"];
+    comparisonChart.data.datasets[1].data = data["avg_weekday_counts"];
+    comparisonChart.update()
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const jsonElement = document.getElementById("comparison-json-element");
+    const data = JSON.parse(jsonElement.dataset.json);
+    setupComparisonPlot(data);
+});
+
 function setupComparisonPlot(data) {
-    const comparisonChart = document.getElementById("comparison-chart").getContext("2d");
+    const chartElement = document.getElementById("comparison-chart").getContext("2d");
 
 
-    const gradientStroke1 = comparisonChart.createLinearGradient(0, 230, 0, 50);
+    const gradientStroke1 = chartElement.createLinearGradient(0, 230, 0, 50);
     gradientStroke1.addColorStop(1, "rgba(49, 169, 193, 0.2)");
     gradientStroke1.addColorStop(0.2, "rgba(72,72,176,0.0)");
 
-    const gradientStroke2 = comparisonChart.createLinearGradient(0, 230, 0, 50);
+    const gradientStroke2 = chartElement.createLinearGradient(0, 230, 0, 50);
     gradientStroke2.addColorStop(1, "rgba(33, 26, 81, 0.2)");
     gradientStroke2.addColorStop(0.2, "rgba(72,72,176,0.0)");
 
 
-    new Chart(comparisonChart, {
+    comparisonChart = new Chart(chartElement, {
         type: "line",
         data: {
             labels: data["labels"],
@@ -99,9 +119,3 @@ function setupComparisonPlot(data) {
         },
     });
 }
-
-document.addEventListener("DOMContentLoaded", function() {
-    const jsonElement = document.getElementById("comparison-json-element");
-    const data = JSON.parse(jsonElement.dataset.json);
-    setupComparisonPlot(data);
-});
