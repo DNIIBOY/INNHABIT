@@ -37,12 +37,16 @@ def configure_entrance(
         if key_obj:
             api_key = str(key_obj)
 
+    image = None
+    if device:
+        image_obj = device.images.order_by("-created_at").first()
+        if image_obj:
+            image = image_obj.image
+
     context = {
         "entrance": entrance,
         "device": device,
-        "image": (
-            device.images.order_by("-created_at").first().image if device else None
-        ),
+        "image": image,
         "api_key": api_key,
         "api_key_available": api_key_available,
     }
