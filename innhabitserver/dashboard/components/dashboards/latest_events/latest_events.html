@@ -1,8 +1,10 @@
+{% if not hide_title %}
 <div class="p-6 pb-0">
     <div>
         <h5 class="text-3xl font-bold">Seneste aktivitet</h5>
     </div>
 </div>
+{% endif %}
 <div class="px-0 pb-2">
     <div class="overflow-x-auto">
         {% component "table" %}

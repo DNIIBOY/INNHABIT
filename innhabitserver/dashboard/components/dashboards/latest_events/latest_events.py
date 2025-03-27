@@ -18,7 +18,10 @@ class LatestEvents(Component):
         return self.render_to_response(request=request, kwargs=kwargs)
 
     def get_context_data(
-        self, items: int = 4, entrance: Entrance | int | None = None
+        self,
+        items: int = 4,
+        entrance: Entrance | int | None = None,
+        hide_title: bool = False,
     ) -> dict:
         if isinstance(entrance, int):
             entrance = get_object_or_404(Entrance, id=entrance)
@@ -50,4 +53,5 @@ class LatestEvents(Component):
 
         return {
             "events": latest_events,
+            "hide_title": hide_title,
         }
