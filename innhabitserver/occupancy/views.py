@@ -1,11 +1,14 @@
+import csv
+
 from api.models import DeviceAPIKey
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import F, Max
+from django.db.models import CharField, F, Max, Value
 from django.db.models.functions import Greatest
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from occupancy.models import Device, Entrance
+from occupancy.models import Device, Entrance, EntryEvent, ExitEvent
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -51,6 +54,53 @@ def configure_entrance(
         "api_key_available": api_key_available,
     }
     return render(request, "configure_entrance.html", context)
+
+
+class Echo:
+    def write(self, value):
+        return value
+
+
+def export_data(request: HttpRequest) -> HttpResponse:
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+
+    entry_events = EntryEvent.objects.annotate(
+        type=Value("Ind", output_field=CharField())
+    ).prefetch_related("entrance")
+
+    exit_events = ExitEvent.objects.annotate(
+        type=Value("Ud", output_field=CharField())
+    ).prefetch_related("entrance")
+
+    view_entry = request.user.has_perm("occupancy.view_entry_event")
+    view_exit = request.user.has_perm("occupancy.view_exit_event")
+
+    if view_entry and view_exit:
+        events = entry_events.union(exit_events)
+    elif view_entry and not view_exit:
+        events = entry_events
+    elif view_exit and not view_entry:
+        events = exit_events
+    else:
+        raise PermissionDenied
+
+    if not events.exists():
+        raise Http404
+
+    def rows_generator():
+        yield writer.writerow(["Indgang", "Tidspunkt", "Retning"])
+        for item in events.iterator(chunk_size=500):
+            yield writer.writerow([item.entrance.name, item.timestamp, item.type])
+
+    response = StreamingHttpResponse(
+        (row for row in rows_generator()), content_type="text/csv"
+    )
+    today = timezone.localtime().date()
+    response["Content-Disposition"] = (
+        f'attachment; filename="innhabit_data_{today}.csv"'
+    )
+    return response
 
 
 @require_http_methods(["POST", "DELETE"])
