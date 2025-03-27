@@ -1,4 +1,5 @@
-{% if not hide_title %}
+{% load partials %}
+    {% if not hide_title %}
 <div class="p-6 pb-0">
     <div>
         <h5 class="text-3xl font-bold">Seneste aktivitet</h5>
@@ -15,24 +16,40 @@
             <th class="px-6 py-3 text-center">Retning</th>
         </tr>
         {% endfill %}
+        {% if not infinite_scroll %}
+        {% fill "htmx" %}
+        hx-get="{% url "latest_events" %}?{{ params }}"
+        hx-trigger="every 10s"
+        {% endfill %}
+        {% endif %}
         {% fill "body" %}
-            {% for event in events %}
-            <tr>
-                <td class="pl-6 text-left">
-                    <h6>{{ event.entrance.name }}</h6>
-                </td>
-                <td class="text-center align-middle">
-                    <h5 class="font-semibold">{{ event.timestamp|date:timestamp_format }}</h5>
-                </td>
-                <td class="text-center">
-                    {% if event.is_entry %}
-                    <i class="bi-box-arrow-in-right text-5xl text-green-500 inline-flex align-middle"></i>
-                    {% else %}
-                    <i class="bi-box-arrow-in-left text-5xl ml-6 text-red-500 inline-flex align-middle"></i>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
+        {% partialdef event_rows inline %}
+        {% for event in events %}
+        {% if forloop.last and infinite_scroll %}
+        <tr
+            hx-get="{% url 'latest_events' %}?{{ scroll_params }}"
+            hx-trigger="revealed"
+            hx-swap="afterend"
+        >
+        {% else %}
+        <tr>
+        {% endif %}
+            <td class="pl-6 text-left">
+                <h6>{{ event.entrance.name }}</h6>
+            </td>
+            <td class="text-center align-middle">
+                <h5 class="font-semibold">{{ event.timestamp|date:timestamp_format }}</h5>
+            </td>
+            <td class="text-center">
+                {% if event.is_entry %}
+                <i class="bi-box-arrow-in-right text-5xl text-green-500 inline-flex align-middle"></i>
+                {% else %}
+                <i class="bi-box-arrow-in-left text-5xl ml-6 text-red-500 inline-flex align-middle"></i>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        {% endpartialdef event_rows %}
         {% endfill %}
         {% endcomponent %}
     </div>

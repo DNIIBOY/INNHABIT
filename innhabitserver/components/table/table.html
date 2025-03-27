@@ -3,7 +3,11 @@
         {% slot "head" %}
         {% endslot %}
     </thead>
-    <tbody class="[&_tr:not(:last-child)]:border-b-2 [&_tr_td:not(:first-child)]:p-1 text-center text-2xl">
+    <tbody
+        class="[&_tr:not(:last-child)]:border-b-2 [&_tr_td:not(:first-child)]:p-1 text-center text-2xl"
+        {% slot "htmx" %}
+        {% endslot %}
+    >
         {% slot "body" %}
         {% endslot %}
     </tbody>
