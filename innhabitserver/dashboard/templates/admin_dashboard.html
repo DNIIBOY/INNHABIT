@@ -68,10 +68,6 @@
         <div class="w-full max-w-full px-3 lg:w-5/12">
             {% if perms.occupancy.view_entryevent or perms.occupancy.view_exitevent %}
             {% component "card" %}
-            {% fill "htmx" %}
-            hx-get="{% url "latest_events" %}"
-            hx-trigger="every 10s"
-            {% endfill %}
             {% fill "content" %}
                 {% component "latest_events" %}{% endcomponent %}
             {% endfill %}
