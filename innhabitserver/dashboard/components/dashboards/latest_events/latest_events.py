@@ -46,7 +46,6 @@ class LatestEvents(Component):
         else:
             events = EntryEvent.objects.none()
 
-        events = entry_events.union(exit_events)
         latest_events = events.order_by("-timestamp")[:items]
 
         return {
