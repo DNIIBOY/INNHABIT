@@ -56,6 +56,10 @@ def configure_entrance(
     return render(request, "configure_entrance.html", context)
 
 
+def export_view(request: HttpRequest) -> HttpResponse:
+    return render(request, "export.html")
+
+
 class Echo:
     def write(self, value):
         return value
