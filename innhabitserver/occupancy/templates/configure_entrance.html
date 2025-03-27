@@ -54,12 +54,72 @@
             {% endcomponent %}
         </div>
         {% if perms.accounts.change_user %}
-        <div class="w-full">
+        <div class="w-full flex-col gap-4 h-fit">
             {% component "card" %}
             {% fill "content" %}
-            <div class="flex flex-col p-4 justify-between h-full items-end">
-                <img src="{{ image.url }}">
+            <div class="relative w-full h-full p-4">
+                <img id="backgroundImage" src="{{ image.url }}">
+                <canvas id="drawingCanvas" class="absolute top-4 left-4"></canvas>
             </div>
+            {% endfill %}
+            {% endcomponent %}
+            
+            {% component "card" %}
+            {% fill "content" %}
+            <div class="p-4">
+                <h2 class="text-xl font-semibold">Øverste venstre hjørne</h2>
+                <div class="flex flex-row gap-4 justify-between">
+                    <div class="flex flex-col w-full">
+                        <h3 class="text-m">X-koordinat (px)</h3>
+                        <input
+                            id="x_top"
+                            name="top-left-x"
+                            type="number"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            placeholder="e.g. 583"
+                        >
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <h3 class="text-m">Y-koordinat (px)</h3>
+                        <input
+                            id="y_top"
+                            name="top-left-y"
+                            type="number"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            placeholder="e.g. 363"
+                        >
+                    </div>
+                </div>
+                <h2 class="text-xl font-semibold">Nedre højre hjørne</h2>
+                <div class="flex flex-row gap-4 justify-between">
+                    <div class="flex flex-col w-full">
+                        <h3 class="text-m">X-koordinat (px)</h3>
+                        <input
+                            id="x_btm"
+                            name="bottom-right-x"
+                            type="number"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            placeholder="e.g. 281"
+                        >
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <h3 class="text-m">Y-koordinat (px)</h3>
+                        <input
+                            id="y_btm"
+                            name="bottom-right-y"
+                            type="number"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            placeholder="e.g. 927"
+                        >
+                    </div>
+                </div>
+                <button
+                    id="drawBtn"
+                    class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light"
+                >
+                    Send kasse
+                </button>
+            </div>  
             {% endfill %}
             {% endcomponent %}
         </div>
@@ -67,4 +127,83 @@
     </div>
 </div>
 {% endpartialdef config_page %}
+{% endblock %}
+{% block js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const canvas = document.getElementById("drawingCanvas");
+    if (!canvas) return; // Ensures the script runs only when the canvas exists
+
+    //drawRectangle()
+
+    const img = document.getElementById("backgroundImage");
+
+    const originalWidth = img.naturalWidth;
+    const originalHeight = img.naturalHeight;
+
+    const ctx = canvas.getContext("2d");
+
+
+
+    function resizeCanvas() {
+        canvas.width = img.clientWidth;
+        canvas.height = img.clientHeight;
+        drawRectangle();
+    }
+
+    window.addEventListener("load", resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
+
+    function remapWidth(value) {
+        return (value * canvas.width) / originalWidth;
+    }
+
+    function remapHeight(value) {
+        return (value * canvas.height) / originalHeight;
+    }
+
+    function drawRectangle() {
+        let x_top = remapWidth(parseInt(document.getElementById("x_top").value)) || 0;
+        let y_top = remapHeight(parseInt(document.getElementById("y_top").value)) || 0;
+        let x_btm = remapWidth(parseInt(document.getElementById("x_btm").value)) || 0;
+        let y_btm = remapHeight(parseInt(document.getElementById("y_btm").value)) || 0;
+
+        // Ensure x_btm is never less than x_top
+        if (x_btm < x_top) {
+            x_btm = x_top + 1;
+            //document.getElementById("x_btm").value = x_top + 1; // Update input field
+        }
+
+        if (x_btm > originalWidth) {
+            document.getElementById("x_btm").value = originalWidth;
+        }
+
+        // Ensure y_btm is never less than y_top
+        if (y_btm < y_top) {
+            y_btm = y_top + 1;
+            //document.getElementById("y_btm").value = y_top + 1; // Update input field
+        }
+
+        if (y_btm > originalHeight) {
+            document.getElementById("y_btm").value = originalHeight;
+        }
+
+        const size_x = x_btm - x_top;
+        const size_y = y_btm - y_top;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillRect(x_top, y_top, size_x, size_y);
+    }
+
+    
+    document.getElementById("x_top").addEventListener("input", drawRectangle);
+    document.getElementById("y_top").addEventListener("input", drawRectangle);
+    document.getElementById("x_btm").addEventListener("input", drawRectangle);
+    document.getElementById("y_btm").addEventListener("input", drawRectangle);
+
+    drawRectangle();
+});
+</script>
 {% endblock %}
