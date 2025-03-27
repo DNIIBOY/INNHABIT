@@ -22,6 +22,7 @@ class LatestEvents(Component):
         items: int = 4,
         entrance: Entrance | int | None = None,
         hide_title: bool = False,
+        timestamp_format: str = "H:i",
     ) -> dict:
         if isinstance(entrance, int):
             entrance = get_object_or_404(Entrance, id=entrance)
@@ -54,4 +55,5 @@ class LatestEvents(Component):
         return {
             "events": latest_events,
             "hide_title": hide_title,
+            "timestamp_format": timestamp_format,
         }

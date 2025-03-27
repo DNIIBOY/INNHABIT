@@ -5,18 +5,62 @@
     <div class="flex flex-col items-center">
         <h1 class="text-4xl py-2">Eksportér</h1>
     </div>
-    <a
-        href="{% url 'export_csv' %}"
-        class="w-full lg:w-1/4 px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light text-2xl"
+    <form
+        id="export-form"
+        action="{% url 'export_csv' %}"
+        method="get"
+        class="w-full flex flex-col items-center"
     >
-        Eksportér
-    </a>
+        <div class="w-full flex gap-4 justify-center">
+            <button
+                class="w-full lg:w-1/4 px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light text-2xl"
+            >
+                Eksportér
+            </button>
+            <button
+                type="button"
+                class="w-full lg:w-1/4 px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md text-2xl bg-slate-500"
+                onclick="document.getElementById('filter-options').classList.toggle('hidden')"
+            >
+                Filtrer
+            </button>
+        </div>
+        <div id="filter-options" class="hidden">
+            Fra <input name="from" type="date">
+            Til <input name="to" type="date">
+            <input type="radio" name="eventType" value="all" checked>Alle</input>
+            <input type="radio" name="eventType" value="entries">Indgang</input>
+            <input type="radio" name="eventType" value="exits">Udgang</input>
+            Indgange
+            {% for entrance in entrances %}
+                <input type="checkbox" name="entrances" value="{{ entrance.id }}" checked>{{ entrance.name }}</input>
+            {% endfor %}
+        </div>
+    </form>
     <div class="w-full">
         {% component "card" %}
         {% fill "content" %}
-            {% component "latest_events" hide_title=True items=20 %}{% endcomponent %}
+            {% component "latest_events" hide_title=True items=20 timestamp_format="d M H:i" %}{% endcomponent %}
         {% endfill %}
         {% endcomponent %}
     </div>
 </div>
+{% endblock %}
+{% block js %}
+<script>
+document.getElementById("export-form").addEventListener("submit", (e) => {
+    const filterOptions = document.getElementById("filter-options");
+    if (!filterOptions.classList.contains("hidden")) {
+        return;
+    }
+    filterOptions.querySelectorAll("input").forEach((input) => {
+        input.disabled = true;
+    });
+    setTimeout(() => {
+        filterOptions.querySelectorAll("input").forEach(input => {
+            input.disabled = false;
+        });
+    }, 500);
+});
+</script>
 {% endblock %}

@@ -22,7 +22,7 @@
                     <h6>{{ event.entrance.name }}</h6>
                 </td>
                 <td class="text-center align-middle">
-                    <h5 class="font-semibold">{{ event.timestamp|date:"H:i" }}</h5>
+                    <h5 class="font-semibold">{{ event.timestamp|date:timestamp_format }}</h5>
                 </td>
                 <td class="text-center">
                     {% if event.is_entry %}
