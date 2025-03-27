@@ -57,7 +57,8 @@ def configure_entrance(
 
 
 def export_view(request: HttpRequest) -> HttpResponse:
-    return render(request, "export.html")
+    context = {"entrances": Entrance.objects.order_by("name").all()}
+    return render(request, "export.html", context)
 
 
 class Echo:
@@ -68,6 +69,12 @@ class Echo:
 def export_data(request: HttpRequest) -> HttpResponse:
     pseudo_buffer = Echo()
     writer = csv.writer(pseudo_buffer)
+    event_type = request.GET.get("eventType") or None
+    from_date = request.GET.get("from") or None
+    to_date = request.GET.get("to") or None
+    entrances = request.GET.getlist("entrances") or None
+    if entrances:
+        entrances = list(map(int, entrances))
 
     entry_events = EntryEvent.objects.annotate(
         type=Value("Ind", output_field=CharField())
@@ -76,6 +83,23 @@ def export_data(request: HttpRequest) -> HttpResponse:
     exit_events = ExitEvent.objects.annotate(
         type=Value("Ud", output_field=CharField())
     ).prefetch_related("entrance")
+
+    if from_date:
+        entry_events = entry_events.filter(timestamp__date__gte=from_date)
+        exit_events = exit_events.filter(timestamp__date__gte=from_date)
+    if to_date:
+        entry_events = entry_events.filter(timestamp__date__lte=to_date)
+        exit_events = exit_events.filter(timestamp__date__lte=to_date)
+    if entrances:
+        entry_events = entry_events.filter(entrance__id__in=entrances)
+        exit_events = exit_events.filter(entrance__id__in=entrances)
+
+    if event_type == "exits":
+        print("exits")
+        entry_events = EntryEvent.objects.none()
+    if event_type == "entries":
+        print("entries")
+        exit_events = ExitEvent.objects.none()
 
     view_entry = request.user.has_perm("occupancy.view_entry_event")
     view_exit = request.user.has_perm("occupancy.view_exit_event")
@@ -91,6 +115,8 @@ def export_data(request: HttpRequest) -> HttpResponse:
 
     if not events.exists():
         raise Http404
+
+    events = events.order_by("timestamp")
 
     def rows_generator():
         yield writer.writerow(["Indgang", "Tidspunkt", "Retning"])
