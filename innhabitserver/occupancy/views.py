@@ -1,14 +1,15 @@
 import csv
 
 from api.models import DeviceAPIKey
+from dashboard.utils import filter_events
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import CharField, F, Max, Value
+from django.db.models import F, Max
 from django.db.models.functions import Greatest
 from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from occupancy.models import Device, Entrance, EntryEvent, ExitEvent
+from occupancy.models import Device, Entrance
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -67,8 +68,6 @@ class Echo:
 
 
 def export_data(request: HttpRequest) -> HttpResponse:
-    pseudo_buffer = Echo()
-    writer = csv.writer(pseudo_buffer)
     event_type = request.GET.get("eventType") or None
     from_date = request.GET.get("from") or None
     to_date = request.GET.get("to") or None
@@ -76,47 +75,21 @@ def export_data(request: HttpRequest) -> HttpResponse:
     if entrances:
         entrances = list(map(int, entrances))
 
-    entry_events = EntryEvent.objects.annotate(
-        type=Value("Ind", output_field=CharField())
-    ).prefetch_related("entrance")
-
-    exit_events = ExitEvent.objects.annotate(
-        type=Value("Ud", output_field=CharField())
-    ).prefetch_related("entrance")
-
-    if from_date:
-        entry_events = entry_events.filter(timestamp__date__gte=from_date)
-        exit_events = exit_events.filter(timestamp__date__gte=from_date)
-    if to_date:
-        entry_events = entry_events.filter(timestamp__date__lte=to_date)
-        exit_events = exit_events.filter(timestamp__date__lte=to_date)
-    if entrances:
-        entry_events = entry_events.filter(entrance__id__in=entrances)
-        exit_events = exit_events.filter(entrance__id__in=entrances)
-
-    if event_type == "exits":
-        print("exits")
-        entry_events = EntryEvent.objects.none()
-    if event_type == "entries":
-        print("entries")
-        exit_events = ExitEvent.objects.none()
-
-    view_entry = request.user.has_perm("occupancy.view_entry_event")
-    view_exit = request.user.has_perm("occupancy.view_exit_event")
-
-    if view_entry and view_exit:
-        events = entry_events.union(exit_events)
-    elif view_entry and not view_exit:
-        events = entry_events
-    elif view_exit and not view_entry:
-        events = exit_events
-    else:
-        raise PermissionDenied
+    events = filter_events(
+        user=request.user,
+        entrances=entrances,
+        event_type=event_type,
+        from_date=from_date,
+        to_date=to_date,
+    )
 
     if not events.exists():
         raise Http404
 
     events = events.order_by("timestamp")
+
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
 
     def rows_generator():
         yield writer.writerow(["Indgang", "Tidspunkt", "Retning"])
