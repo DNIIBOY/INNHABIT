@@ -54,7 +54,7 @@
         <div class="w-full flex-col gap-4 h-fit">
             {% component "card" %}
             {% fill "content" %}
-            <div class="relative w-full h-full p-4">
+            <div class="relative w-full h-full p-4 items-center">
                 <img id="backgroundImage" src="{{ image.url }}">
                 <canvas id="drawingCanvas" class="absolute top-4 left-4"></canvas>
             </div>
@@ -151,11 +151,11 @@ document.addEventListener("DOMContentLoaded", function () {
     window.addEventListener("resize", resizeCanvas);
 
     function remapWidth(value) {
-        return (value * canvas.width) / originalWidth;
+        return canvas.width * value / originalWidth;
     }
 
     function remapHeight(value) {
-        return (value * canvas.height) / originalHeight;
+        return canvas.height * value / originalHeight;
     }
 
     function drawRectangle() {
@@ -164,24 +164,28 @@ document.addEventListener("DOMContentLoaded", function () {
         let x_btm = remapWidth(parseInt(document.getElementById("x_btm").value)) || 0;
         let y_btm = remapHeight(parseInt(document.getElementById("y_btm").value)) || 0;
 
-        // Ensure x_btm is never less than x_top
-        if (x_btm < x_top) {
-            x_btm = x_top + 1;
-            //document.getElementById("x_btm").value = x_top + 1; // Update input field
-        }
-
         if (x_btm > originalWidth) {
             document.getElementById("x_btm").value = originalWidth;
+        } else if (x_btm < 0) {
+            document.getElementById("x_btm").value = 0;
         }
 
-        // Ensure y_btm is never less than y_top
-        if (y_btm < y_top) {
-            y_btm = y_top + 1;
-            //document.getElementById("y_btm").value = y_top + 1; // Update input field
+        if (x_top > originalWidth) {
+            document.getElementById("x_top").value = originalWidth;
+        }else if (x_top < 0) {
+            document.getElementById("x_top").value = 0;
         }
 
         if (y_btm > originalHeight) {
             document.getElementById("y_btm").value = originalHeight;
+        }else if (y_btm < 0) {
+            document.getElementById("y_btm").value = 0;
+        }
+
+        if (y_top > originalHeight) {
+            document.getElementById("y_top").value = originalHeight;
+        }else if (y_top < 0) {
+            document.getElementById("y_top").value = 0;
         }
 
         const size_x = x_btm - x_top;
