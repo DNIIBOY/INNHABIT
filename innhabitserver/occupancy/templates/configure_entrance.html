@@ -139,8 +139,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const ctx = canvas.getContext("2d");
 
-
-
     function resizeCanvas() {
         canvas.width = img.clientWidth;
         canvas.height = img.clientHeight;
@@ -159,42 +157,42 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function drawRectangle() {
-        let x_top = remapWidth(parseInt(document.getElementById("x_top").value)) || 0;
-        let y_top = remapHeight(parseInt(document.getElementById("y_top").value)) || 0;
-        let x_btm = remapWidth(parseInt(document.getElementById("x_btm").value)) || 0;
-        let y_btm = remapHeight(parseInt(document.getElementById("y_btm").value)) || 0;
+        const fields = ["x_top", "y_top", "x_btm", "y_btm"];
+        let values = {};
 
-        if (x_btm > originalWidth) {
-            document.getElementById("x_btm").value = originalWidth;
-        } else if (x_btm < 0) {
-            document.getElementById("x_btm").value = 0;
+        // Read values, remap them, and constrain within limits
+        fields.forEach((id) => {
+            let value = parseInt(document.getElementById(id).value) || 0;
+            values[id] = id.startsWith("x") ? remapWidth(value) : remapHeight(value);
+
+            let limit = id.startsWith("x") ? originalWidth : originalHeight;
+            if (value > limit) {
+                values[id] = id.startsWith("x") ? remapWidth(limit) : remapHeight(limit);
+                document.getElementById(id).value = limit;
+            } else if (value < 0) {
+                values[id] = 0;
+                document.getElementById(id).value = 0;
+            }
+        });
+
+        // Ensure x_top is not greater than x_btm, and y_top is not greater than y_btm
+        if (values.x_top > values.x_btm) {
+            document.getElementById("x_btm").value = document.getElementById("x_top").value;
+            values.x_btm = values.x_top;
+        }
+        if (values.y_top > values.y_btm) {
+            document.getElementById("y_btm").value = document.getElementById("y_top").value;
+            values.y_btm = values.y_top;
         }
 
-        if (x_top > originalWidth) {
-            document.getElementById("x_top").value = originalWidth;
-        }else if (x_top < 0) {
-            document.getElementById("x_top").value = 0;
-        }
+        // Calculate rectangle size
+        const size_x = values.x_btm - values.x_top;
+        const size_y = values.y_btm - values.y_top;
 
-        if (y_btm > originalHeight) {
-            document.getElementById("y_btm").value = originalHeight;
-        }else if (y_btm < 0) {
-            document.getElementById("y_btm").value = 0;
-        }
-
-        if (y_top > originalHeight) {
-            document.getElementById("y_top").value = originalHeight;
-        }else if (y_top < 0) {
-            document.getElementById("y_top").value = 0;
-        }
-
-        const size_x = x_btm - x_top;
-        const size_y = y_btm - y_top;
-
+        // Clear and redraw the rectangle on canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-        ctx.fillRect(x_top, y_top, size_x, size_y);
+        ctx.fillRect(values.x_top, values.y_top, size_x, size_y);
     }
 
     
