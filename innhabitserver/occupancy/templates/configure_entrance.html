@@ -304,6 +304,46 @@ document.addEventListener("DOMContentLoaded", function () {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
 
+    function snapToEdge() {
+        let snapDistance = 20;
+        let box = boxes[selectedBox];
+        const { x_top, y_top, x_btm, y_btm } = box;
+        switch (selectedCorner) {
+                        case "top-left":
+                            if (x_top < snapDistance) {
+                                box.x_top = 0;
+                            }
+                            if (y_top < snapDistance) {
+                                box.y_top = 0;
+                            }
+                            break;
+                        case "top-right":
+                            if (x_btm > originalWidth - snapDistance) {
+                                box.x_btm = originalWidth;
+                            }
+                            if (y_top < snapDistance) {
+                                box.y_top = 0;
+                            }
+                            break;
+                        case "bottom-left":
+                            if (x_top < snapDistance) {
+                                box.x_top = 0;
+                            }
+                            if (y_btm > originalHeight - snapDistance) {
+                                box.y_btm = originalHeight;
+                            }
+                            break;
+                        case "bottom-right":
+                            if (x_btm > originalWidth - snapDistance) {
+                                box.x_btm = originalWidth;
+                            }
+                            if (y_btm > originalHeight - snapDistance) {
+                                box.y_btm = originalHeight;
+                            }
+                            break;
+                    }
+    }
+
     canvas.addEventListener("pointermove", function(event) {
         const rect = canvas.getBoundingClientRect();
         const x = remapWidthToOriginal(event.clientX - rect.left);
@@ -393,12 +433,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     canvas.addEventListener("pointerup", function(event) {
+        snapToEdge();
         selectedCorner = "null"
+
+        updateFormFields();
+        drawRectangles();
     });
     canvas.addEventListener("pointerleave", function(event) {
+        snapToEdge();
         selectedCorner = "null"
         closestCorner = "null"
-        
+
         updateFormFields();
         drawRectangles();
     });
