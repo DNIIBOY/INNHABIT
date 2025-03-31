@@ -63,6 +63,12 @@
             {% component "card" %}
             {% fill "content" %}
             <div class="p-4">
+                <label for="boxes">Ændr koordinater for:</label>
+                <select id="boxes" name="boxes">
+                  <option value="entry_box">Indgang</option>
+                  <option value="exit_box">Udgang</option>
+                </select> 
+
                 <h2 class="text-xl font-semibold">Øverste venstre hjørne</h2>
                 <div class="flex flex-col gap-4 justify-between lg:flex-row">
                     <div class="flex flex-col w-full">
@@ -134,6 +140,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const img = document.getElementById("backgroundImage");
 
+    let boxes = {
+        entry_box: { x_top: 50, y_top: 50, x_btm: 100, y_btm: 100 },
+        exit_box: { x_top: 150, y_top: 50, x_btm: 200, y_btm: 100 }
+    };
+    let selectedBox = "entry_box";
+    
+    let selectedCorner = "null";
+    let closestCorner = "null";
+
+    const minDragDistanceBetweenCorners = 50
+
+    const cornerSelectDistance = 20;
+    let lastPlacedCorner = "btm_right"; // alternatively, "btm_right"
+
     const originalWidth = img.naturalWidth;
     const originalHeight = img.naturalHeight;
 
@@ -142,7 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function resizeCanvas() {
         canvas.width = img.clientWidth;
         canvas.height = img.clientHeight;
-        drawRectangle();
+        drawRectangles();
     }
 
     window.addEventListener("load", resizeCanvas);
@@ -156,52 +176,240 @@ document.addEventListener("DOMContentLoaded", function () {
         return canvas.height * value / originalHeight;
     }
 
-    function drawRectangle() {
-        const fields = ["x_top", "y_top", "x_btm", "y_btm"];
-        let values = {};
-
-        // Read values, remap them, and constrain within limits
-        fields.forEach((id) => {
-            let value = parseInt(document.getElementById(id).value) || 0;
-            values[id] = id.startsWith("x") ? remapWidth(value) : remapHeight(value);
-
-            let limit = id.startsWith("x") ? originalWidth : originalHeight;
-            if (value > limit) {
-                values[id] = id.startsWith("x") ? remapWidth(limit) : remapHeight(limit);
-                document.getElementById(id).value = limit;
-            } else if (value < 0) {
-                values[id] = 0;
-                document.getElementById(id).value = 0;
-            }
-        });
-
-        // Ensure x_top is not greater than x_btm, and y_top is not greater than y_btm
-        if (values.x_top > values.x_btm) {
-            document.getElementById("x_btm").value = document.getElementById("x_top").value;
-            values.x_btm = values.x_top;
-        }
-        if (values.y_top > values.y_btm) {
-            document.getElementById("y_btm").value = document.getElementById("y_top").value;
-            values.y_btm = values.y_top;
-        }
-
-        // Calculate rectangle size
-        const size_x = values.x_btm - values.x_top;
-        const size_y = values.y_btm - values.y_top;
-
-        // Clear and redraw the rectangle on canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
-        ctx.fillRect(values.x_top, values.y_top, size_x, size_y);
+    function remapWidthToOriginal(value) {
+        return originalWidth * value / canvas.width;
     }
 
-    
-    document.getElementById("x_top").addEventListener("input", drawRectangle);
-    document.getElementById("y_top").addEventListener("input", drawRectangle);
-    document.getElementById("x_btm").addEventListener("input", drawRectangle);
-    document.getElementById("y_btm").addEventListener("input", drawRectangle);
+    function remapHeightToOriginal(value) {
+        return originalHeight * value / canvas.height;
+    }
 
-    drawRectangle();
+
+    function drawRectangles() {
+        const success_box_color = "rgba(0,255,0,0.5)";
+        const fail_box_color = "rgba(255,0,0,0.5)";
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        Object.keys(boxes).forEach((boxKey) => {
+            const values = boxes[boxKey];
+            const { x_top, y_top, x_btm, y_btm } = values;
+
+            // Ensure x_top is not greater than x_btm, and y_top is not greater than y_btm
+            if (x_top > x_btm || y_top > y_btm) {
+                ctx.fillStyle = fail_box_color;
+            } else {
+                ctx.fillStyle = success_box_color;
+            }
+
+            // Calculate rectangle size
+            const size_x = x_btm - x_top;
+            const size_y = y_btm - y_top;
+
+            // Draw the rectangle
+            ctx.fillRect(remapWidth(x_top), remapHeight(y_top), remapWidth(size_x), remapHeight(size_y));
+            
+            if (boxKey == selectedBox) {
+                ctx.fillStyle = "rgba(120,120,120)";
+                ctx.lineWidth = 1; // Thickness of the rim
+                ctx.strokeStyle = "rgba(60,60,60)"; // Rim color
+
+                ctx.beginPath();
+                ctx.arc(remapWidth(x_top), remapHeight(y_top), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke(); 
+
+                ctx.beginPath();
+                ctx.arc(remapWidth(x_btm), remapHeight(y_top), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke(); 
+
+                ctx.beginPath();
+                ctx.arc(remapWidth(x_top,), remapHeight(y_btm), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke(); 
+
+                ctx.beginPath();
+                ctx.arc(remapWidth(x_btm), remapHeight(y_btm), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke(); 
+
+                ctx.fillStyle = "rgba(160,160,160,1)";
+                if (closestCorner != "null") {
+                    switch (closestCorner) {
+                        case "top-left":
+                            ctx.beginPath();
+                            ctx.arc(remapWidth(x_top), remapHeight(y_top), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                        case "top-right":
+                            ctx.beginPath();
+                            ctx.arc(remapWidth(x_btm), remapHeight(y_top), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                        case "bottom-left":
+                            ctx.beginPath();
+                            ctx.arc(remapWidth(x_top), remapHeight(y_btm), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                        case "bottom-right":
+                            ctx.beginPath();
+                            ctx.arc(remapWidth(x_btm), remapHeight(y_btm), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                    }
+                    ctx.lineWidth = 1; // Thickness of the rim
+                    ctx.strokeStyle = "black"; // Rim color
+                    ctx.stroke(); // Draw the rim
+                }
+            }
+
+        });
+
+
+    }
+
+    document.getElementById("boxes").addEventListener("change", function(event) {
+        selectedBox = event.target.value;
+        updateFormFields();
+        drawRectangles();
+    });
+
+    function updateFormFields() {
+        const values = boxes[selectedBox];
+        document.getElementById("x_top").value = values.x_top;
+        document.getElementById("y_top").value = values.y_top;
+        document.getElementById("x_btm").value = values.x_btm;
+        document.getElementById("y_btm").value = values.y_btm;
+    }
+
+    function updateBoxValues() {
+        const x_top = parseInt(document.getElementById("x_top").value) || 0;
+        const y_top = parseInt(document.getElementById("y_top").value) || 0;
+        const x_btm = parseInt(document.getElementById("x_btm").value) || 0;
+        const y_btm = parseInt(document.getElementById("y_btm").value) || 0;
+
+        boxes[selectedBox] = {
+            x_top: Math.min(x_top, img.naturalWidth),
+            y_top: Math.min(y_top, img.naturalHeight),
+            x_btm: Math.min(x_btm, img.naturalWidth),
+            y_btm: Math.min(y_btm, img.naturalHeight)
+        };
+
+        updateFormFields();
+        drawRectangles();
+    }
+
+    function calculateDistance(x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    }
+
+    canvas.addEventListener("pointermove", function(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = remapWidthToOriginal(event.clientX - rect.left);
+        const y = remapHeightToOriginal(event.clientY - rect.top);
+
+        let box = boxes[selectedBox];
+        const { x_top, y_top, x_btm, y_btm } = box;
+
+        if (selectedCorner == "null") {
+            const distances = {
+                "top-left": calculateDistance(x, y, x_top, y_top),
+                "top-right": calculateDistance(x, y, x_btm, y_top),
+                "bottom-left": calculateDistance(x, y, x_top, y_btm),
+                "bottom-right": calculateDistance(x, y, x_btm, y_btm)
+            };
+
+            closestCorner = Object.keys(distances).reduce((minCorner, currentCorner) => {
+                return distances[currentCorner] < distances[minCorner] ? currentCorner : minCorner;
+            });
+            
+
+            if (distances[closestCorner] > cornerSelectDistance) {
+                closestCorner = "null"
+            }
+        }
+        
+        switch (selectedCorner) {
+            case "top-left":
+                if (x > box.x_btm - minDragDistanceBetweenCorners) {
+                    box.x_top = Math.max(box.x_btm-minDragDistanceBetweenCorners,0);
+                } else {
+                    box.x_top = x;
+                }
+                if (y > box.y_btm - minDragDistanceBetweenCorners) {
+                    box.y_top = Math.max(y_btm-minDragDistanceBetweenCorners,0);
+                } else {
+                    box.y_top = y;
+                }
+                break;
+            case "top-right":
+                if (x < box.x_top + minDragDistanceBetweenCorners) {
+                    box.x_btm = Math.min(x_top+minDragDistanceBetweenCorners,originalWidth);
+                } else {
+                    box.x_btm = x;
+                }
+                if (y > box.y_btm - minDragDistanceBetweenCorners) {
+                    box.y_top = Math.max(y_btm-minDragDistanceBetweenCorners,0);
+                } else {
+                    box.y_top = y;
+                }
+                break;
+            case "bottom-left":
+                if (x > box.x_btm - minDragDistanceBetweenCorners) {
+                    box.x_top = Math.max(x_btm-minDragDistanceBetweenCorners,0);
+                } else {
+                    box.x_top = x;
+                }
+                if (y < box.y_top + minDragDistanceBetweenCorners) {
+                    box.y_btm = Math.min(y_top+minDragDistanceBetweenCorners,originalHeight);
+                } else {
+                    box.y_btm = y;
+                }
+                break;
+            case "bottom-right":
+                if (x < box.x_top + minDragDistanceBetweenCorners) {
+                    box.x_btm = Math.min(x_top+minDragDistanceBetweenCorners,originalWidth);
+                } else {
+                    box.x_btm = x;
+                }
+                if (y < box.y_top + minDragDistanceBetweenCorners) {
+                    box.y_btm = Math.min(y_top+minDragDistanceBetweenCorners,originalHeight);
+                } else {
+                    box.y_btm = y;
+                }
+                break;
+        }
+
+        updateFormFields()
+        drawRectangles();
+    });
+
+    
+
+    canvas.addEventListener("pointerdown", function(event) {
+        selectedCorner = closestCorner;
+        console.log(selectedCorner)
+    });
+
+    canvas.addEventListener("pointerup", function(event) {
+        selectedCorner = "null"
+    });
+    canvas.addEventListener("pointerleave", function(event) {
+        selectedCorner = "null"
+        closestCorner = "null"
+        
+        updateFormFields();
+        drawRectangles();
+    });
+    
+    document.getElementById("x_top").addEventListener("input", updateBoxValues);
+    document.getElementById("y_top").addEventListener("input", updateBoxValues);
+    document.getElementById("x_btm").addEventListener("input", updateBoxValues);
+    document.getElementById("y_btm").addEventListener("input", updateBoxValues);
+
+    updateFormFields();
+    drawRectangles();
 });
 </script>
 {% endblock %}
