@@ -1,8 +1,8 @@
-<aside class="w-full h-full max-w-64 fixed flex flex-col justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r py-2">
+<aside class="w-full h-full max-w-64 fixed flex flex-col justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r py-2 dark:bg-gray-800 dark:border-gray-700">
     <div class="flex flex-col items-center pt-10 pb-2 gap-8">
         <a
             href="{% url 'index' %}"
-            class="flex gap-4 items-center text-slate-700 hover:scale-105 transition-all hover:drop-shadow-lg"
+            class="flex gap-4 items-center text-slate-700 dark:text-white hover:scale-105 transition-all hover:drop-shadow-lg"
         >
             <svg
                 viewBox="0 0 69 72"
@@ -13,9 +13,9 @@
                 <path d="M41.8399 26.8043C51.3132 14.8349 55.1945 9.82425 56.0319 1.78825C55.9252 1.72826 55.6346 1.57227 55.5279 1.5136C52.9626 11.2269 47.6532 15.4723 31.8012 26.4376C15.3199 37.8376 15.9039 55.0136 20.3959 67.5443C25.4919 70.1588 31.2585 71.6432 37.3759 71.6432C38.6799 71.6432 39.9679 71.5749 41.2385 71.4443C29.9025 53.3096 30.7892 40.7669 41.8399 26.8043Z"/>
                 <path d="M35.384 17.7161C46.132 12.3935 50.8974 7.08013 53.0067 0.222797C52.912 0.177464 52.5054 -0.00520706 52.5014 0.000125885C46.4134 10.4308 38.8574 11.2001 21.6614 14.0748C11.7854 15.7241 6.41204 20.0375 0.870703 26.1175C0.358703 28.2961 -0.00396724 31.7855 3.27623e-05 34.1028C0.0120328 43.0548 3.06804 51.5108 8.57471 58.0695C8.88271 30.0495 21.956 24.3655 35.384 17.7161Z"/>
             </svg>
-            <span class="font-bold text-xl duration-200 text-aau">AAU INNOVATE</span>
+            <span class="font-bold text-xl duration-200 text-aau dark:text-white">AAU INNOVATE</span>
         </a>
-        <div class="h-px w-3/4 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+        <div class="h-px w-3/4 bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:bg-gray-600"></div>
     </div>
 
     <div class="items-center w-auto h-screen overflow-auto grow basis-full">
@@ -31,9 +31,11 @@
             {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" %}{% endcomponent %}
         </ul>
     </div>
+
+
     <div class="w-full flex flex-col items-center">
         <a
-            class="w-11/12 p-3 bg-white border-black/15 border rounded-lg overflow-x-auto text-nowrap hover:scale-[102%] transition-all"
+            class="w-11/12 p-3 bg-white border-black/15 border rounded-lg overflow-x-auto text-nowrap hover:scale-[102%] transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
             href="{% url 'profile' %}"
         >
             <h4 class="text-lg font-semibold">{{ user.get_full_name }}</h4>

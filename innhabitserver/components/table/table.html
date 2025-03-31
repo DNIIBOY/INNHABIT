@@ -1,10 +1,10 @@
-<table class="items-center w-full mb-0 align-top border-black text-slate-500 text-nowrap">
-    <thead class="border-b-2 text-slate-800 uppercase [&_tr_th]:px-6 [&_tr_th]:py-3 text-center text-2xl [&_tr_th]:font-semibold">
+<table class="items-center w-full mb-0 align-top border-black text-slate-500 dark:text-slate-300 text-nowrap">
+    <thead class="border-b-2 text-slate-800 dark:text-slate-100 uppercase [&_tr_th]:px-6 [&_tr_th]:py-3 text-center text-2xl [&_tr_th]:font-semibold">
         {% slot "head" %}
         {% endslot %}
     </thead>
     <tbody
-        class="[&_tr:not(:last-child)]:border-b-2 [&_tr_td:not(:first-child)]:p-1 text-center text-2xl"
+        class="[&_tr:not(:last-child)]:border-b-2 [&_tr_td:not(:first-child)]:p-1 text-center text-2xl dark:text-white dark:bg-gray-800"
         {% slot "htmx" %}
         {% endslot %}
     >

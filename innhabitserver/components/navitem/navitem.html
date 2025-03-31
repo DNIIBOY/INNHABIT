@@ -3,8 +3,8 @@
 <li class="w-full text-lg">
     {% if active %}
     <a
-        href="{{ url  }}"
-        class="rounded-lg text-slate-700 py-3 flex gap-4 items-center px-4 bg-white font-semibold shadow-xl hover:bg-slate-50 group active:opacity-85 transition-all"
+        href="{{ url }}"
+        class="rounded-lg text-slate-700 dark:text-white py-3 flex gap-4 items-center px-4 bg-white dark:bg-gray-700 font-semibold shadow-xl group active:opacity-85 transition-all hover:bg-slate-50 dark:hover:bg-gray-900"
     >
         <div class="shadow-2xl flex h-8 w-8 items-center justify-center rounded-lg text-center bg-gradient-to-r from-aau to-aau-light group-hover:scale-105 transition-all">
             <i class="bi-{{ icon }} flex text-white"></i>
@@ -13,10 +13,10 @@
     </a>
     {% else %}
     <a
-        href="{{ url  }}"
-        class="group rounded-lg text-slate-700 py-3 flex gap-4 items-center px-4 hover:bg-white hover:font-semibold hover:shadow-xl active:opacity-85 transition-all"
+        href="{{ url }}"
+        class="group rounded-lg text-slate-700 dark:text-white py-3 flex gap-4 items-center px-4 hover:bg-slate-50 dark:hover:bg-gray-900 hover:font-semibold hover:shadow-xl active:opacity-85 transition-all"
     >
-        <div class="shadow-xl flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-transparent group-hover:border-gray-200 group-hover:shadow-none transition-all group-hover:scale-105">
+        <div class="shadow-xl flex h-8 w-8 items-center justify-center rounded-lg bg-white dark:bg-gray-700 border border-transparent group-hover:border-gray-200 group-hover:shadow-none transition-all group-hover:scale-105">
             <i class="bi-{{ icon }} flex"></i>
         </div>
         <p>{{ content }}</p>
