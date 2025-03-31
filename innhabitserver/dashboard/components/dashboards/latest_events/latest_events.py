@@ -43,7 +43,7 @@ class LatestEvents(Component):
         from_date: date | None = None,
         to_date: date | None = None,
         offset: int = 0,
-        entrances: Sequence[Entrance] | Sequence[int] | Entrance | int | None = None,
+        entrances: Sequence[Entrance] | None = None,
         infinite_scroll: bool = False,
         hide_title: bool = False,
         timestamp_format: str = "H:i",
@@ -51,6 +51,9 @@ class LatestEvents(Component):
         events = filter_events(
             user=self.request.user,
             entrances=entrances,
+            event_type=event_type,
+            from_date=from_date,
+            to_date=to_date,
         )
         latest_events = events.order_by("-timestamp")[offset : offset + items]
 

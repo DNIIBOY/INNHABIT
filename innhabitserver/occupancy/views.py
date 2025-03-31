@@ -9,6 +9,7 @@ from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpRespons
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from occupancy.forms import FilterEventsForm
 from occupancy.models import Device, Entrance
 
 
@@ -68,19 +69,13 @@ class Echo:
 
 
 def export_data(request: HttpRequest) -> HttpResponse:
-    event_type = request.GET.get("eventType") or None
-    from_date = request.GET.get("from") or None
-    to_date = request.GET.get("to") or None
-    entrances = request.GET.getlist("entrances") or None
-    if entrances:
-        entrances = list(map(int, entrances))
+    filters = FilterEventsForm(request.GET)
+    if not filters.is_valid():
+        return HttpResponse(filters.errors.items(), status=400)
 
     events = filter_events(
         user=request.user,
-        entrances=entrances,
-        event_type=event_type,
-        from_date=from_date,
-        to_date=to_date,
+        **filters.cleaned_data,
     )
 
     if not events.exists():
@@ -94,7 +89,7 @@ def export_data(request: HttpRequest) -> HttpResponse:
     def rows_generator():
         yield writer.writerow(["Indgang", "Tidspunkt", "Retning"])
         for item in events.iterator(chunk_size=500):
-            yield writer.writerow([item.entrance.name, item.timestamp, item.type])
+            yield writer.writerow([item.entrance.name, item.timestamp, item.direction])
 
     response = StreamingHttpResponse(
         (row for row in rows_generator()), content_type="text/csv"
