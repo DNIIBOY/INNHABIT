@@ -2,70 +2,63 @@
 #define API_HANDLER_H
 
 #include <string>
+#include <thread>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <atomic>
-#include <thread>
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
+// Using just the symbols we need rather than entire namespaces
+using json = nlohmann::json;
+// Define the ApiEvent structure
 struct ApiEvent {
-    std::string eventType;
+    std::string event_type;
     std::string timestamp;
 };
 
 class ApiHandler {
 public:
-    ApiHandler(const std::string& url);
+    ApiHandler(const std::string& url, const std::string& api_key);
     ~ApiHandler();
 
-    // Non-blocking call to submit an event
-    bool onPersonEvent(const std::string& eventType);
-    
-    // Start the API handler thread
+    // Thread management
     void start();
-    
-    // Shutdown the API handler thread
     void shutdown();
-    
-    // Wait for the API thread to complete
     void join();
-
-    void setBaseUrl(const std::string& url) { baseUrl = url;}
+    
+    // Event handling
+    bool onPersonEvent(const std::string& event_type);
+    
+    // Utility functions
+    void SaveResponseToFile(const nlohmann::json& response, const std::string& filename);
 
 private:
-    // Thread function
+    // Initialization and processing
+    void initialize();
     void processEvents();
-    
-    // Initialize CURL
-    void Initialize();
-    
-    // HTTP helpers
-    static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* data);
+    void processSingleEvent(const ApiEvent& event);
+    void processRemainingEvents();
+    // HTTP request handling
     nlohmann::json sendPostRequest(const std::string& endpoint, const nlohmann::json& data);
+    static size_t writeCallback(void* contents, size_t size, size_t nmemb, std::string* data);
     
-    // Time helpers
-    std::string getTimestamp();
+    // Time utilities
     std::string getTimestampISO();
     
-    // Debug helper
-    void saveResponseToFile(const nlohmann::json& response, const std::string& filename);
+    // backup 
+    void saveResponseToFile(const json& response, const std::string& filename);
 
-    // CURL handle
-    CURL* curl;
+    // Member variables
+    std::string api_key_;
+    std::string base_url_;
+    CURL* curl_;
+    bool should_exit_;
     
-    // Server URL
-    std::string baseUrl;
-    
-    // Thread management
-    std::thread m_thread;
-    std::atomic<bool> m_shouldExit;
-    
-    // Event queue
-    std::queue<ApiEvent> m_eventQueue;
-    std::mutex m_queueMutex;
-    std::condition_variable m_queueCV;
+    std::thread thread_;
+    std::queue<ApiEvent> event_queue_;
+    std::mutex queue_mutex_;
+    std::condition_variable queue_cv_;
 };
 
 #endif // API_HANDLER_H

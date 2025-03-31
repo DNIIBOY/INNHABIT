@@ -43,7 +43,7 @@ private:
     int num_detections; // Number of detections (e.g. 8400)
     int detection_attribute_size; // Detection attribute size (e.g. 5)
     int num_classes = 1; // Number of classes (e.g. 1, 80 for COCO multi-class)
-    const int MAX_IMAGE_SIZE = 1280 * 720; // Maximum image size for preprocessing 
+    const int MAX_IMAGE_SIZE = 1500 * 1500; // Maximum image size for preprocessing 
     float conf_threshold = BOX_THRESH; // Confidence threshold
     float nms_threshold = NMS_THRESH; // NMS threshold
     
@@ -229,31 +229,20 @@ public:
         context = engine->createExecutionContext();
 
         int numBindings = engine->getNbBindings();
-        std::cout << "Number of bindings: " << numBindings << std::endl;
-        for (int i = 0; i < numBindings; i++) {
-            Dims dims = engine->getBindingDimensions(i);
-            std::string bindingName = engine->getBindingName(i);
-            std::cout << "Binding " << i << ": " << bindingName << " [Dims: " 
-                      << dims.d[0] << "x" << dims.d[1] << "x" << dims.d[2] << "x" << dims.d[3] << "]" << std::endl;
-        }
 
         model_input_h = engine->getBindingDimensions(0).d[2];
         model_input_w = engine->getBindingDimensions(0).d[3];
-        std::cout << "[INFO] model_input_h: " << model_input_h << " model_input_w: " << model_input_w << std::endl;
 
         detection_attribute_size = engine->getBindingDimensions(1).d[1];
         num_detections = engine->getBindingDimensions(1).d[2];
         num_classes = 1;
-        std::cout << "detection_attribute_size: " << detection_attribute_size 
-                  << " num_detections: " << num_detections 
-                  << " num_classes: " << num_classes << std::endl;
 
+        // gpu buffer 0 model input
         size_t input_size = 3 * model_input_w * model_input_h * sizeof(float);
-        std::cout << "Allocating gpu_buffers[0]: " << input_size << " bytes" << std::endl;
         CUDA_CHECK(cudaMalloc(&gpu_buffers[0], input_size));
 
+        // gpu buffer 1 model output
         size_t output_size = 5 * 8400 * sizeof(float);
-        std::cout << "Allocating gpu_buffers[1]: " << output_size << " bytes" << std::endl;
         CUDA_CHECK(cudaMalloc(&gpu_buffers[1], output_size));
 
         cpu_output_buffer = new float[detection_attribute_size * num_detections];
@@ -266,11 +255,9 @@ public:
             std::cout << "Starting warmup..." << std::endl;
             Mat dummyFrame(model_input_h, model_input_w, CV_8UC3, Scalar(128, 128, 128));
             for (int i = 0; i < 10; i++) {
-                std::cout << "Warmup iteration " << i + 1 << std::endl;
                 preprocess(dummyFrame);
                 this->inference(dummyFrame);
             }
-            std::cout << "model warmup 10 times" << std::endl;
         }
         initialized_ = true;
     }

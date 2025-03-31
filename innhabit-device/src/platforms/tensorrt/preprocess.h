@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PREPROCESS_H
+#define PREPROCESS_H
 
 #include <cuda_runtime.h>
 #include <cstdint>
@@ -9,3 +10,5 @@ void cuda_preprocess_destroy();
 void cuda_preprocess(uint8_t* src, int src_width, int src_height,
     float* dst, int dst_width, int dst_height,
     cudaStream_t stream);
+
+#endif // PREPROCESS_H

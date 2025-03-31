@@ -47,20 +47,8 @@ void printUsage(const char* progName) {
     cout << "  (No arguments defaults to webcam)" << endl;
 }
 
-// Load settings from a JSON file
-Config loadSettings(const string& settingsFile) {
-    try {
-        config = loadConfig(settingsFile);
-        LOG("Loaded config for device: " << config.deviceName);
-        return config;
-    } catch (const std::exception& e) {
-        ERROR("Error loading config: " << e.what());
-        return Config();
-    }
-}
-
 int main(int argc, char** argv) {
-    config = loadSettings("../settings.json");
+    config = loadConfig("../settings.json");
     PeopleTracker tracker;
 
     // Set up tracker with entrance zones and movement callback
@@ -68,58 +56,47 @@ int main(int argc, char** argv) {
     tracker.setEntranceZones(config.entranceZones);
 
     // Create API handler and start its thread
-    apiHandler.reset(new ApiHandler(config.serverEventAPI));
+    apiHandler.reset(new ApiHandler(config.serverEventAPI, config.serverApikey));
     apiHandler->start();
     
     // Create detector to detect people in frames
-    GenericDetector* detector = createDetector(config.modelEnginePath, {"person"});
+    GenericDetector* detector = createDetector(config.modelPath, {"person"});
     if (!detector) {
         cerr << "Error: Failed to initialize detector." << endl;
         return -1;
     }
 
     // Initialize the camera
-    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
-    LOG("Attempting to open pipeline: " << pipeline);
-    cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
-    //cv::VideoCapture cap("../Indgang A.mp4");
+    //std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    //LOG("Attempting to open pipeline: " << pipeline);
+    //cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    cv::VideoCapture cap("../Indgang A.mp4");
     if (!cap.isOpened()) {
-        std::cerr << "Error: Could not open camera with GStreamer pipeline." << std::endl;
-        // Fallback to V4L2
-        LOG("Falling back to V4L2...");
-        cap.open(0, cv::CAP_V4L2);
-        if (!cap.isOpened()) {
-            std::cerr << "Error: Could not open camera with V4L2 either." << std::endl;
-            return -1;
-        }
-        cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
-        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
-        cap.set(cv::CAP_PROP_FPS, 30);
+        std::cerr << "Error: Could not open camera" << std::endl;
+        return -1;
     }
     
     LOG("Camera opened successfully. Resolution: " 
         << cap.get(CAP_PROP_FRAME_WIDTH) << "x" << cap.get(CAP_PROP_FRAME_HEIGHT) 
         << " framerate: " << cap.get(CAP_PROP_FPS));
-    
-    LOG("Streaming to RTSP server...");
 
     // Create and start threads
     FrameCapturer capturer(frameQueue, frameMutex, frameCV, shouldExit, MAX_QUEUE_SIZE);
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                               displayQueue, displayMutex, displayCV, 
                               shouldExit, MAX_QUEUE_SIZE);
-    RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
-    //DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
+    //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
+    DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
 
     capturer.start(cap);
     processor.start(detector, tracker);
-    streamManager.start();  // Updated variable name
-    
+    //streamManager.start();  // Updated variable name
+    display.start();
     // Wait for threads to complete
     capturer.join();
     processor.join();
-    streamManager.join();  // Updated variable name
-    
+    //streamManager.join();  // Updated variable name
+    display.join();
     // Properly shutdown the API handler
     apiHandler->shutdown();
     apiHandler->join();
