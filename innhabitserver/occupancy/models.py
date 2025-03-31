@@ -1,3 +1,5 @@
+from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MinLengthValidator
 from django.db import models
 
 
@@ -13,6 +15,22 @@ class Device(models.Model):
 
     def __str__(self) -> str:
         return f"Device: {self.entrance}"
+
+
+class DeviceSettings(models.Model):
+    device = models.OneToOneField(Device, on_delete=models.CASCADE)
+    entry_box = ArrayField(
+        models.IntegerField(),
+        size=4,  # Only really sets a max length
+        validators=[MinLengthValidator(4)],
+        null=True,
+    )
+    exit_box = ArrayField(
+        models.IntegerField(),
+        size=4,
+        validators=[MinLengthValidator(4)],
+        null=True,
+    )
 
 
 class DeviceImage(models.Model):

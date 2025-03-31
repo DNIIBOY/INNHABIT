@@ -1,10 +1,12 @@
 import urllib.parse
+from datetime import date
 from typing import Sequence
 
 from dashboard.utils import FakeMetadata, filter_events
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django_components import Component, register
+from occupancy.forms import FilterEventsForm
 from occupancy.models import Entrance
 
 
@@ -13,13 +15,14 @@ class LatestEvents(Component):
     template_name = "latest_events.html"
 
     def get(self, request: HttpRequest) -> HttpResponse:
-        entrances = request.GET.getlist("entrances", None)
-        if entrances:
-            entrances = list(map(int, entrances))
+        filters = FilterEventsForm(request.GET)
+        if not filters.is_valid():
+            return HttpResponse(filters.errors.items(), status=400)
+
         kwargs = {
+            **filters.cleaned_data,
             "items": int(request.GET.get("items", 4)),
             "offset": int(request.GET.get("offset", 0)),
-            "entrances": entrances,
             "infinite_scroll": request.GET.get("infinite_scroll", "False").lower()
             == "true",
             "hide_title": request.GET.get("hide_title", "False").lower() == "true",
@@ -36,6 +39,9 @@ class LatestEvents(Component):
     def get_context_data(
         self,
         items: int = 4,
+        event_type: str = "all",
+        from_date: date | None = None,
+        to_date: date | None = None,
         offset: int = 0,
         entrances: Sequence[Entrance] | Sequence[int] | Entrance | int | None = None,
         infinite_scroll: bool = False,
