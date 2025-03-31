@@ -10,9 +10,9 @@ using namespace std;
 
 // Structure for storing detection results
 struct Detection {
-    string class_id;  // Renamed from classId
+    string class_id;  
     float confidence;
-    Rect bounding_box; // Renamed from box
+    Rect bounding_box;
 };
 
 // Structure for storing platform-specific inference outputs
@@ -30,14 +30,14 @@ struct DetectionOutput {
 // Generic detector implementation with common functionality
 class GenericDetector {
 protected:
-    vector<string> target_classes_;  // Renamed from targetClasses
+    vector<string> target_classes_;
     bool initialized_ = false;
     vector<Detection> detections_;
 
     // Virtual methods to be implemented by platform-specific detectors
     virtual void initialize(const string& model_path) = 0;
     virtual void releaseOutputs() = 0;
-    int clamp(int value, int min_value, int max_value);  // Renamed parameters for clarity
+    int clamp(int value, int min_value, int max_value);
     virtual void preprocess(cv::Mat& frame) = 0;
     virtual void inference(cv::Mat& frame) = 0;
     virtual void postprocess(cv::Mat& frame) = 0;
