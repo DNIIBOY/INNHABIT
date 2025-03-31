@@ -17,19 +17,11 @@ class FakeMetadata:
 
 def filter_events(
     user: AbstractBaseUser,
-    entrances: Sequence[Entrance] | Sequence[int] | Entrance | int | None = None,
+    entrances: Sequence[Entrance] | None = None,
     event_type: str | None = None,
     from_date: str | date | None = None,
     to_date: str | date | None = None,
 ) -> QuerySet[EntryEvent | ExitEvent]:
-    entrance_ids = None
-    if entrances:
-        if not isinstance(entrances, Sequence):
-            entrances = [entrances]
-        entrance_ids = set(
-            entrance.id if isinstance(entrance, Entrance) else entrance
-            for entrance in entrances
-        )
 
     entry_events = EntryEvent.objects.annotate(
         is_entry=Value(True, output_field=BooleanField()),
@@ -51,9 +43,9 @@ def filter_events(
     if to_date:
         entry_events = entry_events.filter(timestamp__date__lte=to_date)
         exit_events = exit_events.filter(timestamp__date__lte=to_date)
-    if entrance_ids:
-        entry_events = entry_events.filter(entrance__id__in=entrance_ids)
-        exit_events = exit_events.filter(entrance__id__in=entrance_ids)
+    if entrances:
+        entry_events = entry_events.filter(entrance__in=entrances)
+        exit_events = exit_events.filter(entrance__in=entrances)
 
     view_entry = user.has_perm("occupancy.view_entry_event")
     view_exit = user.has_perm("occupancy.view_exit_event")

@@ -26,11 +26,11 @@
             </button>
         </div>
         <div id="filter-options" class="hidden">
-            Fra <input name="from" type="date">
-            Til <input name="to" type="date">
-            <input type="radio" name="eventType" value="all" checked>Alle</input>
-            <input type="radio" name="eventType" value="entries">Indgang</input>
-            <input type="radio" name="eventType" value="exits">Udgang</input>
+            Fra <input name="from_date" type="date">
+            Til <input name="to_date" type="date">
+            <input type="radio" name="event_type" value="all" checked>Alle</input>
+            <input type="radio" name="event_type" value="entries">Indgang</input>
+            <input type="radio" name="event_type" value="exits">Udgang</input>
             Indgange
             {% for entrance in entrances %}
                 <input type="checkbox" name="entrances" value="{{ entrance.id }}" checked>{{ entrance.name }}</input>

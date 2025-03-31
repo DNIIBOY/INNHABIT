@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.forms import ChoiceField, DateField, Form, ModelChoiceField
+from django.forms import ChoiceField, DateField, Form, ModelMultipleChoiceField
 from django.utils import timezone
 from occupancy.models import Entrance
 
@@ -17,7 +17,9 @@ class FilterEventsForm(Form):
     event_type = ChoiceField(choices=event_types, required=False)
     from_date = DateField(required=False)
     to_date = DateField(required=False)
-    entrances = ModelChoiceField(queryset=Entrance.objects.all(), required=False)
+    entrances = ModelMultipleChoiceField(
+        queryset=Entrance.objects.all(), required=False
+    )
 
     def clean_from_date(self) -> timezone.datetime | None:
         from_date = self.cleaned_data["from_date"]
