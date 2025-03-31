@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.forms import ChoiceField, DateField, Form, ModelMultipleChoiceField
+from django.forms import CharField, ChoiceField, DateField, Form, ModelMultipleChoiceField
 from django.utils import timezone
 from occupancy.models import Entrance
 
@@ -40,3 +40,8 @@ class FilterEventsForm(Form):
         if from_date and to_date < from_date:
             raise ValidationError("Cannot be before from_date")
         return to_date
+
+
+class LabelledDateForm(Form):
+    date = DateField()
+    label = CharField(max_length=100)
