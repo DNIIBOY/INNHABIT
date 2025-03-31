@@ -8,9 +8,8 @@
 #include <condition_variable>
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
+#include <opencv2/opencv.hpp>
 
-// Using just the symbols we need rather than entire namespaces
-using json = nlohmann::json;
 // Define the ApiEvent structure
 struct ApiEvent {
     std::string event_type;
@@ -29,11 +28,13 @@ public:
     
     // Event handling
     bool onPersonEvent(const std::string& event_type);
-    
+    bool sendImage(const cv::Mat& image);
+
     // Utility functions
     void SaveResponseToFile(const nlohmann::json& response, const std::string& filename);
 
 private:
+    using Json = nlohmann::json;
     // Initialization and processing
     void initialize();
     void processEvents();
@@ -47,7 +48,7 @@ private:
     std::string getTimestampISO();
     
     // backup 
-    void saveResponseToFile(const json& response, const std::string& filename);
+    void saveResponseToFile(const nlohmann::json& response, const std::string& filename);
 
     // Member variables
     std::string api_key_;

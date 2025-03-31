@@ -3,7 +3,7 @@
     "DeviceName": "Jetson Nano 1",
     "DeviceLokation": "Indgang A",
     "ServerApiKey" : "inn-mLqRgR3WPjDhvZ9w-m4iyz26Zl5zDZQY69mipsuioyS1gni0Sf5ulcVK9QAHMKJgYpir50Z53ktrDa84A", 
-    "ServerEventAPI": "http://127.0.0.1:8000/api/v1/events",
+    "ServerAPI": "http://127.0.0.1:8000/api/v1/",
     "ServerEntryEndpoint": "/entries",
     "ServerExitEndpoint": "/exits",
     "EntranceZone": {

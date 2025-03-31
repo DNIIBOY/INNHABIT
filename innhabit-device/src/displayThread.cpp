@@ -1,5 +1,14 @@
 #include "displayThread.h"
 #include <opencv2/highgui/highgui.hpp>
+#include "api_handler.h" // Include to access apiHandler
+#include "common.h" // Include for logging macros
+
+// External declarations for global variables from main.cpp
+extern std::queue<cv::Mat> frameQueue;
+extern std::mutex frameMutex;
+extern std::condition_variable frameCV;
+extern std::unique_ptr<ApiHandler> apiHandler;
+extern std::atomic<bool> shouldExit;
 
 DisplayManager::DisplayManager(std::queue<cv::Mat>& displayQueue, 
                              std::mutex& displayMutex,
@@ -47,17 +56,15 @@ void DisplayManager::displayFrames() {
         m_displayCV.notify_one();
         
         if (!frame.empty()) {
-            // Calculate FPS based on time since last frame was processed by detection
+            // Calculate FPS
             auto currentTime = std::chrono::steady_clock::now();
             float frameTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastDetectionTime).count();
-            lastDetectionTime = currentTime; // Update to current frame's dequeue time
+            lastDetectionTime = currentTime;
             
-            // Calculate FPS, cap at realistic max (e.g., camera's 30 FPS)
             float fps = (frameTimeMs > 0) ? std::min(1000.0f / frameTimeMs, 30.0f) : 0.0f;
             fpsBuffer[frameCount % fpsBufferSize] = fps;
             frameCount++;
             
-            // Compute average FPS
             float avgFps = 0.0;
             for (int i = 0; i < std::min(frameCount, fpsBufferSize); i++) {
                 avgFps += fpsBuffer[i];
@@ -69,9 +76,39 @@ void DisplayManager::displayFrames() {
             
             cv::imshow("People Detection and Tracking", frame);
             
-            if (cv::waitKey(1) == 'q') {
+            int key = cv::waitKey(1);
+            if (key == 'q') { // Quit on 'q'
                 m_shouldExit = true;
                 break;
+            } else if (key == 32) { // Spacebar pressed (ASCII 32)
+                if (apiHandler) {
+                    LOG("Spacebar pressed, fetching latest frame from camera thread...");
+
+                    cv::Mat newFrame;
+                    {
+                        std::unique_lock<std::mutex> lock(frameMutex);
+                        // Wait briefly for a frame if the queue is empty
+                        frameCV.wait_for(lock, std::chrono::milliseconds(100), [] { 
+                            return !frameQueue.empty(); 
+                        });
+
+                        if (!frameQueue.empty()) {
+                            newFrame = frameQueue.front(); // Get the latest frame
+                            // Note: We don't pop it here to avoid interfering with DetectionProcessor
+                        } else {
+                            ERROR("No frame available in frameQueue");
+                            continue;
+                        }
+                    }
+
+                    if (!newFrame.empty()) {
+                        apiHandler->sendImage(newFrame);
+                    } else {
+                        ERROR("Captured frame is empty");
+                    }
+                } else {
+                    ERROR("API handler not initialized, cannot send image");
+                }
             }
         }
     }

@@ -5,12 +5,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include <opencv2/opencv.hpp>
 #include "detector.h"
 #include <nlohmann/json.hpp>
 
-using namespace std;
-using namespace cv;
 using json = nlohmann::json;
 
 // Detection threshold constants
@@ -75,7 +72,7 @@ inline Config loadConfig(const std::string& configFilePath) {
     config.deviceName = j["DeviceName"].get<std::string>();
     config.deviceLokation = j["DeviceLokation"].get<std::string>();
     config.serverApikey = j["ServerApiKey"].get<std::string>();
-    config.serverEventAPI = j["ServerEventAPI"].get<std::string>();
+    config.serverEventAPI = j["ServerAPI"].get<std::string>();
     config.serverEntryEndpoint = j["ServerEntryEndpoint"].get<std::string>();
     config.serverExitEndpoint = j["ServerExitEndpoint"].get<std::string>();
 

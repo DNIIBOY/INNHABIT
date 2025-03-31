@@ -5,6 +5,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <ctime>  // For std::strftime
+#include <opencv2/opencv.hpp> // For image handling
 
 ApiHandler::ApiHandler(const std::string& url, const std::string& api_key) 
         : base_url_(url),
@@ -89,9 +90,9 @@ void ApiHandler::processSingleEvent(const ApiEvent& event) {
         
         json response;
         if (event.event_type == "entered") {
-        response = sendPostRequest("/exits/", request_data); // Note: Seems reversed?
+        response = sendPostRequest("events/exits/", request_data); // Note: Seems reversed?
         } else if (event.event_type == "exited") {
-        response = sendPostRequest("/entries/", request_data);
+        response = sendPostRequest("events/entries/", request_data);
         } else {
         ERROR("ApiHandler: Unknown event type: " << event.event_type);
         return;
@@ -121,9 +122,9 @@ void ApiHandler::processRemainingEvents() {
         };
         
         if (event.event_type == "entered") {
-            sendPostRequest("/exits/", request_data);
+            sendPostRequest("events/exits/", request_data);
         } else if (event.event_type == "exited") {
-            sendPostRequest("/entries/", request_data);
+            sendPostRequest("events/entries/", request_data);
         }
         } catch (...) {
         // Just log the error and continue processing remaining events
@@ -217,6 +218,69 @@ bool ApiHandler::onPersonEvent(const std::string& event_type) {
         return true;
     } catch (const std::exception& e) {
         ERROR("Error queueing event: " << e.what());
+        return false;
+    }
+}
+
+bool ApiHandler::sendImage(const cv::Mat& image) {
+    if (!curl_) {
+        ERROR("CURL not initialized");
+        return false;
+    }
+
+    try {
+        // Convert cv::Mat to a temporary file (e.g., PNG format)
+        std::string temp_filename = "temp_image_" + getTimestampISO() + ".png";
+        cv::imwrite(temp_filename, image);
+
+        // Prepare multipart form-data
+        curl_mime* mime = curl_mime_init(curl_);
+        curl_mimepart* part = curl_mime_addpart(mime);
+
+        // Add the image file to the form-data
+        curl_mime_name(part, "image");
+        curl_mime_filedata(part, temp_filename.c_str());
+        curl_mime_type(part, "image/png");
+
+        // Add Authorization header
+        struct curl_slist* headers = nullptr;
+        std::string auth_header = "Authorization: Bearer " + api_key_;
+        headers = curl_slist_append(headers, auth_header.c_str());
+
+        // Set up CURL options
+        std::string url = base_url_ + "images/";
+        curl_easy_setopt(curl_, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl_, CURLOPT_MIMEPOST, mime);
+
+        std::string response;
+        curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeCallback);
+        curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &response);
+
+        // Perform the request
+        CURLcode res = curl_easy_perform(curl_);
+        long http_code = 0;
+        curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &http_code);
+
+        // Clean up
+        curl_mime_free(mime);
+        curl_slist_free_all(headers);
+        std::remove(temp_filename.c_str()); // Delete temporary file
+
+        if (res != CURLE_OK) {
+            ERROR("CURL error sending image: " << curl_easy_strerror(res));
+            return false;
+        }
+
+        if (http_code >= 200 && http_code < 300) {
+            LOG("Image uploaded successfully. Response: " << response);
+            return true;
+        } else {
+            ERROR("HTTP error sending image: " << http_code << " - Response: " << response);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        ERROR("Error sending image: " << e.what());
         return false;
     }
 }
