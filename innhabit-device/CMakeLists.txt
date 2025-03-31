@@ -78,18 +78,18 @@ set(COMMON_SOURCES
 # Define platform-specific source files
 set(PLATFORM_SOURCES "")
 if(USE_RKNN)
-    list(APPEND PLATFORM_SOURCES src/platforms/rk3588.cpp)
+    list(APPEND PLATFORM_SOURCES src/platforms/rk3588/rk3588.cpp)
 endif()
 if(USE_CUDA)
-    list(APPEND PLATFORM_SOURCES src/platforms/cuda.cpp)
+    list(APPEND PLATFORM_SOURCES src/platforms/cuda/cuda.cpp)
 endif()
 if(USE_TENSORRT)
-    list(APPEND PLATFORM_SOURCES src/platforms/tensorrt.cpp)
+    list(APPEND PLATFORM_SOURCES src/platforms/tensorrt/tensorrt.cpp)
     # Add CUDA kernel source file
-    set(CUDA_KERNEL_SOURCES src/platforms/preprocess.cu)
+    set(CUDA_KERNEL_SOURCES src/platforms/tensorrt/preprocess.cu)
 endif()
 if(NOT USE_CUDA AND NOT USE_RKNN AND NOT USE_TENSORRT)
-    list(APPEND PLATFORM_SOURCES src/platforms/cpu.cpp)  # Default to CPU
+    list(APPEND PLATFORM_SOURCES src/platforms/cpu/cpu.cpp)  # Default to CPU
 endif()
 
 # Compile CUDA kernels if TensorRT is enabled
