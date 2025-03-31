@@ -3,6 +3,7 @@
 ## Prerequisites
 * python 3.10 or newer with pip and venv
 * docker and docker compose
+* npm
 
 ## Initial setup
 ```sh
@@ -14,6 +15,7 @@ pip install -r requirements.txt
 pre-commit install
 docker compose up -d
 python3 manage.py migrate
+python3 manage.py tailwind install
 python3 manage.py runserver
 ```
 
@@ -22,5 +24,10 @@ python3 manage.py runserver
 source venv/bin/activate
 docker compose up -d
 python3 manage.py runserver
+```
+
+
+## When adding tailwind styles
+```sh
 python3 manage.py tailwind start
 ```
