@@ -11,8 +11,10 @@
                     <th class="text-right">Dato</th>
                 {% endfill %}
                 {% fill "body" %}
-                    <th class="text-left px-6">test</th>
-                    <th class="text-right px-6">test</th>
+                {% for date in dates %}
+                <th class="text-left px-6">{{ date.label }}</th>
+                <th class="text-right px-6">{{ date.date }}</th>
+                {% endfor %}
                 {% endfill %}
             {% endcomponent %}
         {% endfill %}
@@ -20,7 +22,7 @@
 </div>
 
 <div>
-    <a href="{% url 'new_dates' %}" class="text-4xl">
+    <a href="{% url 'new_date' %}" class="text-4xl">
         +
     </a>
 </div>
