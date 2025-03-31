@@ -1,6 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.forms import CharField, ChoiceField, DateField, Form, ModelMultipleChoiceField
+from django.forms import (
+    CharField,
+    ChoiceField,
+    DateField,
+    Form,
+    ModelMultipleChoiceField,
+)
 from django.utils import timezone
 from occupancy.models import Entrance
 
