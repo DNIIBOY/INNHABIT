@@ -46,37 +46,6 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const themeToggle = document.getElementById("theme-toggle");
-            const html = document.documentElement;
-
-            // Check if there's a saved theme preference in localStorage
-            if (localStorage.getItem("theme") === "dark") {
-                html.classList.add("dark");
-            } else if (localStorage.getItem("theme") === "light") {
-                html.classList.remove("dark");
-            } else {
-                // Check the system preference (using prefers-color-scheme)
-                const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-                if (prefersDarkScheme) {
-                    html.classList.add("dark");
-                } else {
-                    html.classList.remove("dark");
-                }
-            }
-
-
-            // Optional: Listen for system theme changes and adjust the theme accordingly
-            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-                if (!localStorage.getItem("theme")) {  // Only apply if no saved preference
-                    if (e.matches) {
-                        html.classList.add("dark");
-                    } else {
-                        html.classList.remove("dark");
-                    }
-                }
-            });
-            // Set the timezone cookie (optional)
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             document.cookie = "tzinfo=" + timezone + "; path=/";
         });
