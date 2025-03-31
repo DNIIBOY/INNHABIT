@@ -22,4 +22,5 @@ python3 manage.py runserver
 source venv/bin/activate
 docker compose up -d
 python3 manage.py runserver
+python3 manage.py tailwind start
 ```
