@@ -11,10 +11,22 @@
                     <th class="text-right">Dato</th>
                 {% endfill %}
                 {% fill "body" %}
-                {% for date in dates %}
-                <th class="text-left px-6">{{ date.label }}</th>
-                <th class="text-right px-6">{{ date.date }}</th>
-                {% endfor %}
+                    {% for date in dates %}
+                    <tr>
+                        <td>
+                            <div class="flex ml-6 py-1">
+                                <a>
+                                    {{ date.label }}
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <a>
+                                {{ date.date }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
                 {% endfill %}
             {% endcomponent %}
         {% endfill %}
