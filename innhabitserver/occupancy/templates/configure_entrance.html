@@ -12,6 +12,12 @@
                 <h2 class="text-xl font-semibold">Navn</h2>
                 <p>{{ entrance.name }}</p>
                 {% if device %}
+                <form method="post">
+                    {% csrf_token %}
+                    <h2 class="text-xl font-semibold">Request Image</h2>
+                    <input name="request_image" type="hidden" value="true">
+                    <button class="px-6 py-3 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light disabled:from-gray-400 disabled:to-gray-400" {% if not allow_image_request %} disabled {% endif %}>Request</button>
+                </form>
                 <h2 class="text-xl font-semibold">Device installed <i class="bi-check"></i></h2>
                 <h2 class="text-xl font-semibold">API Key</h2>
                 <div>
