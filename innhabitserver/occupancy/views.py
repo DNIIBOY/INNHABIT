@@ -2,6 +2,7 @@ import csv
 
 from api.models import DeviceAPIKey
 from dashboard.utils import filter_events
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import F, Max
 from django.db.models.functions import Greatest
@@ -9,7 +10,7 @@ from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpRespons
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from occupancy.forms import FilterEventsForm
+from occupancy.forms import ConfigureDeviceForm, FilterEventsForm
 from occupancy.models import Device, Entrance
 
 
@@ -48,12 +49,30 @@ def configure_entrance(
         if image_obj:
             image = image_obj.image
 
+    form = None
+    if request.method == "POST":
+        if not device:
+            raise Http404
+        messages = set(cache.get(f"device-{device.pk}-messages", []))
+        form = ConfigureDeviceForm(request.POST)
+        if form.is_valid() and device:
+            if form.cleaned_data["request_image"]:
+                messages.add("request_image")
+            if form.entry_box or form.exit_box:
+                messages.add("update_settings")
+            cache.set(f"device-{device.pk}-messages", list(messages))
+
+    allow_image_request = device and "request_image" not in cache.get(
+        f"device-{device.pk}-messages", []
+    )
     context = {
         "entrance": entrance,
         "device": device,
         "image": image,
         "api_key": api_key,
         "api_key_available": api_key_available,
+        "allow_image_request": allow_image_request,
+        "form": form,
     }
     return render(request, "configure_entrance.html", context)
 

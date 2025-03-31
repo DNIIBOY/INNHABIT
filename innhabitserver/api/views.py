@@ -90,6 +90,13 @@ class DeviceImageViewset(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
+    def perform_create(self, serializer: DeviceImageSerializer) -> None:
+        device = serializer.validated_data["device"]
+        messages = set(cache.get(f"device-{device.pk}-messages", []))
+        messages.discard("request_image")
+        messages = cache.set(f"device-{device.pk}-messages", list(messages))
+        super().perform_create(serializer)
+
 
 @api_view(["GET"])
 @permission_classes([DeviceAPIKeyPermission])
