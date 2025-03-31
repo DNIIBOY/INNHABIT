@@ -6,9 +6,12 @@ from api.serializers import (
     EntryEventSerializer,
     ExitEventSerializer,
 )
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from occupancy.models import DeviceImage, Entrance, EntryEvent, ExitEvent
 from rest_framework import status, viewsets
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import (
     BaseParser,
     FileUploadParser,
@@ -39,6 +42,8 @@ class EntryEventViewset(
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = self.get_serializer(data=request.data)
         if isinstance(request.auth, DeviceAPIKey):
+            if request.method != "POST":
+                raise PermissionDenied
             key = request.auth
             serializer.initial_data["entrance"] = key.device.entrance.pk
         serializer.is_valid(raise_exception=True)
@@ -84,3 +89,13 @@ class DeviceImageViewset(
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+
+@api_view(["GET"])
+@permission_classes([DeviceAPIKeyPermission])
+def device_poll(request: Request) -> Response:
+    device = request.auth.device
+    messages = cache.get(f"device-{device.pk}-messages")
+    if not messages:
+        return Response(status=204)
+    return Response(messages)

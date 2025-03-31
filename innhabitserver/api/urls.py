@@ -3,7 +3,9 @@ from api.views import (
     EntranceViewset,
     EntryEventViewset,
     ExitEventViewset,
+    device_poll,
 )
+from django.urls import path
 from rest_framework import routers
 
 router = routers.SimpleRouter()
@@ -12,4 +14,6 @@ router.register("events/entries", EntryEventViewset)
 router.register("events/exits", ExitEventViewset)
 router.register("images", DeviceImageViewset)
 
-urlpatterns = router.urls
+urlpatterns = [path("device/poll/", device_poll)]
+
+urlpatterns += router.urls

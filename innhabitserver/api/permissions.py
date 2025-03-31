@@ -9,9 +9,6 @@ class DeviceAPIKeyPermission(BasePermission):
     prefix = "Bearer"
 
     def has_permission(self, request: Request, view: View) -> bool:
-        if request.method != "POST":
-            # Devices can only create new events
-            return False
         auth = request.headers.get("Authorization")
         if not auth or not auth.startswith(f"{self.prefix} "):
             return False
