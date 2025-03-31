@@ -15,16 +15,16 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # valkey:
-  #   image: valkey/valkey:latest
-  #   container_name: valkey
-  #   volumes:
-  #     - valkey:/data
-  #   env_file: .env
-  #   ports:
-  #     - 6379:6379
-  #   restart: unless-stopped
+  valkey:
+    image: valkey/valkey:latest
+    container_name: valkey
+    volumes:
+      - valkey:/data
+    env_file: .env
+    ports:
+      - 6379:6379
+    restart: unless-stopped
 
 volumes:
   db_data:
-  # valkey:
+  valkey:
