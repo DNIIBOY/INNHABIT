@@ -99,12 +99,18 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      valkey:
+        image: valkey/valkey:latest
+        ports:
+          - 6379:6379
+
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      VALKEY_URL: "redis://localhost:6379/0"
 
     steps:
     - uses: actions/checkout@v4
