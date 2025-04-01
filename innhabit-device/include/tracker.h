@@ -115,16 +115,30 @@ public:
 // Movement event callback function type
 typedef void (*MovementCallback)(const TrackedPerson&, const std::string&);
 
-// People tracker class
+/** 
+    * PeopleTracker class, handles multiple instances of TrackedPerson
+    */
 class PeopleTracker {
 public:
+    /**
+    * Contructor for PeopleTracker
+    */
     PeopleTracker(int maxMissingFrames = 10, float maxDistance = 120.0f, 
                  float topThreshold = 0.1f, float bottomThreshold = 0.9f);
-    
+    /**
+    * Updates loops over all detection from latest frame.
+    * Step 1: Match high-confidence detections to existing tracks
+    * Step 2: Match unmatched tracks to low-confidence detections
+    * Step 3: Update missing frames and remove old tracks
+    * Step 4: Add new tracks for unmatched high-confidence detections
+    */
     void update(const std::vector<Detection>& detections, int frameHeight);
+    /**Draws all TrackedPerson on a given fram*/
     void draw(cv::Mat& frame);
+    /** Vector containing all currently TrackedPerson*/
     const std::vector<TrackedPerson>& getTrackedPeople() const;
     void setMovementCallback(MovementCallback callback);
+    /** Sets the entranceZones for the given frame, Used to determine if TrackedPerson has exited or entered*/
     void setEntranceZones(const std::vector<BoxZone>& zones);
 
 private:
