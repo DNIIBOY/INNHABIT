@@ -2,16 +2,23 @@ from typing import Any
 
 from api.serializers import (
     DeviceImageSerializer,
+    DeviceSettingsSerializer,
     EntranceSerializer,
     EntryEventSerializer,
     ExitEventSerializer,
 )
 from django.core.cache import cache
 from django.core.files.base import ContentFile
-from occupancy.models import DeviceImage, Entrance, EntryEvent, ExitEvent
+from occupancy.models import (
+    DeviceImage,
+    DeviceSettings,
+    Entrance,
+    EntryEvent,
+    ExitEvent,
+)
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.parsers import (
     BaseParser,
     FileUploadParser,
@@ -22,6 +29,7 @@ from rest_framework.parsers import (
 from rest_framework.permissions import DjangoModelPermissions
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import DeviceAPIKey
 from .permissions import DeviceAPIKeyPermission
@@ -96,6 +104,24 @@ class DeviceImageViewset(
         messages.discard("request_image")
         messages = cache.set(f"device-{device.pk}-messages", list(messages))
         super().perform_create(serializer)
+
+
+class DeviceSettingsView(APIView):
+    permission_classes = [DeviceAPIKeyPermission]
+    serializer_class = DeviceSettingsSerializer
+    queryset = DeviceSettings.objects.all()
+
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        instance = self.get_object()
+        serializer = self.serializer_class(instance)
+        return Response(serializer.data)
+
+    def get_object(self) -> DeviceSettings:
+        device = self.request.auth.device
+        settings = getattr(device, "settings", None)
+        if not settings:
+            raise NotFound
+        return settings
 
 
 @api_view(["GET"])

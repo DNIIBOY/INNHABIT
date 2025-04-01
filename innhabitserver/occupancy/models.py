@@ -11,26 +11,45 @@ class Entrance(models.Model):
 
 
 class Device(models.Model):
-    entrance = models.OneToOneField(Entrance, on_delete=models.CASCADE)
+    entrance = models.OneToOneField(
+        Entrance,
+        on_delete=models.CASCADE,
+        related_name="device",
+    )
 
     def __str__(self) -> str:
         return f"Device: {self.entrance}"
 
 
 class DeviceSettings(models.Model):
-    device = models.OneToOneField(Device, on_delete=models.CASCADE)
+    device = models.OneToOneField(
+        Device,
+        on_delete=models.CASCADE,
+        related_name="settings",
+    )
     entry_box = ArrayField(
         models.IntegerField(),
         size=4,  # Only really sets a max length
         validators=[MinLengthValidator(4)],
         null=True,
+        blank=True,
+        default=None,
     )
     exit_box = ArrayField(
         models.IntegerField(),
         size=4,
         validators=[MinLengthValidator(4)],
         null=True,
+        blank=True,
+        default=None,
     )
+
+    def clean(self) -> None:
+        super().clean()
+        if self.entry_box == []:
+            self.entry_box = None
+        if self.exit_box == []:
+            self.exit_box = None
 
 
 class DeviceImage(models.Model):

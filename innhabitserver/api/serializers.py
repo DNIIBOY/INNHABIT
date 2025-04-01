@@ -1,4 +1,10 @@
-from occupancy.models import DeviceImage, Entrance, EntryEvent, ExitEvent
+from occupancy.models import (
+    DeviceImage,
+    DeviceSettings,
+    Entrance,
+    EntryEvent,
+    ExitEvent,
+)
 from rest_framework import serializers
 
 
@@ -24,3 +30,9 @@ class DeviceImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceImage
         exclude: list[str] = []
+
+
+class DeviceSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeviceSettings
+        exclude = ["id", "device"]
