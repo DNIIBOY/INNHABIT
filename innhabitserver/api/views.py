@@ -113,6 +113,11 @@ class DeviceSettingsView(APIView):
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         instance = self.get_object()
+        device = instance.device
+        messages = set(cache.get(f"device-{device.pk}-messages", []))
+        messages.discard("update_settings")
+        messages = cache.set(f"device-{device.pk}-messages", list(messages))
+
         serializer = self.serializer_class(instance)
         return Response(serializer.data)
 

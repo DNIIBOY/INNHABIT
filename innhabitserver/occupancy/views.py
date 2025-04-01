@@ -44,18 +44,28 @@ def configure_entrance(
             api_key = str(key_obj)
 
     image = None
+    settings = None
     if device:
         image_obj = device.images.order_by("-created_at").first()
+        settings = device.settings
         if image_obj:
             image = image_obj.image
 
     form = None
     if request.method == "POST":
-        if not device:
+        if not device or not settings:
             raise Http404
         messages = set(cache.get(f"device-{device.pk}-messages", []))
         form = ConfigureDeviceForm(request.POST)
         if form.is_valid() and device:
+            if (
+                settings.entry_box != form.entry_box
+                or settings.exit_box != form.exit_box
+            ):
+                settings.entry_box = form.entry_box
+                settings.exit_box = form.exit_box
+                settings.save()
+                messages.add("update_settings")
             if form.cleaned_data["request_image"]:
                 messages.add("request_image")
             if form.entry_box or form.exit_box:
