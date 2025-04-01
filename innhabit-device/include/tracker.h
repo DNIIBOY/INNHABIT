@@ -123,8 +123,8 @@ public:
     /**
     * Contructor for PeopleTracker
     */
-    PeopleTracker(int maxMissingFrames = 10, float maxDistance = 120.0f, 
-                 float topThreshold = 0.1f, float bottomThreshold = 0.9f);
+    PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames_ = 10, float maxDistance_ = 120.0f, 
+                 float topThreshold_ = 0.1f, float bottomThreshold_ = 0.9f);
     /**
     * Updates loops over all detection from latest frame.
     * Step 1: Match high-confidence detections to existing tracks

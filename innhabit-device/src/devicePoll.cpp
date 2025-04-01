@@ -4,27 +4,24 @@
 
 using json = nlohmann::json;
 
-DevicePoller::DevicePoller(const std::string& apiUrl, const std::string& apiKey, 
-                         std::atomic<bool>& shouldExit, 
-                         std::queue<cv::Mat>& frameQueue, 
-                         std::mutex& frameMutex, 
-                         std::condition_variable& frameCV, 
-                         ApiHandler* apiHandler,
-                         int pollIntervalSeconds)
-    : m_apiUrl(apiUrl),
-      m_apiKey(apiKey),
-      m_shouldExit(shouldExit),
-      m_frameQueue(frameQueue),
-      m_frameMutex(frameMutex),
-      m_frameCV(frameCV),
-      m_apiHandler(apiHandler),
-      m_pollIntervalSeconds(pollIntervalSeconds),
-      m_curl(nullptr) {
-    curl_global_init(CURL_GLOBAL_ALL);
-    m_curl = curl_easy_init();
-    if (!m_curl) {
-        throw std::runtime_error("CURL initialization failed in DevicePoller");
-    }
+DevicePoller::DevicePoller(const std::string& apiUrl, 
+    const std::string& apiKey, 
+    std::atomic<bool>& shouldExit, 
+    std::queue<cv::Mat>& frameQueue, 
+    std::mutex& frameMutex, 
+    std::condition_variable& frameCV, 
+    ApiHandler* apiHandler,
+    std::shared_ptr<Configuration> config,
+    int pollIntervalSeconds)
+: m_apiUrl(apiUrl), m_apiKey(apiKey), m_shouldExit(shouldExit),
+m_frameQueue(frameQueue), m_frameMutex(frameMutex), m_frameCV(frameCV),
+m_apiHandler(apiHandler), m_config(config), m_pollIntervalSeconds(pollIntervalSeconds),
+m_curl(nullptr) {
+curl_global_init(CURL_GLOBAL_ALL);
+m_curl = curl_easy_init();
+if (!m_curl) {
+throw std::runtime_error("CURL initialization failed in DevicePoller");
+}
 }
 
 DevicePoller::~DevicePoller() {
@@ -48,36 +45,42 @@ void DevicePoller::pollServer() {
     while (!m_shouldExit) {
         try {
             json response = sendGetRequest("device/poll/");
-            if (!response.is_null() && !response.empty()) {
+            if (!response.is_null() && !response.empty() && response.is_array()) {
                 LOG("Poll response: " << response.dump());
 
-                // Process the response as an array of actions
-                if (response.is_array()) {
-                    for (const auto& item : response) {
-                        if (item.is_string()) {
-                            std::string action = item.get<std::string>();
-                            if (action == "request_image") {
-                                LOG("Received request_image command from server");
-                                if (captureAndSendImage()) {
-                                    LOG("Image sent successfully");
-                                } else {
-                                    ERROR("Failed to send image");
-                                }
-                            } else if (action == "update_settings") {
-                                LOG("Received update_settings command from server");
-                                // Add handling for update_settings if needed
-                            } else {
-                                LOG("Unknown action in list: " << action);
-                            }
-                        } else {
-                            LOG("Non-string item in response array: " << item.dump());
-                        }
+                // Process each action in the array
+                for (const auto& item : response) {
+                    if (!item.is_string()) {
+                        LOG("Skipping non-string item in response array: " << item.dump());
+                        continue; // Skip invalid items
                     }
-                } else {
-                    LOG("Response is not an array: " << response.dump());
+
+                    std::string action = item.get<std::string>();
+                    LOG("Processing action: " << action);
+
+                    if (action == "request_image") {
+                        LOG("Received request_image command from server");
+                        if (captureAndSendImage()) {
+                            LOG("Image sent successfully");
+                        } else {
+                            ERROR("Failed to send image");
+                        }
+                    } else if (action == "update_settings") {
+                        LOG("Received update_settings command from server");
+                        json settings = sendGetRequest("device/settings/");
+                        if (!settings.is_null() && !settings.empty()) {
+                            m_config->updateFromJson(settings);
+                            LOG("Settings updated successfully: " << settings.dump());
+                        } else {
+                            ERROR("Failed to fetch new settings from API");
+                        }
+                    } else {
+                        LOG("Unknown action: " << action);
+                    }
                 }
             } else {
-                LOG("No actions to process (likely HTTP 204)");
+                LOG("No actions to process (empty, null, or not an array): " 
+                    << (response.is_null() ? "null" : response.dump()));
             }
         } catch (const std::exception& e) {
             ERROR("Polling error: " << e.what());

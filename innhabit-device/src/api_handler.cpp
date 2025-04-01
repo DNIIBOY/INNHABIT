@@ -7,11 +7,9 @@
 #include <ctime>  // For std::strftime
 #include <opencv2/opencv.hpp> // For image handling
 
-ApiHandler::ApiHandler(const std::string& url, const std::string& api_key) 
-        : base_url_(url),
-        api_key_(api_key), 
-        curl_(nullptr), 
-        should_exit_(false) {
+ApiHandler::ApiHandler(std::shared_ptr<Configuration> config) 
+    : base_url_(config->getServerApi()), api_key_(config->getServerApiKey()), 
+        curl_(nullptr), should_exit_(false) {
     initialize();
 }
 
@@ -208,7 +206,7 @@ bool ApiHandler::onPersonEvent(const std::string& event_type) {
         ApiEvent event;
         event.event_type = event_type;
         event.timestamp = getTimestampISO();
-        
+        LOG("Event: " << event.event_type << " at " << event.timestamp);
         {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         event_queue_.push(event);

@@ -21,8 +21,6 @@
 using namespace cv;
 using namespace std;
 
-// Global variables
-Config config;
 /**
  * Defines the max size of frameQueue and displayQueue
 */
@@ -66,6 +64,7 @@ std::unique_ptr<ApiHandler> apiHandler;
 void movementEventCallback(const TrackedPerson& person, const std::string& eventType) {
     if (apiHandler) {
         apiHandler->onPersonEvent(eventType);
+        LOG("Movement event: " << eventType);
     } else {
         ERROR("API handler not initialized");
     }
@@ -81,27 +80,28 @@ void printUsage(const char* progName) {
 }
 
 int main(int argc, char** argv) {
-    config = loadConfig("../settings.json");
-    PeopleTracker tracker;
+    auto config = Configuration::loadFromFile("../settings.json");
+    PeopleTracker tracker(config, 10, 120.0f, 0.1f, 0.9f);
 
     // Set up tracker with entrance zones and movement callback
     tracker.setMovementCallback(movementEventCallback);
-    tracker.setEntranceZones(config.entranceZones);
+    //tracker.setEntranceZones(config.entranceZones);
 
     // Create API handler and start its thread
-    apiHandler.reset(new ApiHandler(config.serverAPI, config.serverApikey));
+    apiHandler.reset(new ApiHandler(config));
     apiHandler->start();
     
     // Create detector to detect people in frames
-    GenericDetector* detector = createDetector(config.modelPath, {"person"});
+    GenericDetector* detector = createDetector(config->getModelPath(), {"person"});
     if (!detector) {
-        cerr << "Error: Failed to initialize detector." << endl;
+        std::cerr << "Error: Failed to initialize detector." << std::endl;
         return -1;
     }
 
-    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
-    LOG("Attempting to open pipeline: " << pipeline);
-    cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    //std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    //LOG("Attempting to open pipeline: " << pipeline);
+    //cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    cv::VideoCapture cap("../Indgang A.mp4"); // Open default camera (0)
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open camera" << std::endl;
         return -1;
@@ -116,8 +116,8 @@ int main(int argc, char** argv) {
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                               displayQueue, displayMutex, displayCV, 
                               shouldExit, MAX_QUEUE_SIZE);
-    DevicePoller poller(config.serverAPI, config.serverApikey, shouldExit, 
-                        frameQueue, frameMutex, frameCV, apiHandler.get(), 60); // Poll every 5 seconds
+    DevicePoller poller(config->getServerApi(), config->getServerApiKey(), shouldExit, 
+                        frameQueue, frameMutex, frameCV, apiHandler.get(), config, 60); // Poll every 5 seconds
     //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
     DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
 
