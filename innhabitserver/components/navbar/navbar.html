@@ -1,13 +1,14 @@
-<aside class="w-full h-full max-w-64 fixed flex flex-col justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r py-2 dark:bg-gray-800 dark:border-gray-700">
+<aside class="w-full h-full max-w-64 fixed flex flex-col justify-between overflow-y-auto -translate-x-full xl:translate-x-0 border-r py-2 dark:bg-gray-900 dark:border-gray-700">
     <div class="flex flex-col items-center pt-10 pb-2 gap-8">
         <a
             href="{% url 'index' %}"
-            class="flex gap-4 items-center text-slate-700 dark:text-white hover:scale-105 transition-all hover:drop-shadow-lg"
+            class="flex gap-4 items-center text-slate-700 dark:text-white hover:scale-105 transition-all hover:drop-shadow-lg dark:hover:drop-shadow-bg-black"
         >
             <svg
                 viewBox="0 0 69 72"
                 xmlns="http://www.w3.org/2000/svg"
-                class="w-7 fill-aau"
+                class="w-7 fill-current text-aau dark:text-white"
+>
             >
                 <path d="M68.4473 55.0722C66.6046 54.2335 64.7513 53.8828 61.6073 51.6508C53.6033 45.9735 50.002 39.4015 55.1273 25.4922C58.0833 17.4682 59.2166 11.5148 59.0433 3.72951C58.9353 3.6535 58.6286 3.4455 58.5366 3.36816C56.9433 13.0428 54.2753 17.8135 48.2726 27.5615C34.6859 49.6242 47.4593 63.1295 53.4966 68.004C59.0846 65.3186 64.9326 60.6628 68.4473 55.0722Z"/>
                 <path d="M41.8399 26.8043C51.3132 14.8349 55.1945 9.82425 56.0319 1.78825C55.9252 1.72826 55.6346 1.57227 55.5279 1.5136C52.9626 11.2269 47.6532 15.4723 31.8012 26.4376C15.3199 37.8376 15.9039 55.0136 20.3959 67.5443C25.4919 70.1588 31.2585 71.6432 37.3759 71.6432C38.6799 71.6432 39.9679 71.5749 41.2385 71.4443C29.9025 53.3096 30.7892 40.7669 41.8399 26.8043Z"/>
@@ -32,10 +33,22 @@
         </ul>
     </div>
 
-
+   
+    <div class= "w-full flex flex-col items-center">
+<button 
+    id="theme-toggle" 
+    class="absolute bottom-20 left-[10%] text-2xl text-gray-700 dark:text-white hover:scale-110 transition-transform"
+    aria-label="Toggle Dark Mode"
+>
+    <!-- Moon SVG -->
+    <svg id="theme-icon" fill="#000000" width="24px" height="24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M30.994 13.84l-6.241-2.361 1.076-6.586-6.299 2.203-3.409-5.736-3.409 5.736-6.299-2.203 1.076 6.586-6.241 2.361 5.057 4.354-3.263 5.821 6.672 0.084 1.242 6.556 5.166-4.224 5.166 4.224 1.242-6.556 6.672-0.084-3.263-5.821 5.057-4.354zM16.472 25.494c-4.977 0-9.012-4.035-9.012-9.012s4.035-9.012 9.012-9.012c2.328 0 4.45 0.883 6.049 2.332-0.55-0.214-1.132-0.364-1.736-0.425-0.239-0.024-0.486 0-0.731 0-3.929 0-7.099 3.17-7.099 7.099s3.17 7.099 7.099 7.099c0.9 0 1.76-0.179 2.551-0.492-1.609 1.495-3.764 2.41-6.133 2.41z"></path>
+    </svg>
+</button>
+    </div>
     <div class="w-full flex flex-col items-center">
         <a
-            class="w-11/12 p-3 bg-white border-black/15 border rounded-lg overflow-x-auto text-nowrap hover:scale-[102%] transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            class="w-11/12 p-3 bg-white border-black/15 border rounded-lg overflow-x-auto text-nowrap hover:scale-[102%] transition-all dark:bg-gray-900 dark:border-gray-700 dark:text-white"
             href="{% url 'profile' %}"
         >
             <h4 class="text-lg font-semibold">{{ user.get_full_name }}</h4>

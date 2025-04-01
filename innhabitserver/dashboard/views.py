@@ -4,7 +4,7 @@ from dashboard.models import LabelledDate
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django_components import DynamicComponent
@@ -67,4 +67,18 @@ def new_date(request: HttpRequest) -> HttpResponse:
     if not form.is_valid():
         return render(request, "new_date.html", {"form": form})
     LabelledDate.objects.create(**form.cleaned_data)
+    return redirect("dates")
+
+
+@require_http_methods(["GET", "POST"])
+def edit_date(request: HttpRequest, pk: int) -> HttpResponse:
+    labelled_date = get_object_or_404(LabelledDate, pk=pk)
+    if request.method == "GET":
+        return render(request, "new_date.html", {"date": labelled_date})
+    form = LabelledDateForm(request.POST)
+    if not form.is_valid():
+        return render(request, "new_date.html", {"form": form, "date": labelled_date})
+    labelled_date.date = form.cleaned_data["date"]
+    labelled_date.label = form.cleaned_data["label"]
+    labelled_date.save()
     return redirect("dates")
