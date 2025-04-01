@@ -13,15 +13,15 @@
         <input type="checkbox" name="entry_toggle" {% if entry_box %}checked{% endif %}>Indgang</input>
         <input type="checkbox" name="exit_toggle" {% if exit_box %}checked{% endif %}>Udgang</input>
         <form>
-            <input id="entry_top_left_x" name="entry_top_left_x" type="number" disabled>
-            <input id="entry_top_left_y" name="entry_top_left_y" type="number" disabled>
-            <input id="entry_bottom_right_x" name="entry_bottom_right_x" type="number" disabled>
-            <input id="entry_bottom_right_y" name="entry_bottom_right_y" type="number" disabled>
+            <input id="entry_top_left_x" name="entry_top_left_x" type="number" value="{{ entry_box.0 }}" disabled>
+            <input id="entry_top_left_y" name="entry_top_left_y" type="number" value="{{ entry_box.1 }}" disabled>
+            <input id="entry_bottom_right_x" name="entry_bottom_right_x" type="number" value="{{ entry_box.2 }}" disabled>
+            <input id="entry_bottom_right_y" name="entry_bottom_right_y" type="number" value="{{ entry_box.3 }}"disabled>
 
-            <input id="exit_top_left_x" name="exit_top_left_x" type="number" disabled>
-            <input id="exit_top_left_y" name="exit_top_left_y" type="number" disabled>
-            <input id="exit_bottom_right_x" name="exit_bottom_right_x" type="number" disabled>
-            <input id="exit_bottom_right_y" name="exit_bottom_right_y" type="number" disabled>
+            <input id="exit_top_left_x" name="exit_top_left_x" type="number" value="{{ exit_box.0 }}" disabled>
+            <input id="exit_top_left_y" name="exit_top_left_y" type="number" value="{{ exit_box.1 }}" disabled>
+            <input id="exit_bottom_right_x" name="exit_bottom_right_x" type="number" value="{{ exit_box.2 }}" disabled>
+            <input id="exit_bottom_right_y" name="exit_bottom_right_y" type="number" value="{{ exit_box.3 }}" disabled>
         </form>
         <button
             id="drawBtn"
