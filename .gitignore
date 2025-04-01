@@ -17,7 +17,6 @@ innhabit-device/.cache/
 innhabit-device/*.mp4
 innhabit-device/models
 innhabit-device/build
-innhabit-device/
 runs/
 **/*.zip
 yolov/dataset/
