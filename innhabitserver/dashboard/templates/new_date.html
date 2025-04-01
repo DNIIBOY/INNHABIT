@@ -17,17 +17,17 @@
                     {% endfor %}
                 </div>
             {% endif %}
-        <h1 class="text-4xl">Opret ny begivenhed</h1>
+        <h1 class="text-4xl">{% if date %}Rediger{% else %}Opret{% endif %} begivenhed</h1>
         <div class="flex flex-col">
-            <label for="label" class="text-xl">Navn på ny begivenhed:</label>
-            <input type="text" name="label" class="rounded">
+            <label for="label" class="text-xl">Navn på begivenhed:</label>
+            <input type="text" name="label" class="rounded" value="{{ date.label }}">
             <div class="text-red-500 text-sm font-normal">
                 {% for error in form.label.errors %}
                     <p>{{ error }}</p>
                 {% endfor %}
             </div>
             <label for="date" class="text-xl">Dato på begivenhed</label>
-            <input type="date" id="event" name="date" class="rounded">
+            <input type="date" id="event" name="date" class="rounded" value="{{ date.date|date:"Y-m-d" }}">
             <div class="text-red-500 text-sm font-normal">
                 {% for error in form.date.errors %}
                     <p>{{ error }}</p>

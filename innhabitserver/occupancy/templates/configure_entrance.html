@@ -24,7 +24,7 @@
                     {% if api_key %}
                     <input
                         value="{{ api_key }}"
-                        class="rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light disabled:text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        class="rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light disabled:text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white dark:border-gray-600"
                         {% if not api_key_available %}
                         disabled
                         {% endif %}
@@ -70,7 +70,7 @@
             {% fill "content" %}
             <div class="p-4">
                 <label for="boxes">Ændr koordinater for:</label>
-                <select id="boxes" name="boxes">
+                <select id="boxes" name="boxes" class="dark:bg-gray-800 dark:text-white dark:border-gray-600">
                   <option value="entry_box">Indgang</option>
                   <option value="exit_box">Udgang</option>
                 </select> 
@@ -83,8 +83,9 @@
                             id="x_top"
                             name="top-left-x"
                             type="number"
-                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600"
                             placeholder="e.g. 583"
+                            disabled
                         >
                     </div>
                     <div class="flex flex-col w-full">
@@ -93,8 +94,9 @@
                             id="y_top"
                             name="top-left-y"
                             type="number"
-                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600"
                             placeholder="e.g. 363"
+                            disabled
                         >
                     </div>
                 </div>
@@ -106,8 +108,9 @@
                             id="x_btm"
                             name="bottom-right-x"
                             type="number"
-                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600"
                             placeholder="e.g. 281"
+                            disabled
                         >
                     </div>
                     <div class="flex flex-col w-full">
@@ -116,16 +119,17 @@
                             id="y_btm"
                             name="bottom-right-y"
                             type="number"
-                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white"
+                            class="w-full rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light focus:bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600"
                             placeholder="e.g. 927"
+                            disabled
                         >
                     </div>
                 </div>
                 <button
                     id="drawBtn"
-                    class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light"
+                    class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light dark:bg-gray-800 dark:text-white dark:border-gray-600"
                 >
-                    Send kasse
+                    Send kasser
                 </button>
             </div>  
             {% endfill %}
@@ -142,23 +146,28 @@ document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("drawingCanvas");
     if (!canvas) return; // Ensures the script runs only when the canvas exists
 
-    //drawRectangle()
-
     const img = document.getElementById("backgroundImage");
 
     let boxes = {
         entry_box: { x_top: 50, y_top: 50, x_btm: 100, y_btm: 100 },
         exit_box: { x_top: 150, y_top: 50, x_btm: 200, y_btm: 100 }
     };
+
+    let dragBoxBeginCoord = {x_top: 0, y_top: 0, x_btm: 0, y_btm: 0}
+    let dragMouseBeginCoord = [0,0]
+
     let selectedBox = "entry_box";
     
-    let selectedCorner = "null";
-    let closestCorner = "null";
+    let selectedCorner = null;
+    let closestCorner = null;
+    let isDraggingBox= false;
 
-    const minDragDistanceBetweenCorners = 50
+    const minBoxSize = 50
 
-    const cornerSelectDistance = 20;
-    let lastPlacedCorner = "btm_right"; // alternatively, "btm_right"
+    const cornerSelectDistance = 25;
+
+    const cornerHalfBoxSize = 5;
+    const cornerHalfBoxSizeSelected = 8;
 
     const originalWidth = img.naturalWidth;
     const originalHeight = img.naturalHeight;
@@ -205,7 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (x_top > x_btm || y_top > y_btm) {
                 ctx.fillStyle = fail_box_color;
             } else {
-                ctx.fillStyle = success_box_color;
+                ctx.fillStyle = "rgba(0,255,0,0.5)";
             }
 
             // Calculate rectangle size
@@ -216,52 +225,128 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.fillRect(remapWidth(x_top), remapHeight(y_top), remapWidth(size_x), remapHeight(size_y));
             
             if (boxKey == selectedBox) {
-                ctx.fillStyle = "rgba(120,120,120)";
+                ctx.fillStyle = "rgba(190,190,190)";
                 ctx.lineWidth = 1; // Thickness of the rim
                 ctx.strokeStyle = "rgba(60,60,60)"; // Rim color
 
-                ctx.beginPath();
-                ctx.arc(remapWidth(x_top), remapHeight(y_top), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke(); 
+                ctx.fillRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
 
-                ctx.beginPath();
-                ctx.arc(remapWidth(x_btm), remapHeight(y_top), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke(); 
+                ctx.strokeRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
 
-                ctx.beginPath();
-                ctx.arc(remapWidth(x_top,), remapHeight(y_btm), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke(); 
+                ctx.fillRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
 
-                ctx.beginPath();
-                ctx.arc(remapWidth(x_btm), remapHeight(y_btm), remapWidth(cornerSelectDistance), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke(); 
+                ctx.strokeRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
 
-                ctx.fillStyle = "rgba(160,160,160,1)";
-                if (closestCorner != "null") {
+                ctx.fillRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.strokeRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.fillRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.strokeRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+
+                ctx.fillStyle = "rgba(190,190,190,1)";
+                if (closestCorner != null) {
                     switch (closestCorner) {
                         case "top-left":
-                            ctx.beginPath();
-                            ctx.arc(remapWidth(x_top), remapHeight(y_top), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.fillRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+
+                            ctx.strokeRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
                             break;
                         case "top-right":
-                            ctx.beginPath();
-                            ctx.arc(remapWidth(x_btm), remapHeight(y_top), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.fillRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+
+                            ctx.strokeRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
                             break;
                         case "bottom-left":
-                            ctx.beginPath();
-                            ctx.arc(remapWidth(x_top), remapHeight(y_btm), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.fillRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+
+                            ctx.strokeRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
                             break;
                         case "bottom-right":
-                            ctx.beginPath();
-                            ctx.arc(remapWidth(x_btm), remapHeight(y_btm), remapWidth(cornerSelectDistance+5), 0, Math.PI * 2);
-                            ctx.fill();
+                            ctx.fillRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+                            ctx.strokeRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
                             break;
                     }
                     ctx.lineWidth = 1; // Thickness of the rim
@@ -289,65 +374,46 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("y_btm").value = values.y_btm;
     }
 
-    function updateBoxValues() {
-        const x_top = parseInt(document.getElementById("x_top").value) || 0;
-        const y_top = parseInt(document.getElementById("y_top").value) || 0;
-        const x_btm = parseInt(document.getElementById("x_btm").value) || 0;
-        const y_btm = parseInt(document.getElementById("y_btm").value) || 0;
-
-        boxes[selectedBox] = {
-            x_top: Math.min(x_top, img.naturalWidth),
-            y_top: Math.min(y_top, img.naturalHeight),
-            x_btm: Math.min(x_btm, img.naturalWidth),
-            y_btm: Math.min(y_btm, img.naturalHeight)
-        };
-
-        updateFormFields();
-        drawRectangles();
-    }
-
     function calculateDistance(x1, y1, x2, y2) {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
 
-    function snapToEdge() {
+    function EndBoxManipulation() {
+        isDraggingBox = false;
+        selectedCorner = null;
+
+        // Snaps to edge
         let snapDistance = 20;
         let box = boxes[selectedBox];
         const { x_top, y_top, x_btm, y_btm } = box;
-        switch (selectedCorner) {
-                        case "top-left":
-                            if (x_top < snapDistance) {
-                                box.x_top = 0;
-                            }
-                            if (y_top < snapDistance) {
-                                box.y_top = 0;
-                            }
-                            break;
-                        case "top-right":
-                            if (x_btm > originalWidth - snapDistance) {
-                                box.x_btm = originalWidth;
-                            }
-                            if (y_top < snapDistance) {
-                                box.y_top = 0;
-                            }
-                            break;
-                        case "bottom-left":
-                            if (x_top < snapDistance) {
-                                box.x_top = 0;
-                            }
-                            if (y_btm > originalHeight - snapDistance) {
-                                box.y_btm = originalHeight;
-                            }
-                            break;
-                        case "bottom-right":
-                            if (x_btm > originalWidth - snapDistance) {
-                                box.x_btm = originalWidth;
-                            }
-                            if (y_btm > originalHeight - snapDistance) {
-                                box.y_btm = originalHeight;
-                            }
-                            break;
-                    }
+
+        // Snap to edge on corresponding side
+        if (x_top < snapDistance) {
+            box.x_top = 0;
+        }
+        if (y_top < snapDistance) {
+            box.y_top = 0;
+        }
+        if (x_btm > originalWidth - snapDistance) {
+            box.x_btm = originalWidth;
+        }
+        if (y_btm > originalHeight - snapDistance) {
+            box.y_btm = originalHeight;
+        }
+
+        // Stop box from squishing to the sides
+        if (x_top > originalWidth - minBoxSize) {
+            box.x_top = originalWidth - minBoxSize;
+        }
+        if (y_top > originalHeight - minBoxSize) {
+            box.y_top = originalHeight - minBoxSize;
+        }
+        if (x_btm < minBoxSize) {
+            box.x_btm = minBoxSize;
+        }
+        if (y_btm < minBoxSize) {
+            box.y_btm = minBoxSize;
+        }
     }
 
     canvas.addEventListener("pointermove", function(event) {
@@ -358,7 +424,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let box = boxes[selectedBox];
         const { x_top, y_top, x_btm, y_btm } = box;
 
-        if (selectedCorner == "null") {
+        if (selectedCorner == null) {
             const distances = {
                 "top-left": calculateDistance(x, y, x_top, y_top),
                 "top-right": calculateDistance(x, y, x_btm, y_top),
@@ -372,92 +438,106 @@ document.addEventListener("DOMContentLoaded", function () {
             
 
             if (distances[closestCorner] > cornerSelectDistance) {
-                closestCorner = "null"
+                closestCorner = null;
             }
         }
         
         switch (selectedCorner) {
             case "top-left":
-                if (x > box.x_btm - minDragDistanceBetweenCorners) {
-                    box.x_top = Math.max(box.x_btm-minDragDistanceBetweenCorners,0);
+                if (x > box.x_btm - minBoxSize) {
+                    box.x_top = Math.max(box.x_btm-minBoxSize,0);
                 } else {
                     box.x_top = x;
                 }
-                if (y > box.y_btm - minDragDistanceBetweenCorners) {
-                    box.y_top = Math.max(y_btm-minDragDistanceBetweenCorners,0);
+                if (y > box.y_btm - minBoxSize) {
+                    box.y_top = Math.max(y_btm-minBoxSize,0);
                 } else {
                     box.y_top = y;
                 }
                 break;
             case "top-right":
-                if (x < box.x_top + minDragDistanceBetweenCorners) {
-                    box.x_btm = Math.min(x_top+minDragDistanceBetweenCorners,originalWidth);
+                if (x < box.x_top + minBoxSize) {
+                    box.x_btm = Math.min(x_top+minBoxSize,originalWidth);
                 } else {
                     box.x_btm = x;
                 }
-                if (y > box.y_btm - minDragDistanceBetweenCorners) {
-                    box.y_top = Math.max(y_btm-minDragDistanceBetweenCorners,0);
+                if (y > box.y_btm - minBoxSize) {
+                    box.y_top = Math.max(y_btm-minBoxSize,0);
                 } else {
                     box.y_top = y;
                 }
                 break;
             case "bottom-left":
-                if (x > box.x_btm - minDragDistanceBetweenCorners) {
-                    box.x_top = Math.max(x_btm-minDragDistanceBetweenCorners,0);
+                if (x > box.x_btm - minBoxSize) {
+                    box.x_top = Math.max(x_btm-minBoxSize,0);
                 } else {
                     box.x_top = x;
                 }
-                if (y < box.y_top + minDragDistanceBetweenCorners) {
-                    box.y_btm = Math.min(y_top+minDragDistanceBetweenCorners,originalHeight);
+                if (y < box.y_top + minBoxSize) {
+                    box.y_btm = Math.min(y_top+minBoxSize,originalHeight);
                 } else {
                     box.y_btm = y;
                 }
                 break;
             case "bottom-right":
-                if (x < box.x_top + minDragDistanceBetweenCorners) {
-                    box.x_btm = Math.min(x_top+minDragDistanceBetweenCorners,originalWidth);
+                if (x < box.x_top + minBoxSize) {
+                    box.x_btm = Math.min(x_top+minBoxSize,originalWidth);
                 } else {
                     box.x_btm = x;
                 }
-                if (y < box.y_top + minDragDistanceBetweenCorners) {
-                    box.y_btm = Math.min(y_top+minDragDistanceBetweenCorners,originalHeight);
+                if (y < box.y_top + minBoxSize) {
+                    box.y_btm = Math.min(y_top+minBoxSize,originalHeight);
                 } else {
                     box.y_btm = y;
                 }
                 break;
+        }
+
+        if (isDraggingBox == true) {
+            box.x_top = dragBoxBeginCoord.x_top + (x - dragMouseBeginCoord[0]);
+            box.x_btm = dragBoxBeginCoord.x_btm + (x - dragMouseBeginCoord[0]);
+            box.y_top = dragBoxBeginCoord.y_top + (y - dragMouseBeginCoord[1]);
+            box.y_btm = dragBoxBeginCoord.y_btm + (y - dragMouseBeginCoord[1]);
         }
 
         updateFormFields()
         drawRectangles();
     });
 
-    
-
     canvas.addEventListener("pointerdown", function(event) {
         selectedCorner = closestCorner;
-        console.log(selectedCorner)
+        boxDrag = null;
+
+        // box drag
+        if (selectedCorner == null) {
+            const rect = canvas.getBoundingClientRect();
+            const x = remapWidthToOriginal(event.clientX - rect.left);
+            const y = remapHeightToOriginal(event.clientY - rect.top);
+
+            let box = boxes[selectedBox];
+            const { x_top, y_top, x_btm, y_btm } = box;
+
+            if(x_btm > x && x > x_top && y_btm > y && y > y_top){
+                isDraggingBox = true;
+                dragBoxBeginCoord = {x_top: x_top, y_top: y_top, x_btm: x_btm, y_btm: y_btm};
+                dragMouseBeginCoord = [x,y]
+            }
+        }
     });
 
     canvas.addEventListener("pointerup", function(event) {
-        snapToEdge();
-        selectedCorner = "null"
+        EndBoxManipulation();
 
         updateFormFields();
         drawRectangles();
     });
+
     canvas.addEventListener("pointerleave", function(event) {
-        snapToEdge();
-        selectedCorner = "null"
-        closestCorner = "null"
+        EndBoxManipulation();
 
         updateFormFields();
         drawRectangles();
     });
-    
-    document.getElementById("x_top").addEventListener("input", updateBoxValues);
-    document.getElementById("y_top").addEventListener("input", updateBoxValues);
-    document.getElementById("x_btm").addEventListener("input", updateBoxValues);
-    document.getElementById("y_btm").addEventListener("input", updateBoxValues);
 
     updateFormFields();
     drawRectangles();
