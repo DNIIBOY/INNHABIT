@@ -1,70 +1,3 @@
-{% extends "base.html" %}
-{% load partials %}
-{% block content %}
-{% partialdef config_page inline %}
-<div id="config_content" class="flex flex-col items-center w-full h-fit gap-8">
-    <h1 class="text-2xl font-semibold">{{ entrance.name }}</h1>
-    <div class="flex flex-col lg:flex-row gap-4 w-full h-full justify-between">
-        <div class="w-full">
-            {% component "card" %}
-            {% fill "content" %}
-            <div class="p-4">
-                <h2 class="text-xl font-semibold">Navn</h2>
-                <p>{{ entrance.name }}</p>
-                {% if device %}
-                <form method="post">
-                    {% csrf_token %}
-                    <h2 class="text-xl font-semibold">Request Image</h2>
-                    <input name="request_image" type="hidden" value="true">
-                    <button class="px-6 py-3 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light disabled:from-gray-400 disabled:to-gray-400" {% if not allow_image_request %} disabled {% endif %}>Request</button>
-                </form>
-                <h2 class="text-xl font-semibold">Device installed <i class="bi-check"></i></h2>
-                <h2 class="text-xl font-semibold">API Key</h2>
-                <div>
-                    {% if api_key %}
-                    <input
-                        value="{{ api_key }}"
-                        class="rounded-lg border border-solid border-gray-300 py-2 px-3 transition-all focus:border-aau-light disabled:text-gray-600 disabled:bg-gray-100 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                        {% if not api_key_available %}
-                        disabled
-                        {% endif %}
-                        oninput="this.value = '{{ api_key }}'"
-                    >
-                    <button
-                        hx-delete="{% url 'api_key' entrance.device.id %}"
-                        hx-confirm="Are you sure you want to remove the API key for {{ entrance.name }}?"
-                        hx-target="#config_content"
-                    >
-                        <i class="bi-trash"></i>
-                    </button>
-                    {% else %}
-                    <button
-                        hx-post="{% url 'api_key' entrance.device.id %}"
-                        hx-target="#config_content"
-                    >
-                        <i class="bi-plus"></i>
-                    </button>
-                    {% endif %}
-                </div>
-                {% else %}
-                <h2 class="text-xl font-semibold">No device installed <i class="bi-x"></i></h2>
-                {% endif %}
-            </div>
-            <div>
-                {% component "latest_events" entrances=[entrance] items=3 %}{% endcomponent %}
-            </div>
-            {% endfill %}
-            {% endcomponent %}
-        </div>
-        {% if perms.occupancy.change_devicesettings %}
-        {% component "setup_entryboxes" image_url=image.url settings=settings %}{% endcomponent %}
-        {% endif %}
-    </div>
-</div>
-{% endpartialdef config_page %}
-{% endblock %}
-{% block js %}
-<script>
 document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("drawingCanvas");
     if (!canvas) return; // Ensures the script runs only when the canvas exists
@@ -145,7 +78,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Draw the rectangle
             ctx.fillRect(remapWidth(x_top), remapHeight(y_top), remapWidth(size_x), remapHeight(size_y));
-            
             if (boxKey == selectedBox) {
                 ctx.fillStyle = "rgba(190,190,190)";
                 ctx.lineWidth = 1; // Thickness of the rim
@@ -276,10 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     ctx.stroke(); // Draw the rim
                 }
             }
-
         });
-
-
     }
 
     document.getElementById("boxes").addEventListener("change", function(event) {
@@ -464,5 +393,3 @@ document.addEventListener("DOMContentLoaded", function () {
     updateFormFields();
     drawRectangles();
 });
-</script>
-{% endblock %}
