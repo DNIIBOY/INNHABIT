@@ -73,6 +73,7 @@ set(COMMON_SOURCES
     src/displayThread.cpp
     src/detectionThread.cpp
     src/rtspStreamManager.cpp
+    src/devicePoll.cpp
 )
 
 # Define platform-specific source files

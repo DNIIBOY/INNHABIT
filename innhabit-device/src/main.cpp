@@ -1,3 +1,4 @@
+// local libs
 #include "api_handler.h"
 #include "detector.h"
 #include "tracker.h"
@@ -6,6 +7,8 @@
 #include "detectionThread.h"
 #include "rtspStreamManager.h"  // Updated include
 #include "displayThread.h"
+#include "devicePoll.h"
+// libs
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -56,7 +59,7 @@ int main(int argc, char** argv) {
     tracker.setEntranceZones(config.entranceZones);
 
     // Create API handler and start its thread
-    apiHandler.reset(new ApiHandler(config.serverEventAPI, config.serverApikey));
+    apiHandler.reset(new ApiHandler(config.serverAPI, config.serverApikey));
     apiHandler->start();
     
     // Create detector to detect people in frames
@@ -85,6 +88,8 @@ int main(int argc, char** argv) {
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                               displayQueue, displayMutex, displayCV, 
                               shouldExit, MAX_QUEUE_SIZE);
+    DevicePoller poller(config.serverAPI, config.serverApikey, shouldExit, 
+                        frameQueue, frameMutex, frameCV, apiHandler.get(), 60); // Poll every 5 seconds
     //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
     DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
 
@@ -92,11 +97,13 @@ int main(int argc, char** argv) {
     processor.start(detector, tracker);
     //streamManager.start();  // Updated variable name
     display.start();
+    poller.start();
     // Wait for threads to complete
     capturer.join();
     processor.join();
     //streamManager.join();  // Updated variable name
     display.join();
+    poller.join();
     // Properly shutdown the API handler
     apiHandler->shutdown();
     apiHandler->join();
