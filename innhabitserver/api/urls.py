@@ -1,5 +1,6 @@
 from api.views import (
     DeviceImageViewset,
+    DeviceSettingsView,
     EntranceViewset,
     EntryEventViewset,
     ExitEventViewset,
@@ -14,6 +15,9 @@ router.register("events/entries", EntryEventViewset)
 router.register("events/exits", ExitEventViewset)
 router.register("images", DeviceImageViewset)
 
-urlpatterns = [path("device/poll/", device_poll)]
+urlpatterns = [
+    path("device/poll/", device_poll),
+    path("device/settings/", DeviceSettingsView.as_view()),
+]
 
 urlpatterns += router.urls
