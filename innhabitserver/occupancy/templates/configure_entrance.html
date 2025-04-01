@@ -142,23 +142,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("drawingCanvas");
     if (!canvas) return; // Ensures the script runs only when the canvas exists
 
-    //drawRectangle()
-
     const img = document.getElementById("backgroundImage");
 
     let boxes = {
         entry_box: { x_top: 50, y_top: 50, x_btm: 100, y_btm: 100 },
         exit_box: { x_top: 150, y_top: 50, x_btm: 200, y_btm: 100 }
     };
+
+    let dragBoxBeginCoord = {x_top: 0, y_top: 0, x_btm: 0, y_btm: 0}
+    let dragMouseBeginCoord = [0,0]
+
     let selectedBox = "entry_box";
     
     let selectedCorner = "null";
     let closestCorner = "null";
+    let isDraggingBox= false;
 
-    const minDragDistanceBetweenCorners = 50
+    const minBoxSize = 50
 
     const cornerSelectDistance = 20;
-    let lastPlacedCorner = "btm_right"; // alternatively, "btm_right"
 
     const originalWidth = img.naturalWidth;
     const originalHeight = img.naturalHeight;
@@ -205,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (x_top > x_btm || y_top > y_btm) {
                 ctx.fillStyle = fail_box_color;
             } else {
-                ctx.fillStyle = success_box_color;
+                ctx.fillStyle = "rgba(255,0,0,0.5)";
             }
 
             // Calculate rectangle size
@@ -289,65 +291,43 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("y_btm").value = values.y_btm;
     }
 
-    function updateBoxValues() {
-        const x_top = parseInt(document.getElementById("x_top").value) || 0;
-        const y_top = parseInt(document.getElementById("y_top").value) || 0;
-        const x_btm = parseInt(document.getElementById("x_btm").value) || 0;
-        const y_btm = parseInt(document.getElementById("y_btm").value) || 0;
-
-        boxes[selectedBox] = {
-            x_top: Math.min(x_top, img.naturalWidth),
-            y_top: Math.min(y_top, img.naturalHeight),
-            x_btm: Math.min(x_btm, img.naturalWidth),
-            y_btm: Math.min(y_btm, img.naturalHeight)
-        };
-
-        updateFormFields();
-        drawRectangles();
-    }
-
     function calculateDistance(x1, y1, x2, y2) {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
 
-    function snapToEdge() {
+    function EndBoxManipulation() {
+        // Snaps to edge
         let snapDistance = 20;
         let box = boxes[selectedBox];
         const { x_top, y_top, x_btm, y_btm } = box;
-        switch (selectedCorner) {
-                        case "top-left":
-                            if (x_top < snapDistance) {
-                                box.x_top = 0;
-                            }
-                            if (y_top < snapDistance) {
-                                box.y_top = 0;
-                            }
-                            break;
-                        case "top-right":
-                            if (x_btm > originalWidth - snapDistance) {
-                                box.x_btm = originalWidth;
-                            }
-                            if (y_top < snapDistance) {
-                                box.y_top = 0;
-                            }
-                            break;
-                        case "bottom-left":
-                            if (x_top < snapDistance) {
-                                box.x_top = 0;
-                            }
-                            if (y_btm > originalHeight - snapDistance) {
-                                box.y_btm = originalHeight;
-                            }
-                            break;
-                        case "bottom-right":
-                            if (x_btm > originalWidth - snapDistance) {
-                                box.x_btm = originalWidth;
-                            }
-                            if (y_btm > originalHeight - snapDistance) {
-                                box.y_btm = originalHeight;
-                            }
-                            break;
-                    }
+
+        // Snap to edge on corresponding side
+        if (x_top < snapDistance) {
+            box.x_top = 0;
+        }
+        if (y_top < snapDistance) {
+            box.y_top = 0;
+        }
+        if (x_btm > originalWidth - snapDistance) {
+            box.x_btm = originalWidth;
+        }
+        if (y_btm > originalHeight - snapDistance) {
+            box.y_btm = originalHeight;
+        }
+
+        // Stop box from squishing to the sides
+        if (x_top > originalWidth - minBoxSize) {
+            box.x_top = originalWidth - minBoxSize;
+        }
+        if (y_top > originalHeight - minBoxSize) {
+            box.y_top = originalHeight - minBoxSize;
+        }
+        if (x_btm < minBoxSize) {
+            box.x_btm = minBoxSize;
+        }
+        if (y_btm > minBoxSize) {
+            box.y_btm = minBoxSize;
+        }
     }
 
     canvas.addEventListener("pointermove", function(event) {
@@ -374,7 +354,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (distances[closestCorner] > cornerSelectDistance) {
                 closestCorner = "null"
             }
-        }
+        } 
         
         switch (selectedCorner) {
             case "top-left":
@@ -427,37 +407,52 @@ document.addEventListener("DOMContentLoaded", function () {
                 break;
         }
 
+        if (isDraggingBox == true) {
+            box.x_top = dragBoxBeginCoord.x_top + (x - dragMouseBeginCoord[0]);
+            box.x_btm = dragBoxBeginCoord.x_btm + (x - dragMouseBeginCoord[0]);
+            box.y_top = dragBoxBeginCoord.y_top + (y - dragMouseBeginCoord[1]);
+            box.y_btm = dragBoxBeginCoord.y_btm + (y - dragMouseBeginCoord[1]);
+        }
+
         updateFormFields()
         drawRectangles();
     });
 
-    
-
     canvas.addEventListener("pointerdown", function(event) {
         selectedCorner = closestCorner;
-        console.log(selectedCorner)
+        boxDrag = "null";
+
+        // box drag
+        if (selectedCorner == "null") {
+            const rect = canvas.getBoundingClientRect();
+            const x = remapWidthToOriginal(event.clientX - rect.left);
+            const y = remapHeightToOriginal(event.clientY - rect.top);
+            if(x_btm > x > x_top && y_btm > y > t_top){
+                boxDrag = "true";
+                originalBoxCoord = boxes[selectedBox];
+                dragBeginCoord = [x,y]
+            }
+        }
     });
 
     canvas.addEventListener("pointerup", function(event) {
-        snapToEdge();
+        EndBoxManipulation();
         selectedCorner = "null"
+        boxDrag = "null";
 
         updateFormFields();
         drawRectangles();
     });
+
     canvas.addEventListener("pointerleave", function(event) {
-        snapToEdge();
-        selectedCorner = "null"
-        closestCorner = "null"
+        EndBoxManipulation();
+        selectedCorner = "null";
+        closestCorner = "null";
+        boxDrag = "null";
 
         updateFormFields();
         drawRectangles();
     });
-    
-    document.getElementById("x_top").addEventListener("input", updateBoxValues);
-    document.getElementById("y_top").addEventListener("input", updateBoxValues);
-    document.getElementById("x_btm").addEventListener("input", updateBoxValues);
-    document.getElementById("y_btm").addEventListener("input", updateBoxValues);
 
     updateFormFields();
     drawRectangles();
