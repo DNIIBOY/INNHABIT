@@ -25,7 +25,7 @@
     <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
       class="flex w-full 
              {% if request.path == insights_url %} bg-aau 
-             {% else %} bg-gray-50 dark:bg-black dark:text-white {% endif %}"
+             {% else %} bg-gray-50 dark:bg-gray-900 dark:text-white {% endif %}"
       id="main">        {% url "login" as login_url %}
         {% if request.user.is_authenticated and request.path != insights_url %}
             {% component "navbar" %}{% endcomponent %}
@@ -43,12 +43,56 @@
                 <a href="{% url 'login' %}">Login</a>
             </div>
         {% endif %}
-
+        
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            document.cookie = "tzinfo=" + timezone + "; path=/";
-        });
+        
+
+document.addEventListener("DOMContentLoaded", function () {
+    const themeToggle = document.getElementById("theme-toggle");
+    const themeIcon = document.getElementById("theme-icon");
+    const html = document.documentElement;
+
+    // Function to update the icon's color based on the current theme
+    function updateIconColor() {
+        if (html.classList.contains("dark")) {
+            themeIcon.setAttribute("fill", "#FFFFFF"); // Gold for dark mode
+        } else {
+            themeIcon.setAttribute("fill", "#000000"); // Black for light mode
+        }
+    }
+
+    // Function to check the stored theme and apply it
+    function applyStoredTheme() {
+        // Check if user has a stored theme preference in localStorage
+        if (localStorage.getItem("theme") === "dark") {
+            html.classList.add("dark"); // Apply dark theme
+        } else {
+            html.classList.remove("dark"); // Apply light theme
+        }
+    }
+
+    // Initially apply the stored theme (if any)
+    applyStoredTheme();
+
+    // Update the icon color based on the initial theme
+    updateIconColor();
+
+    // Toggle theme and update the icon color when button is clicked
+    themeToggle.addEventListener("click", function () {
+        // Toggle the dark class on the html element
+        html.classList.toggle("dark");
+
+        // Update the theme in localStorage
+        if (html.classList.contains("dark")) {
+            localStorage.setItem("theme", "dark"); // Save dark theme preference
+        } else {
+            localStorage.setItem("theme", "light"); // Save light theme preference
+        }
+
+        // Update the icon color based on the current theme
+        updateIconColor();
+    });
+});
         function onFullscreen() {
             const nav = document.querySelector("aside");
             const main = document.querySelector("main");
