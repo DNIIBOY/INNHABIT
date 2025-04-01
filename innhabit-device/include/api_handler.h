@@ -22,8 +22,14 @@ public:
     ~ApiHandler();
 
     // Thread management
+    /**
+    * Start the API handler on its own thread
+    */
     void start();
     void shutdown();
+    /**
+    * Joins the API handler thread for safe exiting
+    */
     void join();
     
     // Event handling

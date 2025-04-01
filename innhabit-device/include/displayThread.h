@@ -9,6 +9,9 @@
 #include <chrono>
 #include <thread>
 
+/**
+    * Class used for managing the display of labeled and tracked images
+*/
 class DisplayManager {
 public:
     DisplayManager(std::queue<cv::Mat>& displayQueue, 
@@ -16,7 +19,13 @@ public:
                   std::condition_variable& displayCV,
                   std::atomic<bool>& shouldExit);
     
+    /**
+    * Starts a thread displaying labelled images from displayQueue
+    */
     void start();
+    /**
+    * Joins the DisplayManager thread for safe exiting
+    */
     void join();
 
 private:

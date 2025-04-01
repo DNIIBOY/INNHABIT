@@ -22,7 +22,9 @@ using json = nlohmann::json;
 #define LOG(msg) cout << "[INFO] " << msg << endl
 #define ERROR(msg) cerr << "[ERROR] " << msg << endl
 
-// COCO class labels
+/**
+* Labels for COCO
+*/
 static const char* const COCO_LABELS[80] = {
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck",
     "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
@@ -39,6 +41,9 @@ static const char* const COCO_LABELS[80] = {
 };
 
 // Structure for a box zone (top-left and bottom-right coordinates)
+/**
+* this is for boxed
+    */
 struct BoxZone {
     int x1, y1;  // Top-left
     int x2, y2;  // Bottom-right

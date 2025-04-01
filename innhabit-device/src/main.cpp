@@ -23,19 +23,46 @@ using namespace std;
 
 // Global variables
 Config config;
+/**
+ * Defines the max size of frameQueue and displayQueue
+*/
 const int MAX_QUEUE_SIZE = 5;
 
-// Shared resources for threads
-std::queue<Mat> frameQueue; // Queue for frames captured from camera
+/**
+    * Stores frames captured by FrameCapturer
+*/
+std::queue<Mat> frameQueue;
+/**
+    * Stores processed frames after inference and tracking
+*/
 std::queue<Mat> displayQueue;
-std::mutex frameMutex; // Mutex for frame queue so threads can lock it
+/**
+    * Mutex for threads to lock frameQueue
+*/
+std::mutex frameMutex;
+/**
+    * Mutex for threads to lock displayQueue
+*/
 std::mutex displayMutex;
+/**
+    * Condition variable to notify threads of new frames ready for processing
+*/
 std::condition_variable frameCV; // Condition variable to notify threads of new frames
+/**
+    * Condition variable to notify threads of new frames ready to be displayThread
+*/
 std::condition_variable displayCV;
+/**
+    * Atmoix variable Flag used to notify threads to exit if something goes wrong
+*/
 std::atomic<bool> shouldExit(false); // Flag to notify threads to exit if something goes wrong
 std::unique_ptr<ApiHandler> apiHandler;
 
-// Movement event callback function for tracker when person event happens
+/**
+* Movement event callback function for tracker when person event happens
+* ex. person exiting or entering exit zones
+* Calls apihandler to send event to server
+*/
 void movementEventCallback(const TrackedPerson& person, const std::string& eventType) {
     if (apiHandler) {
         apiHandler->onPersonEvent(eventType);
@@ -44,6 +71,9 @@ void movementEventCallback(const TrackedPerson& person, const std::string& event
     }
 }
 
+/**
+* Prints the usage guides for the program.
+*/
 void printUsage(const char* progName) {
     cout << "Usage: " << progName << " [--video <video_file>] [--image <image_file>]" << endl;
     cout << "  --video <file> : Process a video file" << endl;
@@ -69,11 +99,9 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // Initialize the camera
-    //std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
-    //LOG("Attempting to open pipeline: " << pipeline);
-    //cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
-    cv::VideoCapture cap("../Indgang A.mp4");
+    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    LOG("Attempting to open pipeline: " << pipeline);
+    cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open camera" << std::endl;
         return -1;

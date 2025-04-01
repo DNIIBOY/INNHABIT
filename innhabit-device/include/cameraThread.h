@@ -8,7 +8,12 @@
 #include <atomic>
 #include <chrono>
 #include <thread>
-
+/**
+    * FrameCapturer class.
+    * Used for capturing frames from an OpenCV VideoCapture device.
+    * Outputs captured frames to a std::queue<cv::Mat>
+    * Runs on its own thread
+*/
 class FrameCapturer {
 public:
     FrameCapturer(std::queue<cv::Mat>& frameQueue, 
@@ -16,8 +21,14 @@ public:
                  std::condition_variable& frameCV,
                  std::atomic<bool>& shouldExit,
                  const int maxQueueSize);
-    
+    /**
+        * Starts a cv::VideoCapture on its own thread and outputs images
+        * to specified frameQueue.
+    */
     void start(cv::VideoCapture& cap);
+    /**
+        * Joins the running FrameCapturer thread for safe exiting
+    */
     void join();
 
 private:
