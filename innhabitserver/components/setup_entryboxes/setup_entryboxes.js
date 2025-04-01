@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const img = document.getElementById("backgroundImage");
 
     let boxes = {
-        entry_box: { "entry_top_left_x": 0, "entry_top_left_y": 0, "entry_bottom_right_x": 0, "entry_bottom_right_y": 0 },
+        entry_box: { "entry_top_left_x": 50, "entry_top_left_y": 50, "entry_bottom_right_x": 100, "entry_bottom_right_y": 100 },
         exit_box: { "exit_top_left_x": 0, "exit_top_left_y": 0, "exit_bottom_right_x": 0, "exit_bottom_right_y": 0 }
     };
 
@@ -53,6 +53,26 @@ document.addEventListener("DOMContentLoaded", function () {
         return originalHeight * value / canvas.height;
     }
 
+    function getValues(key) {
+        let box = boxes[key];
+        
+        if (key = "entry_box") {
+            return {
+                x_top: box[`entry_top_left_x`],
+                y_top: box[`entry_top_left_y`],
+                x_btm: box[`entry_bottom_right_x`],
+                y_btm: box[`entry_bottom_right_y`]
+            };
+        } else {
+            return {
+                x_top: box[`exit_top_left_x`],
+                y_top: box[`exit_top_left_y`],
+                x_btm: box[`exit_bottom_right_x`],
+                y_btm: box[`exit_bottom_right_y`]
+            };
+        }
+        
+    }
 
     function drawRectangles() {
         const entry_box_color = "rgba(0.0,200,0.5)";
@@ -61,8 +81,13 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         Object.keys(boxes).forEach((boxKey) => {
-            const values = boxes[boxKey];
-            const { x_top, y_top, x_btm, y_btm } = values;
+            if(boxKey == "entry_box") {
+                ctx.fillStyle = entry_box_color;
+            } else {
+                ctx.fillStyle = exit_box_color;
+            }
+
+            const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
 
             // Calculate rectangle size
             const size_x = x_btm - x_top;
@@ -70,7 +95,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Draw the rectangle
             ctx.fillRect(remapWidth(x_top), remapHeight(y_top), remapWidth(size_x), remapHeight(size_y));
-
 
             ctx.fillStyle = "rgba(190,190,190)";
             ctx.lineWidth = 1; // Thickness of the rim
@@ -131,7 +155,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 cornerHalfBoxSize * 2,
                 cornerHalfBoxSize * 2
             )
-
 
             ctx.fillStyle = "rgba(190,190,190,1)";
             if (closestCorner != null) {
@@ -217,15 +240,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function EndBoxManipulation() {
-        isDraggingBox = null;
+        boxBeingDragged = null;
         selectedCorner = null;
 
         // Snaps to edge
         let snapDistance = 20;
 
         Object.keys(boxes).forEach((boxKey) => {
-            const values = boxes[boxKey];
-            const { x_top, y_top, x_btm, y_btm } = values;
+            const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
+            box = boxes[boxKey]
         
             // Snap to edge on corresponding side
             if (x_top < snapDistance) {
@@ -263,8 +286,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const y = remapHeightToOriginal(event.clientY - rect.top);
 
         Object.keys(boxes).forEach((boxKey) => {
-            const values = boxes[boxKey];
-            const { x_top, y_top, x_btm, y_btm } = values;
+            box = boxes[boxKey]
+            const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
 
             if (selectedCorner == null) {
                 const distances = {
@@ -335,7 +358,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     break;
             }
 
-            if (isDraggingBox == true) {
+            if (boxBeingDragged == boxKey) {
                 box.x_top = dragBoxBeginCoord.x_top + (x - dragMouseBeginCoord[0]);
                 box.x_btm = dragBoxBeginCoord.x_btm + (x - dragMouseBeginCoord[0]);
                 box.y_top = dragBoxBeginCoord.y_top + (y - dragMouseBeginCoord[1]);
@@ -357,8 +380,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const y = remapHeightToOriginal(event.clientY - rect.top);
 
             Object.keys(boxes).forEach((boxKey) => {
-                const values = boxes[boxKey];
-                const { x_top, y_top, x_btm, y_btm } = values;
+                const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
 
                 if(x_btm > x && x > x_top && y_btm > y && y > y_top){
                     boxBeingDragged = boxKey;
