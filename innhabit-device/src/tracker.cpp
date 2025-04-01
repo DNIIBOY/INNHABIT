@@ -6,10 +6,12 @@
 using namespace cv;
 using namespace std;
 
-PeopleTracker::PeopleTracker(int maxMissingFrames_, float maxDistance_, float topThreshold_, float bottomThreshold_)
-    : nextId(0), maxMissingFrames(maxMissingFrames_), maxDistance(maxDistance_),
-      topThreshold(topThreshold_), bottomThreshold(bottomThreshold_), // Note: should be bottomThreshold_
-      movementCallback(nullptr) {
+PeopleTracker::PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames_, 
+    float maxDistance_, float topThreshold_, float bottomThreshold_)
+: nextId(0), maxMissingFrames(maxMissingFrames_), maxDistance(maxDistance_),
+topThreshold(topThreshold_), bottomThreshold(bottomThreshold_), // Fix typo if needed
+movementCallback(nullptr) {
+entranceZones = config->getEntranceZones();
 }
 
 void PeopleTracker::setEntranceZones(const std::vector<BoxZone>& zones) {

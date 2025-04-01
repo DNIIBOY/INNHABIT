@@ -35,17 +35,19 @@ public:
      * @param frameMutex Mutex for thread-safe frame queue access
      * @param frameCV Condition variable for frame queue synchronization
      * @param apiHandler Pointer to API handler instance
+     * @param config Shared pointer to configuration object
      * @param pollIntervalSeconds Interval between polling requests in seconds
      * @throws std::runtime_error if CURL initialization fails
      */
     DevicePoller(const std::string& apiUrl, 
-                 const std::string& apiKey,
-                 std::atomic<bool>& shouldExit,
-                 std::queue<cv::Mat>& frameQueue,
-                 std::mutex& frameMutex,
-                 std::condition_variable& frameCV,
-                 ApiHandler* apiHandler,
-                 int pollIntervalSeconds);
+        const std::string& apiKey,
+        std::atomic<bool>& shouldExit,
+        std::queue<cv::Mat>& frameQueue,
+        std::mutex& frameMutex,
+        std::condition_variable& frameCV,
+        ApiHandler* apiHandler,
+        std::shared_ptr<Configuration> config,
+        int pollIntervalSeconds);
 
     /**
      * @brief Destructor for DevicePoller
@@ -76,6 +78,7 @@ private:
     std::mutex& m_frameMutex;               ///< Reference to frame queue mutex
     std::condition_variable& m_frameCV;     ///< Reference to frame condition variable
     ApiHandler* m_apiHandler;               ///< Pointer to API handler
+    std::shared_ptr<Configuration> m_config; ///< Shared configuration instance
     int m_pollIntervalSeconds;              ///< Polling interval in seconds
     CURL* m_curl;                           ///< CURL handle for HTTP requests
     std::thread m_thread;                   ///< Polling thread

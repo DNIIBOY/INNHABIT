@@ -9,6 +9,7 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
+#include "common.h" // Include for logging macros
 
 // Define the ApiEvent structure
 struct ApiEvent {
@@ -18,7 +19,7 @@ struct ApiEvent {
 
 class ApiHandler {
 public:
-    ApiHandler(const std::string& url, const std::string& api_key);
+    ApiHandler(std::shared_ptr<Configuration> config);
     ~ApiHandler();
 
     // Thread management
@@ -38,7 +39,7 @@ public:
 
     // Utility functions
     void SaveResponseToFile(const nlohmann::json& response, const std::string& filename);
-
+    
 private:
     using Json = nlohmann::json;
     // Initialization and processing

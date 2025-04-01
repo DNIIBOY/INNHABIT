@@ -2,8 +2,8 @@
     "ModelPath": "../models/best512.engine",
     "DeviceName": "Jetson Nano 1",
     "DeviceLokation": "Indgang A",
-    "ServerApiKey" : "inn-uH01x6BKdy2h1O3u-GQwTcEX8vA1nXXqEZafEt88GYbJlImhBk7FeN2N1MSnBI1PApf2kpxF0YUhNHvup", 
-    "ServerAPI": "http://192.168.55.100:8000/api/v1/",
+    "ServerApiKey" : "inn-9cfBNlFroRtKUfTV-J9ettSxOCLhKJxvQzzYYzD5rCQ9PVZtnEdy3KJXmG6l6mYpdBHwqxN9172yKqZsn", 
+    "ServerAPI": "http://127.0.0.1:8000/api/v1/",
     "ServerEntryEndpoint": "/entries",
     "ServerExitEndpoint": "/exits",
     "EntranceZone": {
