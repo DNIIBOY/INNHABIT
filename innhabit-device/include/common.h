@@ -49,7 +49,7 @@ struct Config {
     std::string modelPath;
     std::string deviceName;
     std::string deviceLokation;
-    std::string serverEventAPI;
+    std::string serverAPI;
     std::string serverApikey;
     std::string serverEntryEndpoint;
     std::string serverExitEndpoint;
@@ -72,7 +72,7 @@ inline Config loadConfig(const std::string& configFilePath) {
     config.deviceName = j["DeviceName"].get<std::string>();
     config.deviceLokation = j["DeviceLokation"].get<std::string>();
     config.serverApikey = j["ServerApiKey"].get<std::string>();
-    config.serverEventAPI = j["ServerAPI"].get<std::string>();
+    config.serverAPI = j["ServerAPI"].get<std::string>();
     config.serverEntryEndpoint = j["ServerEntryEndpoint"].get<std::string>();
     config.serverExitEndpoint = j["ServerExitEndpoint"].get<std::string>();
 

@@ -222,6 +222,8 @@ bool ApiHandler::onPersonEvent(const std::string& event_type) {
     }
 }
 
+
+
 bool ApiHandler::sendImage(const cv::Mat& image) {
     if (!curl_) {
         ERROR("CURL not initialized");
