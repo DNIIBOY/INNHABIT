@@ -8,14 +8,18 @@
 using namespace cv;
 using namespace std;
 
-// Structure for storing detection results
+/**
+    * Structure used for storing detection results
+*/
 struct Detection {
     string class_id;  
     float confidence;
     Rect bounding_box;
 };
 
-// Structure for storing platform-specific inference outputs
+/**
+    * Structure used for storing platform-specific inference outputs
+*/
 struct DetectionOutput {
     vector<void*> buffers;   // Pointers to output buffers
     vector<Mat> outputs;     // For OpenCV DNN outputs
@@ -27,7 +31,10 @@ struct DetectionOutput {
     }
 };
 
-// Generic detector implementation with common functionality
+/**
+    * Generic detector implementation with common functionality
+    * Able to be used on most platform-specific
+*/
 class GenericDetector {
 protected:
     vector<string> target_classes_;
@@ -49,8 +56,9 @@ public:
     const vector<Detection>& getDetections() const { return detections_; }
     bool isInitialized() const { return initialized_; }
 };
-
-// Factory function to create the appropriate detector
+/** 
+    * Factory function to create the appropriate detector
+*/
 GenericDetector* createDetector(const string& model_path, const vector<string>& target_classes);
 
 #endif // DETECTOR_H

@@ -11,12 +11,17 @@ using namespace cv;
 using namespace std;
 
 // Position structure for tracking
+/**
+    * Structure used for storing position of tracking box
+*/
 struct Position {
     int x;
     int y;
 };
 
-// Box size structure
+/**
+    * Structure used for storing size of tracking box
+*/
 struct BoxSize {
     int width;
     int height;
@@ -25,21 +30,32 @@ struct BoxSize {
 // Forward declaration of isInsideBox function
 bool isInsideBox(const Position& pos, const BoxZone& zone);
 
-// Structure representing a tracked person
+/**
+    * Class representing a tracked person
+*/
 class TrackedPerson {
 public:
+    /** Id used to distingues multiple TrackedPerson */
     int id;
+    /** Id from inference output classifying type of object */
     std::string classId;
     Position pos;
     BoxSize size;
+    /** vector<position> used to store previous and current positions of TrackedPerson */
     std::vector<Position> history;
     cv::Scalar color;
+    /** Amount of frames TrackedPerson has not been seen */
     int missingFrames;
+    /** float ranging 0.0-1.0 describing the confidence of the detection */
     float confidence;
+    /** True if TrackedPerson initially spawned in top part of image */
     bool fromTop;
+    /** True if TrackedPerson initially spawned in top part of image */
     bool fromBottom;
-    bool wasInZone;      // True if last seen in any entrance zone
-    bool spawnedInZone;  // True if the person initially spawned in an entrance zone
+    /** True if TrackedPerson last seen in any entrance zone */
+    bool wasInZone;
+    /** True if TrackedPerson initially spawned in an entrance zone */
+    bool spawnedInZone; 
     
     TrackedPerson() : id(-1), missingFrames(0), confidence(0.0f), fromTop(false), fromBottom(false), 
                       wasInZone(false), spawnedInZone(false) {}
@@ -67,6 +83,10 @@ public:
         }
     }
     
+    /** 
+    * Updates the TrackedPerson with new postion boxSize and conf
+    * wasInZone is not updated here, but in detectMovements
+    */
     void update(Position position, BoxSize boxSize, float conf) {
         this->pos = position;
         this->size = boxSize;
@@ -79,6 +99,9 @@ public:
         // Note: wasInZone is not updated here; it’s updated in detectMovements
     }
     
+    /**
+    * Gets cv::Rect from Position and BoxSize
+    */
     cv::Rect getBoundingBox() const {
         return cv::Rect(
             pos.x - size.width / 2,
