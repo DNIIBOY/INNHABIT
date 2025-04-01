@@ -83,6 +83,7 @@ def configure_entrance(
         "api_key_available": api_key_available,
         "allow_image_request": allow_image_request,
         "form": form,
+        "settings": settings,
     }
     return render(request, "configure_entrance.html", context)
 

@@ -1,0 +1,39 @@
+<div class="w-full flex-col gap-4 h-fit">
+    {% component "card" %}
+    {% fill "content" %}
+    <div class="relative w-full h-full p-4 items-center">
+        <img id="backgroundImage" src="{{ image.url }}">
+        <canvas id="drawingCanvas" class="absolute top-4 left-4"></canvas>
+    </div>
+    {% endfill %}
+    {% endcomponent %}
+    {% component "card" %}
+    {% fill "content" %}
+    <div class="p-4">
+        <label for="boxes">Ændr koordinater for:</label>
+        <select id="boxes" name="boxes" class="dark:bg-gray-800 dark:text-white dark:border-gray-600">
+          <option value="entry_box">Indgang</option>
+          <option value="exit_box">Udgang</option>
+        </select> 
+
+        <div>
+            <input id="entry_top_left_x" name="entry_top_left_x" type="number" disabled>
+            <input id="entry_top_left_y" name="entry_top_left_y" type="number" disabled>
+            <input id="entry_bottom_right_x" name="entry_bottom_right_x" type="number" disabled>
+            <input id="entry_bottom_right_y" name="entry_bottom_right_y" type="number" disabled>
+
+            <input id=exit_top_left_x name="exit_top_left_x" type="number" disabled>
+            <input id=exit_top_left_y name="exit_top_left_y" type="number" disabled>
+            <input id=exit_bottom_right_x name="exit_bottom_right_x" type="number" disabled>
+            <input id=exit_bottom_right_y name="exit_bottom_right_y" type="number" disabled>
+        </div>
+        <button
+            id="drawBtn"
+            class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light dark:bg-gray-800 dark:text-white dark:border-gray-600"
+        >
+            Send kasser
+        </button>
+    </div>
+    {% endfill %}
+    {% endcomponent %}
+</div>
