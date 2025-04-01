@@ -51,6 +51,9 @@ class DeviceSettings(models.Model):
         if self.exit_box == []:
             self.exit_box = None
 
+    def __str__(self) -> str:
+        return f"Settings for device at {self.device.entrance.name}"
+
 
 class DeviceImage(models.Model):
     device = models.ForeignKey(
