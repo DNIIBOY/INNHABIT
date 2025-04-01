@@ -2,6 +2,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("drawingCanvas");
     if (!canvas) return; // Ensures the script runs only when the canvas exists
 
+    
+
     const img = document.getElementById("backgroundImage");
 
     let boxes = {
@@ -251,6 +253,7 @@ document.addEventListener("DOMContentLoaded", function () {
         boxBeingDragged = null;
         selectedCorner = null;
         closestCorner = null;
+        canvas.style.cursor = "default"
 
         // Snaps to edge
         let snapDistance = 20;
@@ -303,6 +306,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 let box = boxes[boxKey];
                 const { x_top, y_top, x_btm, y_btm } = box;
 
+                
+        
+
                 if (selectedCorner == null) {
                     const distances = {
                         "top-left": calculateDistance(x, y, x_top, y_top),
@@ -334,8 +340,10 @@ document.addEventListener("DOMContentLoaded", function () {
             let box = boxes[selectedBox];
             const { x_top, y_top, x_btm, y_btm } = box;
 
+
             switch (selectedCorner) {
                 case "top-left":
+                    canvas.style.cursor = "nwse-resize"
                     if (x > box.x_btm - minBoxSize) {
                         box.x_top = Math.max(box.x_btm-minBoxSize,0);
                     } else {
@@ -348,6 +356,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                     break;
                 case "top-right":
+                    canvas.style.cursor = "nesw-resize"
                     if (x < box.x_top + minBoxSize) {
                         box.x_btm = Math.min(x_top+minBoxSize,originalWidth);
                     } else {
@@ -360,6 +369,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                     break;
                 case "bottom-left":
+                    canvas.style.cursor = "nesw-resize"
                     if (x > box.x_btm - minBoxSize) {
                         box.x_top = Math.max(x_btm-minBoxSize,0);
                     } else {
@@ -372,6 +382,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                     break;
                 case "bottom-right":
+                    canvas.style.cursor = "nwse-resize"
                     if (x < box.x_top + minBoxSize) {
                         box.x_btm = Math.min(x_top+minBoxSize,originalWidth);
                     } else {
@@ -386,7 +397,9 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        
         if (boxBeingDragged !== null) {
+            canvas.style.cursor = "grabbing"
             let box = boxes[boxBeingDragged];
             const { x_top, y_top, x_btm, y_btm } = box;
 
