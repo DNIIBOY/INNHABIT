@@ -10,8 +10,8 @@
     {% component "card" %}
     {% fill "content" %}
     <div class="p-4">
-        <input type="checkbox" name="entry_toggle" {% if entry_box %}checked{% endif %}>Indgang</input>
-        <input type="checkbox" name="exit_toggle" {% if exit_box %}checked{% endif %}>Udgang</input>
+        <input id="entry_checkbox" type="checkbox" name="entry_toggle" {% if entry_box %}checked{% endif %}>Indgang</input>
+        <input id="exit_checkbox" type="checkbox" name="exit_toggle" {% if exit_box %}checked{% endif %}>Udgang</input>
         <form>
             <input id="entry_top_left_x" name="entry_top_left_x" type="number" value="{{ entry_box.0 }}" disabled>
             <input id="entry_top_left_y" name="entry_top_left_y" type="number" value="{{ entry_box.1 }}" disabled>

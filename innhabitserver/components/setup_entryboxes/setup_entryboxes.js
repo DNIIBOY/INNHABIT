@@ -5,23 +5,42 @@ document.addEventListener("DOMContentLoaded", function () {
     const img = document.getElementById("backgroundImage");
 
     let boxes = {
-        entry_box: { "entry_top_left_x": 50, "entry_top_left_y": 50, "entry_bottom_right_x": 100, "entry_bottom_right_y": 100 },
-        exit_box: { "exit_top_left_x": 0, "exit_top_left_y": 0, "exit_bottom_right_x": 0, "exit_bottom_right_y": 0 }
+        "entry_box": { 
+            x_top: parseInt(document.getElementById("entry_top_left_x").value) || 0, 
+            y_top: parseInt(document.getElementById("entry_top_left_y").value) || 0, 
+            x_btm: parseInt(document.getElementById("entry_bottom_right_x").value) || 0, 
+            y_btm: parseInt(document.getElementById("entry_bottom_right_y").value) || 0 },
+        "exit_box": { 
+            x_top: parseInt(document.getElementById("exit_top_left_x").value) || 0, 
+            y_top: parseInt(document.getElementById("exit_top_left_y").value) || 0, 
+            x_btm: parseInt(document.getElementById("exit_bottom_right_x").value) || 0, 
+            y_btm: parseInt(document.getElementById("exit_bottom_right_y").value) || 0 }
     };
+
+    let boxesEnabled = {
+        "entry_box": document.getElementById("entry_checkbox").checked,
+        "exit_box": document.getElementById("exit_checkbox").checked
+    }
+
+    
+
+    const entry_box_color = "rgba(0,200,0,0.7)";
+    const exit_box_color = "rgba(200,0,0,0.7)";
 
     let dragBoxBeginCoord = {x_top: 0, y_top: 0, x_btm: 0, y_btm: 0}
     let dragMouseBeginCoord = [0,0]
 
     let selectedCorner = null;
     let closestCorner = null;
+    let selectedBox = null;
     let boxBeingDragged = null;
 
-    const minBoxSize = 50
+    const minBoxSize = 100
 
     const cornerSelectDistance = 25;
 
     const cornerHalfBoxSize = 5;
-    const cornerHalfBoxSizeSelected = 8;
+    const cornerHalfBoxSizeSelected = 6.5;
 
     const originalWidth = img.naturalWidth;
     const originalHeight = img.naturalHeight;
@@ -53,186 +72,175 @@ document.addEventListener("DOMContentLoaded", function () {
         return originalHeight * value / canvas.height;
     }
 
-    function getValues(key) {
-        let box = boxes[key];
-        
-        if (key = "entry_box") {
-            return {
-                x_top: box[`entry_top_left_x`],
-                y_top: box[`entry_top_left_y`],
-                x_btm: box[`entry_bottom_right_x`],
-                y_btm: box[`entry_bottom_right_y`]
-            };
-        } else {
-            return {
-                x_top: box[`exit_top_left_x`],
-                y_top: box[`exit_top_left_y`],
-                x_btm: box[`exit_bottom_right_x`],
-                y_btm: box[`exit_bottom_right_y`]
-            };
-        }
-        
-    }
-
     function drawRectangles() {
-        const entry_box_color = "rgba(0.0,200,0.5)";
-        const exit_box_color = "rgba(200,0,0,0.5)";
-
+        console.log(boxes["entry_box"])
+        console.log(boxes["exit_box"])
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         Object.keys(boxes).forEach((boxKey) => {
-            if(boxKey == "entry_box") {
-                ctx.fillStyle = entry_box_color;
-            } else {
-                ctx.fillStyle = exit_box_color;
-            }
-
-            const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
-
-            // Calculate rectangle size
-            const size_x = x_btm - x_top;
-            const size_y = y_btm - y_top;
-
-            // Draw the rectangle
-            ctx.fillRect(remapWidth(x_top), remapHeight(y_top), remapWidth(size_x), remapHeight(size_y));
-
-            ctx.fillStyle = "rgba(190,190,190)";
-            ctx.lineWidth = 1; // Thickness of the rim
-            ctx.strokeStyle = "rgba(60,60,60)"; // Rim color
-
-            ctx.fillRect(
-                remapWidth(x_top) - cornerHalfBoxSize, 
-                remapHeight(y_top) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.strokeRect(
-                remapWidth(x_top) - cornerHalfBoxSize, 
-                remapHeight(y_top) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.fillRect(
-                remapWidth(x_top) - cornerHalfBoxSize, 
-                remapHeight(y_btm) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.strokeRect(
-                remapWidth(x_top) - cornerHalfBoxSize, 
-                remapHeight(y_btm) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.fillRect(
-                remapWidth(x_btm) - cornerHalfBoxSize, 
-                remapHeight(y_top) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.strokeRect(
-                remapWidth(x_btm) - cornerHalfBoxSize, 
-                remapHeight(y_top) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.fillRect(
-                remapWidth(x_btm) - cornerHalfBoxSize, 
-                remapHeight(y_btm) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.strokeRect(
-                remapWidth(x_btm) - cornerHalfBoxSize, 
-                remapHeight(y_btm) - cornerHalfBoxSize, 
-                cornerHalfBoxSize * 2,
-                cornerHalfBoxSize * 2
-            )
-
-            ctx.fillStyle = "rgba(190,190,190,1)";
-            if (closestCorner != null) {
-                switch (closestCorner) {
-                    case "top-left":
-                        ctx.fillRect(
-                            remapWidth(x_top) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_top) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-
-                        ctx.strokeRect(
-                            remapWidth(x_top) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_top) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-                        break;
-                    case "top-right":
-                        ctx.fillRect(
-                            remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_top) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-
-                        ctx.strokeRect(
-                            remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_top) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-                        break;
-                    case "bottom-left":
-                        ctx.fillRect(
-                            remapWidth(x_top) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-
-                        ctx.strokeRect(
-                            remapWidth(x_top) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-                        break;
-                    case "bottom-right":
-                        ctx.fillRect(
-                            remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-                        ctx.strokeRect(
-                            remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
-                            remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
-                            cornerHalfBoxSizeSelected * 2,
-                            cornerHalfBoxSizeSelected * 2
-                        )
-                        break;
+            if(boxesEnabled[boxKey]) {
+                let boxText = ""
+                if(boxKey == "entry_box") {
+                    ctx.fillStyle = entry_box_color;
+                    boxText = "Indgang"
+                } else {
+                    ctx.fillStyle = exit_box_color;
+                    boxText = "Udgang"
                 }
+
+                const values = boxes[boxKey];
+                const { x_top, y_top, x_btm, y_btm } = values;
+
+                // Calculate rectangle size
+                const size_x = x_btm - x_top;
+                const size_y = y_btm - y_top;
+
+                // Draw the rectangle
+                ctx.fillRect(remapWidth(x_top), remapHeight(y_top), remapWidth(size_x), remapHeight(size_y));
+
+                ctx.fillStyle = "rgba(190,190,190)";
                 ctx.lineWidth = 1; // Thickness of the rim
-                ctx.strokeStyle = "black"; // Rim color
-                ctx.stroke(); // Draw the rim
+                ctx.strokeStyle = "rgba(60,60,60)"; // Rim color
+
+                ctx.fillText(boxText, remapWidth(x_top + 10), remapHeight(y_top + 20))
+                ctx.fillRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.strokeRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.fillRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.strokeRect(
+                    remapWidth(x_top) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.fillRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.strokeRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_top) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.fillRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.strokeRect(
+                    remapWidth(x_btm) - cornerHalfBoxSize, 
+                    remapHeight(y_btm) - cornerHalfBoxSize, 
+                    cornerHalfBoxSize * 2,
+                    cornerHalfBoxSize * 2
+                )
+
+                ctx.fillStyle = "rgba(190,190,190,1)";
+                if (closestCorner != null && boxKey == selectedBox) {
+                    switch (closestCorner) {
+                        case "top-left":
+                            ctx.fillRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+
+                            ctx.strokeRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+                            break;
+                        case "top-right":
+                            ctx.fillRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+
+                            ctx.strokeRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_top) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+                            break;
+                        case "bottom-left":
+                            ctx.fillRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+
+                            ctx.strokeRect(
+                                remapWidth(x_top) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+                            break;
+                        case "bottom-right":
+                            ctx.fillRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+                            ctx.strokeRect(
+                                remapWidth(x_btm) - cornerHalfBoxSizeSelected, 
+                                remapHeight(y_btm) - cornerHalfBoxSizeSelected, 
+                                cornerHalfBoxSizeSelected * 2,
+                                cornerHalfBoxSizeSelected * 2
+                            )
+                            break;
+                    }
+                    ctx.lineWidth = 1; // Thickness of the rim
+                    ctx.strokeStyle = "black"; // Rim color
+                    ctx.stroke(); // Draw the rim
+                }
             }
         });
     }
 
 
     function updateFormFields() {
-        Object.keys(boxes).forEach((boxKey) => {
-            Object.keys(boxes[boxKey]).forEach((key) => {
-                document.getElementById(key).value = parseInt(boxes[boxKey][key]);
-            });
-        });
+        document.getElementById("entry_top_left_x").value = parseInt(boxes["entry_box"].x_top);
+        document.getElementById("entry_top_left_y").value = parseInt(boxes["entry_box"].y_top);
+        document.getElementById("entry_bottom_right_x").value = parseInt(boxes["entry_box"].x_btm);
+        document.getElementById("entry_bottom_right_y").value = parseInt(boxes["entry_box"].y_btm);
+
+        document.getElementById("exit_top_left_x").value = parseInt(boxes["exit_box"].x_top);
+        document.getElementById("exit_top_left_y").value = parseInt(boxes["exit_box"].y_top);
+        document.getElementById("exit_bottom_right_x").value = parseInt(boxes["exit_box"].x_btm);
+        document.getElementById("exit_bottom_right_y").value = parseInt(boxes["exit_box"].y_btm);
     }
 
     function calculateDistance(x1, y1, x2, y2) {
@@ -242,13 +250,14 @@ document.addEventListener("DOMContentLoaded", function () {
     function EndBoxManipulation() {
         boxBeingDragged = null;
         selectedCorner = null;
+        closestCorner = null;
 
         // Snaps to edge
         let snapDistance = 20;
 
         Object.keys(boxes).forEach((boxKey) => {
-            const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
-            box = boxes[boxKey]
+            let box = boxes[boxKey];
+            const { x_top, y_top, x_btm, y_btm } = box;
         
             // Snap to edge on corresponding side
             if (x_top < snapDistance) {
@@ -278,6 +287,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 box.y_btm = minBoxSize;
             }
         });
+
+        updateFormFields()
     }
 
     canvas.addEventListener("pointermove", function(event) {
@@ -285,28 +296,44 @@ document.addEventListener("DOMContentLoaded", function () {
         const x = remapWidthToOriginal(event.clientX - rect.left);
         const y = remapHeightToOriginal(event.clientY - rect.top);
 
+        closestCorner = null;
+        // Find active corners
         Object.keys(boxes).forEach((boxKey) => {
-            box = boxes[boxKey]
-            const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
+            if(boxesEnabled[boxKey]) {
+                let box = boxes[boxKey];
+                const { x_top, y_top, x_btm, y_btm } = box;
 
-            if (selectedCorner == null) {
-                const distances = {
-                    "top-left": calculateDistance(x, y, x_top, y_top),
-                    "top-right": calculateDistance(x, y, x_btm, y_top),
-                    "bottom-left": calculateDistance(x, y, x_top, y_btm),
-                    "bottom-right": calculateDistance(x, y, x_btm, y_btm)
-                };
+                if (selectedCorner == null) {
+                    const distances = {
+                        "top-left": calculateDistance(x, y, x_top, y_top),
+                        "top-right": calculateDistance(x, y, x_btm, y_top),
+                        "bottom-left": calculateDistance(x, y, x_top, y_btm),
+                        "bottom-right": calculateDistance(x, y, x_btm, y_btm)
+                    };
 
-                closestCorner = Object.keys(distances).reduce((minCorner, currentCorner) => {
-                    return distances[currentCorner] < distances[minCorner] ? currentCorner : minCorner;
-                });
-                
+                    let localClosestCorner = Object.keys(distances).reduce((minCorner, currentCorner) => {
+                        return distances[currentCorner] < distances[minCorner] ? currentCorner : minCorner;
+                    });
+                    
+                    if (distances[localClosestCorner] > cornerSelectDistance) {
+                        localClosestCorner = null;
+                    }
 
-                if (distances[closestCorner] > cornerSelectDistance) {
-                    closestCorner = null;
+                    if(closestCorner == null) {
+                        closestCorner = localClosestCorner;
+                        selectedBox = boxKey
+                    } else if (Math.abs(localClosestCorner) < Math.abs(closestCorner)) {
+                        closestCorner = localClosestCorner;
+                        selectedBox = boxKey
+                    }
                 }
             }
-            
+        });
+
+        if(selectedCorner !== null) {
+            let box = boxes[selectedBox];
+            const { x_top, y_top, x_btm, y_btm } = box;
+
             switch (selectedCorner) {
                 case "top-left":
                     if (x > box.x_btm - minBoxSize) {
@@ -357,14 +384,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                     break;
             }
+        }
 
-            if (boxBeingDragged == boxKey) {
-                box.x_top = dragBoxBeginCoord.x_top + (x - dragMouseBeginCoord[0]);
-                box.x_btm = dragBoxBeginCoord.x_btm + (x - dragMouseBeginCoord[0]);
-                box.y_top = dragBoxBeginCoord.y_top + (y - dragMouseBeginCoord[1]);
-                box.y_btm = dragBoxBeginCoord.y_btm + (y - dragMouseBeginCoord[1]);
-            }
-        });
+        if (boxBeingDragged !== null) {
+            let box = boxes[boxBeingDragged];
+            const { x_top, y_top, x_btm, y_btm } = box;
+
+            box.x_top = dragBoxBeginCoord.x_top + (x - dragMouseBeginCoord[0]);
+            box.x_btm = dragBoxBeginCoord.x_btm + (x - dragMouseBeginCoord[0]);
+            box.y_top = dragBoxBeginCoord.y_top + (y - dragMouseBeginCoord[1]);
+            box.y_btm = dragBoxBeginCoord.y_btm + (y - dragMouseBeginCoord[1]);
+        }
+
         updateFormFields()
         drawRectangles();
     });
@@ -380,12 +411,15 @@ document.addEventListener("DOMContentLoaded", function () {
             const y = remapHeightToOriginal(event.clientY - rect.top);
 
             Object.keys(boxes).forEach((boxKey) => {
-                const { x_top, y_top, x_btm, y_btm } = getValues(boxKey);
+                if(boxesEnabled[boxKey]) {
+                    const values = boxes[boxKey]
+                    const { x_top, y_top, x_btm, y_btm } = boxes[boxKey];
 
-                if(x_btm > x && x > x_top && y_btm > y && y > y_top){
-                    boxBeingDragged = boxKey;
-                    dragBoxBeginCoord = {x_top: x_top, y_top: y_top, x_btm: x_btm, y_btm: y_btm};
-                    dragMouseBeginCoord = [x,y]
+                    if(x_btm > x && x > x_top && y_btm > y && y > y_top){
+                        boxBeingDragged = boxKey;
+                        dragBoxBeginCoord = {x_top: x_top, y_top: y_top, x_btm: x_btm, y_btm: y_btm};
+                        dragMouseBeginCoord = [x,y]
+                    }
                 }
             });
         }
@@ -405,6 +439,19 @@ document.addEventListener("DOMContentLoaded", function () {
         drawRectangles();
     });
 
-    updateFormFields();
+    document.getElementById("entry_checkbox").addEventListener('change', (event) => {
+        boxesEnabled.entry_box = event.currentTarget.checked;
+        console.log(boxesEnabled["entry_box"])
+        drawRectangles();
+    });
+
+    document.getElementById("exit_checkbox").addEventListener('change', (event) => {
+        boxesEnabled.exit_box = event.currentTarget.checked;
+        drawRectangles();
+    });
+
+
+
+    EndBoxManipulation();
     drawRectangles();
 });
