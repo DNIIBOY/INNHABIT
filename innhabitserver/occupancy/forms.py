@@ -77,12 +77,20 @@ class ConfigureDeviceForm(Form):
 
     def clean(self) -> dict:
         cleaned_data = super().clean()
-        has_entry_box = all(cleaned_data[key] for key in self.entry_box_keys)
-        if any(cleaned_data[key] for key in self.entry_box_keys) and not has_entry_box:
+        has_entry_box = all(
+            cleaned_data[key] is not None for key in self.entry_box_keys
+        )
+        if (
+            any(cleaned_data[key] is not None for key in self.entry_box_keys)
+            and not has_entry_box
+        ):
             self.add_error(None, "All entry box fields are required")
 
-        has_exit_box = all(cleaned_data[key] for key in self.exit_box_keys)
-        if any(cleaned_data[key] for key in self.exit_box_keys) and not has_exit_box:
+        has_exit_box = all(cleaned_data[key] is not None for key in self.exit_box_keys)
+        if (
+            any(cleaned_data[key] is not None for key in self.exit_box_keys)
+            and not has_exit_box
+        ):
             self.add_error(None, "All exit box fields are required")
 
         if has_entry_box:
@@ -106,14 +114,14 @@ class ConfigureDeviceForm(Form):
     @property
     def entry_box(self) -> list[str] | None:
         box = [self.cleaned_data[key] for key in self.entry_box_keys]
-        if not all(box):
+        if not all(b is not None for b in box):
             return None
         return box
 
     @property
     def exit_box(self) -> list[str] | None:
         box = [self.cleaned_data[key] for key in self.exit_box_keys]
-        if not all(box):
+        if not all(b is not None for b in box):
             return None
         return box
 

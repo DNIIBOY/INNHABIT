@@ -12,23 +12,27 @@
     <div class="p-4">
         <input id="entry_checkbox" type="checkbox" name="entry_toggle" {% if entry_box %}checked{% endif %}>Indgang</input>
         <input id="exit_checkbox" type="checkbox" name="exit_toggle" {% if exit_box %}checked{% endif %}>Udgang</input>
-        <form>
-            <input id="entry_top_left_x" name="entry_top_left_x" type="number" value="{{ entry_box.0 }}" disabled>
-            <input id="entry_top_left_y" name="entry_top_left_y" type="number" value="{{ entry_box.1 }}" disabled>
-            <input id="entry_bottom_right_x" name="entry_bottom_right_x" type="number" value="{{ entry_box.2 }}" disabled>
-            <input id="entry_bottom_right_y" name="entry_bottom_right_y" type="number" value="{{ entry_box.3 }}"disabled>
+        <form method="post">
+            {% csrf_token %}
+            <div id="entry_fields">
+                <input id="entry_top_left_x" name="entry_top_left_x" type="number" value="{{ entry_box.0 }}" {% if not entry_box %}disabled{% endif %}>
+                <input id="entry_top_left_y" name="entry_top_left_y" type="number" value="{{ entry_box.1 }}" {% if not entry_box %}disabled{% endif %}>
+                <input id="entry_bottom_right_x" name="entry_bottom_right_x" type="number" value="{{ entry_box.2 }}" {% if not entry_box %}disabled{% endif %}>
+                <input id="entry_bottom_right_y" name="entry_bottom_right_y" type="number" value="{{ entry_box.3 }}" {% if not entry_box %}disabled{% endif %}>
+            </div>
 
-            <input id="exit_top_left_x" name="exit_top_left_x" type="number" value="{{ exit_box.0 }}" disabled>
-            <input id="exit_top_left_y" name="exit_top_left_y" type="number" value="{{ exit_box.1 }}" disabled>
-            <input id="exit_bottom_right_x" name="exit_bottom_right_x" type="number" value="{{ exit_box.2 }}" disabled>
-            <input id="exit_bottom_right_y" name="exit_bottom_right_y" type="number" value="{{ exit_box.3 }}" disabled>
+            <div id="exit_fields">
+                <input id="exit_top_left_x" name="exit_top_left_x" type="number" value="{{ exit_box.0 }}" {% if not exit_box %}disabled{% endif %}>
+                <input id="exit_top_left_y" name="exit_top_left_y" type="number" value="{{ exit_box.1 }}" {% if not exit_box %}disabled{% endif %}>
+                <input id="exit_bottom_right_x" name="exit_bottom_right_x" type="number" value="{{ exit_box.2 }}" {% if not exit_box %}disabled{% endif %}>
+                <input id="exit_bottom_right_y" name="exit_bottom_right_y" type="number" value="{{ exit_box.3 }}" {% if not exit_box %}disabled{% endif %}>
+            </div>
+            <button
+                class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light dark:bg-gray-800 dark:text-white dark:border-gray-600"
+            >
+                Send kasser
+            </button>
         </form>
-        <button
-            id="drawBtn"
-            class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light dark:bg-gray-800 dark:text-white dark:border-gray-600"
-        >
-            Send kasser
-        </button>
     </div>
     {% endfill %}
     {% endcomponent %}
