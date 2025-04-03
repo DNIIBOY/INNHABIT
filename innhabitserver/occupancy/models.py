@@ -92,3 +92,21 @@ class ExitEvent(Event):
 
     def __str__(self) -> str:
         return f"ExitEvent: {self.entrance.name} ({self.timestamp})"
+
+
+class TestEntryEvent(Event):
+    entrance = models.ForeignKey(
+        Entrance, on_delete=models.CASCADE, related_name="test_entries"
+    )
+
+    def __str__(self) -> str:
+        return f"TestEntryEvent: {self.entrance.name} ({self.timestamp})"
+
+
+class TestExitEvent(Event):
+    entrance = models.ForeignKey(
+        Entrance, on_delete=models.CASCADE, related_name="test_exits"
+    )
+
+    def __str__(self) -> str:
+        return f"TestExitEvent: {self.entrance.name} ({self.timestamp})"

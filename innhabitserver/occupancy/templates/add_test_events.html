@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col justify-between items-center gap-4 w-full">
+    <h1 class="text-4xl py-2">Test {{ entrance.name }}</h1>
+    <div class="flex flex-col items-center gap-2">
+        <button class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white text-2xl uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light">Ind</button>
+        <h2 class="text-7xl">105</h2>
+        <button class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white text-2xl uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light">Ud</button>
+    </div>
+    <p class="invisible">Spacer</p>
+</div>
+{% endblock %}
