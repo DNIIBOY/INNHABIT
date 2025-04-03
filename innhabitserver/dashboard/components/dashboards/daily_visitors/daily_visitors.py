@@ -17,30 +17,29 @@ class DailyVisitors(Component):
 
         weekdays = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"]
 
-        today = timezone.localtime().date()
-        start_of_this_day = today - timedelta(days=today.weekday())
-        end_of_this_day = start_of_this_day + timedelta(days=6)
-        start_of_last_day = start_of_this_day - timedelta(days=7)
-        end_of_last_day = end_of_this_day - timedelta(days=7)
+        now = timezone.localtime()
+        yesterday = now - timedelta(days=1)
 
         entries = EntryEvent.objects.filter(
-            timestamp__date__range=(start_of_this_day, end_of_this_day)
+            timestamp__date=now.date(),
+            timestamp__lte=now,
         ).count()
 
-        last_day_entries = EntryEvent.objects.filter(
-            timestamp__date__range=(start_of_last_day, end_of_last_day)
+        yesterday_entries = EntryEvent.objects.filter(
+            timestamp__date=yesterday.date(),
+            timestamp__lte=yesterday,
         ).count()
 
-        if last_day_entries == 0:
-            last_day_entries = 1  # Avoid division by zero
+        if yesterday_entries == 0:
+            yesterday_entries = 1  # Avoid division by zero
 
         return {
             "daily_visitors": entries,
-            "last_day_visitors": last_day_entries,
-            "last_day_diff": entries - last_day_entries,
-            "last_day_percentage": round(
-                (entries - last_day_entries) / last_day_entries * 100, 2
+            "yesterday_visitors": yesterday_entries,
+            "yesterday_diff": entries - yesterday_entries,
+            "yesterday_percentage": round(
+                (entries - yesterday_entries) / yesterday_entries * 100, 2
             ),
-            "date": today,
-            "weekday": weekdays[today.weekday()],
+            "date": now.date(),
+            "weekday": weekdays[now.date().weekday()],
         }
