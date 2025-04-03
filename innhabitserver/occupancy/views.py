@@ -61,7 +61,7 @@ def configure_entrance(
             if (
                 settings.entry_box != form.entry_box
                 or settings.exit_box != form.exit_box
-            ):
+            ) and not form.cleaned_data["request_image"]:
                 settings.entry_box = form.entry_box
                 settings.exit_box = form.exit_box
                 settings.save()
