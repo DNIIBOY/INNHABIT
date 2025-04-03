@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col items-center gap-4 w-full">
+    <h1 class="text-4xl py-2">Vælg indgang</h1>
+    <div class="flex flex-col items-center gap-4 w-full lg:w-1/3">
+        {% for entrance in entrances %}
+        <a href="{% url 'add_test_events' entrance.pk %}" class="group w-full">
+            {% component "card" %}
+            {% fill "content" %}
+            <h2 class="text-3xl font-semibold group-hover:underline py-4 px-8 text-center">{{ entrance.name }}</h2>
+            {% endfill %}
+            {% endcomponent %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

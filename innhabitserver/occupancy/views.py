@@ -31,6 +31,20 @@ def configuration(request: HttpRequest) -> HttpResponse:
     return render(request, "configuration.html", {"entrances": entrances})
 
 
+def test_events(request: HttpRequest) -> HttpResponse:
+    return render(request, "test_events.html")
+
+
+def select_test_entrance(requests: HttpRequest) -> HttpResponse:
+    entrances = Entrance.objects.all()
+    return render(requests, "select_test_entrance.html", {"entrances": entrances})
+
+
+def add_test_events(request: HttpRequest, pk: int) -> HttpResponse:
+    entrance = get_object_or_404(Entrance, pk=pk)
+    return render(request, "add_test_events.html", {"entrance": entrance})
+
+
 def configure_entrance(
     request: HttpRequest, pk: int, api_key: str | None = None
 ) -> HttpResponse:

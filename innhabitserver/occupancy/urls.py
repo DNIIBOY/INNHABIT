@@ -12,6 +12,9 @@ urlpatterns = [
         "configuration/<int:pk>/", views.configure_entrance, name="configure_entrance"
     ),
     path("configuration/<int:device_id>/api_key/", views.api_key_view, name="api_key"),
+    path("test_events/", views.test_events, name="test_events"),
+    path("test_events/enter/", views.select_test_entrance, name="select_test_entrance"),
+    path("test_events/enter/<int:pk>/", views.add_test_events, name="add_test_events"),
     path("dates/", dates, name="dates"),
     path("dates/new/", new_date, name="new_date"),
     path("dates/<int:pk>/", edit_date, name="edit_date"),

@@ -29,11 +29,14 @@
                 {% component "navitem" url_name="dates" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
             {% endif %}
             {% component "navitem" url_name="export" content="Eksportér" icon="file-earmark-arrow-down" %}{% endcomponent %}
+            {% if perms.occupancy.view_device %}
             {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" %}{% endcomponent %}
+            {% endif %}
+            {% if perms.occupancy.view_testentryevent or perms.occupancy.view_testexitevent %}
+            {% component "navitem" url_name="test_events" content="Test" icon="kanban" %}{% endcomponent %}
+            {% endif %}
         </ul>
     </div>
-
-   
     <div class= "w-full flex flex-col items-center">
 <button 
     id="theme-toggle" 
