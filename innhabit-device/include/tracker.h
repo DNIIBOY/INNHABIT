@@ -1,5 +1,6 @@
 #ifndef TRACKER_H
 #define TRACKER_H
+
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include <string>
@@ -10,147 +11,153 @@
 using namespace cv;
 using namespace std;
 
-// Position structure for tracking
 /**
-    * Structure used for storing position of tracking box
-*/
+ * @struct Position
+ * @brief Structure representing the position of a tracking box.
+ */
 struct Position {
-    int x;
-    int y;
+    int x; ///< X-coordinate of the position.
+    int y; ///< Y-coordinate of the position.
 };
 
 /**
-    * Structure used for storing size of tracking box
-*/
+ * @struct BoxSize
+ * @brief Structure representing the size of a tracking box.
+ */
 struct BoxSize {
-    int width;
-    int height;
+    int width;  ///< Width of the box.
+    int height; ///< Height of the box.
 };
 
-// Forward declaration of isInsideBox function
+/**
+ * @brief Checks if a given position is inside a specified bounding box.
+ * @param pos The position to check.
+ * @param zone The bounding box zone.
+ * @return True if the position is inside the box, otherwise false.
+ */
 bool isInsideBox(const Position& pos, const BoxZone& zone);
 
 /**
-    * Class representing a tracked person
-*/
+ * @class TrackedPerson
+ * @brief Represents a tracked person in the system.
+ */
 class TrackedPerson {
 public:
-    /** Id used to distingues multiple TrackedPerson */
-    int id;
-    /** Id from inference output classifying type of object */
-    std::string classId;
-    Position pos;
-    BoxSize size;
-    /** vector<position> used to store previous and current positions of TrackedPerson */
-    std::vector<Position> history;
-    cv::Scalar color;
-    /** Amount of frames TrackedPerson has not been seen */
-    int missingFrames;
-    /** float ranging 0.0-1.0 describing the confidence of the detection */
-    float confidence;
-    /** True if TrackedPerson initially spawned in top part of image */
-    bool fromTop;
-    /** True if TrackedPerson initially spawned in top part of image */
-    bool fromBottom;
-    /** True if TrackedPerson last seen in any entrance zone */
-    bool wasInZone;
-    /** True if TrackedPerson initially spawned in an entrance zone */
-    bool spawnedInZone; 
-    
-    TrackedPerson() : id(-1), missingFrames(0), confidence(0.0f), fromTop(false), fromBottom(false), 
-                      wasInZone(false), spawnedInZone(false) {}
-    
-    TrackedPerson(int id, Position position, BoxSize boxSize, float conf, int frameHeight, 
-                  const std::vector<BoxZone>& entranceZones) {
-        this->id = id;
-        this->classId = "person";
-        this->update(position, boxSize, conf);
-        this->color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
-        
-        int topY = position.y - boxSize.height / 2;
-        int bottomY = position.y + boxSize.height / 2;
-        this->fromTop = topY < frameHeight * 0.1;
-        this->fromBottom = bottomY > frameHeight * 0.9;
-        this->wasInZone = false;
-        this->spawnedInZone = false;
-        // Check if the initial position is inside any entrance zone
-        for (const auto& zone : entranceZones) {
-            if (isInsideBox(position, zone)) {
-                this->spawnedInZone = true;
-                this->wasInZone = true;
-                break;
-            }
-        }
-    }
-    
-    /** 
-    * Updates the TrackedPerson with new postion boxSize and conf
-    * wasInZone is not updated here, but in detectMovements
-    */
-    void update(Position position, BoxSize boxSize, float conf) {
-        this->pos = position;
-        this->size = boxSize;
-        this->history.push_back(position);
-        if (this->history.size() > 30) {
-            this->history.erase(this->history.begin());
-        }
-        this->missingFrames = 0;
-        this->confidence = conf;
-        // Note: wasInZone is not updated here; it’s updated in detectMovements
-    }
-    
+    int id; ///< Unique identifier for the tracked person.
+    std::string classId; ///< Class ID from inference output.
+    Position pos; ///< Current position of the tracked person.
+    BoxSize size; ///< Size of the tracking box.
+    std::vector<Position> history; ///< History of tracked positions.
+    cv::Scalar color; ///< Color used for visualization.
+    int missingFrames; ///< Number of frames the person has not been seen.
+    float confidence; ///< Confidence score of the detection (0.0 - 1.0).
+    bool fromTop; ///< Whether the person initially appeared in the top part of the image.
+    bool fromBottom; ///< Whether the person initially appeared in the bottom part of the image.
+    bool wasInZone; ///< Whether the person was last seen in an entrance zone.
+    bool spawnedInZone; ///< Whether the person initially appeared in an entrance zone.
+
     /**
-    * Gets cv::Rect from Position and BoxSize
-    */
-    cv::Rect getBoundingBox() const {
-        return cv::Rect(
-            pos.x - size.width / 2,
-            pos.y - size.height / 2,
-            size.width,
-            size.height
-        );
-    }
+     * @brief Default constructor for TrackedPerson.
+     */
+    TrackedPerson();
+
+    /**
+     * @brief Parameterized constructor for TrackedPerson.
+     * @param id The unique ID of the person.
+     * @param position Initial position of the person.
+     * @param boxSize Initial size of the tracking box.
+     * @param conf Confidence score.
+     * @param frameHeight Height of the frame.
+     * @param entranceZones List of entrance zones.
+     */
+    TrackedPerson(int id, Position position, BoxSize boxSize, float conf, int frameHeight, 
+                  const std::vector<BoxZone>& entranceZones);
+
+    /**
+     * @brief Updates the tracked person with new position, box size, and confidence.
+     * @param position Updated position.
+     * @param boxSize Updated box size.
+     * @param conf Updated confidence score.
+     */
+    void update(Position position, BoxSize boxSize, float conf);
+
+    /**
+     * @brief Gets the bounding box from the current position and size.
+     * @return The bounding box as a cv::Rect.
+     */
+    cv::Rect getBoundingBox() const;
 };
 
-// Movement event callback function type
+/**
+ * @typedef MovementCallback
+ * @brief Callback function type for movement events.
+ */
 typedef void (*MovementCallback)(const TrackedPerson&, const std::string&);
 
-/** 
-    * PeopleTracker class, handles multiple instances of TrackedPerson
-    */
+/**
+ * @class PeopleTracker
+ * @brief Handles tracking of multiple persons.
+ */
 class PeopleTracker {
 public:
     /**
-    * Contructor for PeopleTracker
-    */
+     * @brief Constructor for PeopleTracker.
+     * @param config Shared pointer to configuration.
+     * @param maxMissingFrames Maximum allowed missing frames before removal.
+     * @param maxDistance Maximum distance for matching detections.
+     * @param topThreshold Threshold for detecting movement from the top.
+     * @param bottomThreshold Threshold for detecting movement from the bottom.
+     */
     PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames_ = 10, float maxDistance_ = 120.0f, 
-                 float topThreshold_ = 0.1f, float bottomThreshold_ = 0.9f);
+                  float topThreshold_ = 0.1f, float bottomThreshold_ = 0.9f);
+
     /**
-    * Updates loops over all detection from latest frame.
-    * Step 1: Match high-confidence detections to existing tracks
-    * Step 2: Match unmatched tracks to low-confidence detections
-    * Step 3: Update missing frames and remove old tracks
-    * Step 4: Add new tracks for unmatched high-confidence detections
-    */
+     * @brief Updates the tracker with new detections.
+     * @param detections List of detected objects.
+     * @param frameHeight Height of the frame.
+     */
     void update(const std::vector<Detection>& detections, int frameHeight);
-    /**Draws all TrackedPerson on a given fram*/
+
+    /**
+     * @brief Draws the tracked persons on the given frame.
+     * @param frame The frame to draw on.
+     */
     void draw(cv::Mat& frame);
-    /** Vector containing all currently TrackedPerson*/
+
+    /**
+     * @brief Gets the list of currently tracked persons.
+     * @return A vector of tracked persons.
+     */
     const std::vector<TrackedPerson>& getTrackedPeople() const;
+
+    /**
+     * @brief Sets the movement event callback function.
+     * @param callback The callback function.
+     */
     void setMovementCallback(MovementCallback callback);
-    /** Sets the entranceZones for the given frame, Used to determine if TrackedPerson has exited or entered*/
+
+    /**
+     * @brief Sets the entrance zones for detecting movements.
+     * @param zones A vector of entrance zones.
+     */
     void setEntranceZones(const std::vector<BoxZone>& zones);
 
 private:
-    std::vector<TrackedPerson> people;
-    int nextId;
-    int maxMissingFrames;
-    float maxDistance;
-    float topThreshold;
-    float bottomThreshold;
-    std::vector<BoxZone> entranceZones;
-    MovementCallback movementCallback;
-    
+    std::vector<TrackedPerson> people; ///< List of currently tracked people.
+    int nextId; ///< ID counter for new tracked persons.
+    int maxMissingFrames; ///< Maximum number of frames before a person is removed.
+    float maxDistance; ///< Maximum allowable movement distance for matching.
+    float topThreshold; ///< Threshold for movement from the top of the frame.
+    float bottomThreshold; ///< Threshold for movement from the bottom of the frame.
+    std::vector<BoxZone> entranceZones; ///< Entrance zones for tracking entry/exit events.
+    MovementCallback movementCallback; ///< Callback function for movement events.
+
+    /**
+     * @brief Detects movement events and triggers callbacks.
+     * @param person The tracked person to analyze.
+     * @param frameHeight The height of the frame.
+     * @param PersonRemoved Flag indicating if the person was removed.
+     */
     void detectMovements(const TrackedPerson& person, int frameHeight, bool PersonRemoved = false);
 };
 
