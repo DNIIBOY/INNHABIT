@@ -1,16 +1,15 @@
 #include "api_handler.h"
-#include "tracker.h"  // For TrackedPerson definition
 #include <iostream>
 #include <chrono>
 #include <fstream>
 #include <stdexcept>
 #include <ctime>  // For std::strftime
-#include <opencv2/opencv.hpp> // For image handling
 
 ApiHandler::ApiHandler(std::shared_ptr<Configuration> config) 
     : base_url_(config->getServerApi()), api_key_(config->getServerApiKey()), 
-        curl_(nullptr), should_exit_(false) {
+      curl_(nullptr), should_exit_(false), failed_event_(false) {
     initialize();
+    loadFailedEventsFromDisk();  // Load any previously failed events
 }
 
 ApiHandler::~ApiHandler() {
@@ -53,25 +52,25 @@ void ApiHandler::processEvents() {
         
         // Get event from queue
         {
-        std::unique_lock<std::mutex> lock(queue_mutex_);
-        queue_cv_.wait(lock, [this] { 
-            return !event_queue_.empty() || should_exit_; 
-        });
-        
-        if (should_exit_ && event_queue_.empty()) {
-            break;
-        }
-        
-        if (!event_queue_.empty()) {
-            event = event_queue_.front();
-            event_queue_.pop();
-            has_event = true;
-        }
+            std::unique_lock<std::mutex> lock(queue_mutex_);
+            queue_cv_.wait(lock, [this] { 
+                return !event_queue_.empty() || should_exit_; 
+            });
+            
+            if (should_exit_ && event_queue_.empty()) {
+                break;
+            }
+            
+            if (!event_queue_.empty()) {
+                event = event_queue_.front();
+                event_queue_.pop();
+                has_event = true;
+            }
         }
         
         // Process the event
-        if (has_event) {
-        processSingleEvent(event);
+        if (has_event && !should_exit_) {
+            processSingleEvent(event);
         }
     }
     
@@ -82,27 +81,28 @@ void ApiHandler::processEvents() {
 void ApiHandler::processSingleEvent(const ApiEvent& event) {
     try {
         json request_data = {
-        {"timestamp", event.timestamp},
-        {"entrance", 1} // Adjust based on actual logic (e.g., zone ID)
+            {"timestamp", event.timestamp}
         };
         
         json response;
         if (event.event_type == "entered") {
-        response = sendPostRequest("events/exits/", request_data); // Note: Seems reversed?
+            response = sendPostRequest("events/exits/", request_data);
         } else if (event.event_type == "exited") {
-        response = sendPostRequest("events/entries/", request_data);
+            response = sendPostRequest("events/entries/", request_data);
         } else {
-        ERROR("ApiHandler: Unknown event type: " << event.event_type);
-        return;
+            ERROR("ApiHandler: Unknown event type: " << event.event_type);
+            return;
         }
 
         if (response.is_null() || response.empty()) {
-        ERROR("Empty or null response from server");
+            ERROR("Empty or null response from server");
+            saveFailedEventsToDisk(event);  // Save on failure
         } else {
-        LOG("API response success: " << response.dump());
+            LOG("API response success: " << response.dump());
         }
     } catch (const std::exception& e) {
         ERROR("Error sending event to server: " << e.what());
+        saveFailedEventsToDisk(event);  // Save on exception
     }
 }
 
@@ -114,19 +114,20 @@ void ApiHandler::processRemainingEvents() {
         lock.unlock();
         
         try {
-        json request_data = {
-            {"timestamp", event.timestamp},
-            {"entrance", 1}
-        };
-        
-        if (event.event_type == "entered") {
-            sendPostRequest("events/exits/", request_data);
-        } else if (event.event_type == "exited") {
-            sendPostRequest("events/entries/", request_data);
-        }
+            json request_data = {
+                {"timestamp", event.timestamp},
+                {"entrance", 1}
+            };
+            
+            if (event.event_type == "entered") {
+                sendPostRequest("events/exits/", request_data);
+            } else if (event.event_type == "exited") {
+                sendPostRequest("events/entries/", request_data);
+            }
         } catch (...) {
-        // Just log the error and continue processing remaining events
-        ERROR("Error processing final event");
+            ERROR("Error processing final event");
+            saveFailedEventsToDisk(event);
+            failed_event_ = true;
         }
         
         lock.lock();
@@ -143,15 +144,12 @@ json ApiHandler::sendPostRequest(const std::string& endpoint, const json& data) 
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, "Content-Type: application/json");
 
-    // Add Authorization header with API key
     std::string auth_header = "Authorization: Bearer " + api_key_;
     headers = curl_slist_append(headers, auth_header.c_str());
 
-    // Construct full URL
     std::string full_url = base_url_ + endpoint;
     curl_easy_setopt(curl_, CURLOPT_URL, full_url.c_str());
 
-    // Convert JSON to string for POST data
     std::string data_str = data.dump();
     curl_easy_setopt(curl_, CURLOPT_POSTFIELDS, data_str.c_str());
 
@@ -160,56 +158,54 @@ json ApiHandler::sendPostRequest(const std::string& endpoint, const json& data) 
     curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &response);
 
-    // Get HTTP status code
     long http_code = 0;
     CURLcode res = curl_easy_perform(curl_);
     curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &http_code);
 
     json result;
     if (res == CURLE_OK) {
-        if (http_code >= 200 && http_code < 300) { // Success range
-        try {
-            result = json::parse(response, nullptr, false);
-            if (result.is_discarded()) {
-            ERROR("Failed to parse response as JSON");
-            result = json(); // Return empty JSON on parse failure
+        if (http_code >= 200 && http_code < 300) {
+            try {
+                result = json::parse(response, nullptr, false);
+                if (result.is_discarded()) {
+                    ERROR("Failed to parse response as JSON");
+                    result = json();
+                }
+            } catch (const json::parse_error& e) {
+                ERROR("Parse error: " << e.what());
+                result = json();
             }
-        } catch (const json::parse_error& e) {
-            ERROR("Parse error: " << e.what());
-            result = json(); // Return empty JSON on exception
-        }
         } else {
-        ERROR("HTTP error: " << http_code << " - Response: " << response);
-        result = json(); // Return empty JSON on HTTP error
+            ERROR("HTTP error: " << http_code << " - Response: " << response);
+            result = json();
         }
     } else {
         ERROR("CURL error: " << curl_easy_strerror(res));
-        result = json(); // Return empty JSON on CURL failure
+        result = json();
     }
 
     curl_slist_free_all(headers);
-    return result; // Always return a json object
+    return result;
 }
 
 std::string ApiHandler::getTimestampISO() {
     auto now = std::chrono::system_clock::now();
     time_t tt = std::chrono::system_clock::to_time_t(now);
     char buffer[80];
-    struct tm* timeinfo = gmtime(&tt);  // UTC time
+    struct tm* timeinfo = gmtime(&tt);
     strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", timeinfo);
     return std::string(buffer);
 }
 
 bool ApiHandler::onPersonEvent(const std::string& event_type) {
     try {
-        // Create event and add to queue
         ApiEvent event;
         event.event_type = event_type;
         event.timestamp = getTimestampISO();
         LOG("Event: " << event.event_type << " at " << event.timestamp);
         {
-        std::lock_guard<std::mutex> lock(queue_mutex_);
-        event_queue_.push(event);
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+            event_queue_.push(event);
         }
         
         queue_cv_.notify_one();
@@ -220,8 +216,6 @@ bool ApiHandler::onPersonEvent(const std::string& event_type) {
     }
 }
 
-
-
 bool ApiHandler::sendImage(const cv::Mat& image) {
     if (!curl_) {
         ERROR("CURL not initialized");
@@ -229,25 +223,20 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
     }
 
     try {
-        // Convert cv::Mat to a temporary file (e.g., PNG format)
         std::string temp_filename = "temp_image_" + getTimestampISO() + ".png";
         cv::imwrite(temp_filename, image);
 
-        // Prepare multipart form-data
         curl_mime* mime = curl_mime_init(curl_);
         curl_mimepart* part = curl_mime_addpart(mime);
 
-        // Add the image file to the form-data
         curl_mime_name(part, "image");
         curl_mime_filedata(part, temp_filename.c_str());
         curl_mime_type(part, "image/png");
 
-        // Add Authorization header
         struct curl_slist* headers = nullptr;
         std::string auth_header = "Authorization: Bearer " + api_key_;
         headers = curl_slist_append(headers, auth_header.c_str());
 
-        // Set up CURL options
         std::string url = base_url_ + "images/";
         curl_easy_setopt(curl_, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, headers);
@@ -257,15 +246,13 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
         curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeCallback);
         curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &response);
 
-        // Perform the request
         CURLcode res = curl_easy_perform(curl_);
         long http_code = 0;
         curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &http_code);
 
-        // Clean up
         curl_mime_free(mime);
         curl_slist_free_all(headers);
-        std::remove(temp_filename.c_str()); // Delete temporary file
+        std::remove(temp_filename.c_str());
 
         if (res != CURLE_OK) {
             ERROR("CURL error sending image: " << curl_easy_strerror(res));
@@ -285,10 +272,71 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
     }
 }
 
-void ApiHandler::saveResponseToFile(const json& response, const std::string& filename) {
-    std::ofstream file(filename);
-    if (file.is_open()) {
-        file << response.dump(4); // Pretty print with indentation
+void ApiHandler::saveFailedEventsToDisk(const ApiEvent api_event) {
+    try {
+        failed_event_ = true;
+        
+        std::ofstream file("failed_events.bin", std::ios::binary | std::ios::app);
+        if (!file.is_open()) {
+            ERROR("Failed to open failed_events.bin for writing");
+            return;
+        }
+
+        uint32_t event_type_len = static_cast<uint32_t>(api_event.event_type.length());
+        file.write(reinterpret_cast<const char*>(&event_type_len), sizeof(event_type_len));
+        file.write(api_event.event_type.c_str(), event_type_len);
+
+        uint32_t timestamp_len = static_cast<uint32_t>(api_event.timestamp.length());
+        file.write(reinterpret_cast<const char*>(&timestamp_len), sizeof(timestamp_len));
+        file.write(api_event.timestamp.c_str(), timestamp_len);
+
         file.close();
+        LOG("Successfully saved failed event to disk");
+    } catch (const std::exception& e) {
+        ERROR("Error saving failed event to disk: " << e.what());
+    }
+}
+
+void ApiHandler::loadFailedEventsFromDisk() {
+    try {
+        std::ifstream file("failed_events.bin", std::ios::binary);
+        if (!file.is_open()) {
+            LOG("No failed_events.bin file found or unable to open");
+            return;
+        }
+
+        while (file.good() && !file.eof()) {
+            uint32_t event_type_len = 0;
+            file.read(reinterpret_cast<char*>(&event_type_len), sizeof(event_type_len));
+            if (file.eof()) break;
+
+            std::string event_type;
+            event_type.resize(event_type_len);
+            file.read(&event_type[0], event_type_len);
+
+            uint32_t timestamp_len = 0;
+            file.read(reinterpret_cast<char*>(&timestamp_len), sizeof(timestamp_len));
+            if (file.eof()) break;
+
+            std::string timestamp;
+            timestamp.resize(timestamp_len);
+            file.read(&timestamp[0], timestamp_len);
+
+            ApiEvent event{event_type, timestamp};
+            {
+                std::lock_guard<std::mutex> lock(queue_mutex_);
+                event_queue_.push(event);
+            }
+            LOG("Loaded failed event: " << event_type << " at " << timestamp);
+        }
+
+        file.close();
+        queue_cv_.notify_one();
+
+        if (std::remove("failed_events.bin") == 0) {
+            LOG("Successfully removed failed_events.bin after loading");
+        }
+    } catch (const std::exception& e) {
+        ERROR("Error loading failed events from disk: " << e.what());
     }
 }
