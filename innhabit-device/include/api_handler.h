@@ -9,7 +9,7 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
-#include "common.h" // Include for logging macros
+#include "common.h"
 
 // Define the ApiEvent structure
 struct ApiEvent {
@@ -42,6 +42,7 @@ public:
     
 private:
     using Json = nlohmann::json;
+
     // Initialization and processing
     void initialize();
     void processEvents();
@@ -54,14 +55,15 @@ private:
     // Time utilities
     std::string getTimestampISO();
     
-    // backup 
-    void saveResponseToFile(const nlohmann::json& response, const std::string& filename);
-
+    // backup of failed events
+    void saveFailedEventsToDisk(const ApiEvent api_event);
+    void loadFailedEventsFromDisk();
     // Member variables
     std::string api_key_;
     std::string base_url_;
     CURL* curl_;
     bool should_exit_;
+    bool failed_event_;
     
     std::thread thread_;
     std::queue<ApiEvent> event_queue_;
