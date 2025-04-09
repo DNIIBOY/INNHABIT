@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from occupancy.forms import ConfigureDeviceForm, FilterEventsForm
-from occupancy.models import Device, Entrance
+from occupancy.models import Device, Entrance, TestEntryEvent, TestExitEvent
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -42,7 +42,28 @@ def select_test_entrance(requests: HttpRequest) -> HttpResponse:
 
 def add_test_events(request: HttpRequest, pk: int) -> HttpResponse:
     entrance = get_object_or_404(Entrance, pk=pk)
-    return render(request, "add_test_events.html", {"entrance": entrance})
+    if request.method == "POST":
+        action = request.POST.get("action").casefold()
+        match action:
+            case "entry":
+                model = TestEntryEvent
+            case "exit":
+                model = TestExitEvent
+            case _:
+                raise ValidationError("Invalid action")
+        model.objects.create(entrance=entrance, timestamp=timezone.now())
+
+    today = timezone.localtime().date()
+    entries = TestEntryEvent.objects.filter(timestamp__date=today).count()
+    exits = TestExitEvent.objects.filter(timestamp__date=today).count()
+    occupancy = entries - exits
+    context = {
+        "entrance": entrance,
+        "current_occupancy": occupancy,
+    }
+    if request.htmx:
+        return HttpResponse(occupancy)
+    return render(request, "add_test_events.html", context)
 
 
 def configure_entrance(
