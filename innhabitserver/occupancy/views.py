@@ -54,8 +54,12 @@ def add_test_events(request: HttpRequest, pk: int) -> HttpResponse:
         model.objects.create(entrance=entrance, timestamp=timezone.now())
 
     today = timezone.localtime().date()
-    entries = TestEntryEvent.objects.filter(timestamp__date=today).count()
-    exits = TestExitEvent.objects.filter(timestamp__date=today).count()
+    entries = TestEntryEvent.objects.filter(
+        entrance=entrance, timestamp__date=today
+    ).count()
+    exits = TestExitEvent.objects.filter(
+        entrance=entrance, timestamp__date=today
+    ).count()
     occupancy = entries - exits
     context = {
         "entrance": entrance,
