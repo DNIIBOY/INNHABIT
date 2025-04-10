@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+html, body {
+        height: 100%;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Light mode text color */
+    .light-mode-text {
+        color: #1f2937; /* Tailwind's slate-700 (dark gray) */
+    }
+
+    /* Dark mode text color */
+    .dark-mode-text {
+        color: #e2e8f0; /* Tailwind's slate-200 (light gray) */
+    }
+
+    .htmx-swapping > * {
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+    }
+    .htmx-settling > * {
+        opacity: 0;
+        transform: translateY(10px);
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Custom CSS to target specific elements inside the wrapping container */
+    .custom-text-size h1,
+    .custom-text-size h2 {
+        font-size: 3rem !important;
+    }
+
+    .custom-text-size .text-4xl {
+        font-size: 3rem !important;
+    }
+
+    .custom-text-size .text-6xl {
+        font-size: 2rem !important;
+    }
+
+    .custom-text-size .text-8xl {
+        font-size: 3rem !important;
+    }
+
+    .custom-text-size .flex {
+        flex-wrap: wrap;
+    }
+
+    .mirror-horizontal {
+        transform: scaleX(-1);
+    }
+
+    /* Remove bottom margin on mobile */
+    .custom-text-size {
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100vh;
+    }
+
+    .arrow-left,
+    .arrow-right {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 640px) {
+        /* Smaller font sizes on mobile */
+        .custom-text-size h1, .custom-text-size h2 {
+            font-size: 2.5rem !important;
+        }
+
+        .custom-text-size .text-4xl {
+            font-size: 2rem !important;
+        }
+
+        .custom-text-size .text-6xl {
+            font-size: 1.8rem !important;
+        }
+
+        .custom-text-size .text-8xl {
+            font-size: 2rem !important;
+        }
+
+        .custom-text-size .flex {
+            flex-wrap: wrap;
+            overflow-x: hidden;
+        }
+
+        /* Ensure proper button positioning */
+        .arrow-left,
+        .arrow-right {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .custom-text-size {
+            height: 100vh;
+            overflow: hidden;
+        }
+    }
+
+    @media (min-width: 640px) {
+        /* Larger font sizes on desktop */
+        .custom-text-size h1, .custom-text-size h2 {
+            font-size: 3rem !important;
+        }
+
+        .custom-text-size .text-4xl {
+            font-size: 3rem !important;
+        }
+
+        .custom-text-size .text-6xl {
+            font-size: 2.5rem !important;
+        }
+
+        .custom-text-size .text-8xl {
+            font-size: 3rem !important;
+        }
+
+        .custom-text-size .flex {
+            flex-wrap: nowrap;
+        }
+    }
+
+    /* Default: 100% height (full viewport height) */
+    .custom-height-div {
+        max-height: 80vh;
+    }
+
+    /* For mobile devices, set max-height to 70% of the viewport height */
+    @media (max-width: 640px) {
+        .custom-height-div {
+            max-height: 70vh; /* 70% of the viewport height */
+        }
+    }
+
+    /* Styles for light and dark themes */
+    /* Light mode */
+    .light-mode {
+        background-color: #ffffff;
+        color: #1f2937; /* slate-700 */
+    }
+
+    /* Dark mode */
+    .dark-mode {
+        background-color: #1f2937; /* slate-800 */
+        color: #e2e8f0; /* slate-200 */
+    }
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- Add the custom-text-size class here to apply font size adjustments only inside this container -->
+<div class="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 w-full max-w-full px-3 mb-6 xl:mb-0 xl:w-11/12 custom-text-size">
+   
+    <!-- Top Arrow (on mobile) / Left Arrow (on desktop) -->
+    <button id="increment-button" class="arrow-left text-slate-300 dark:text-slate-300 mt-4 sm:mr-4"
+            hx-trigger="click"
+            hx-get="{% url 'insights' %}"
+            hx-target="#insight-container"
+            hx-swap="innerHTML swap:0.3s settle:0.3s"
+            hx-include="#current-index">
+            <svg class="rotate-90 sm:rotate-0 mirror-horizontal" width="100" height="100" viewBox="0 0 100 400" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="100,0 0,200 100,400" fill="currentColor" />
+            </svg>
+    </button>
+
+    <!-- Content -->
+    <div class="flex flex-col w-full max-w-6xl justify-between items-center text-black dark:text-slate-800 font-semibold text-xs max-h-screen overflow-hidden whitespace-normal custom-height-div ">
+
+        <!-- Your content goes here -->
+        <input type="hidden" id="current-index" name="index" value="{{ index|default:'1' }}" hx-swap-oob="true">
+
+        <div id="insight-container" 
+             hx-get="{% url 'insights' %}?index={{ index|default:'1' }}"
+             hx-trigger="load"
+             hx-target="#insight-container"
+             hx-swap="innerHTML swap:0.3s settle:0.3s">
+        </div>
+    </div>
+
+    <button id="decrement-button" class="arrow-right text-slate-300 dark:text-slate-300 mt-4 sm:ml-4"
+            hx-trigger="click"
+            hx-get="{% url 'insights' %}"
+            hx-target="#insight-container"
+            hx-swap="innerHTML swap:0.3s settle:0.3s"
+            hx-include="#current-index">
+        <svg class="-rotate-90 sm:rotate-0 sm:rotate-180" width="100" height="100" viewBox="0 0 100 400" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="100,0 0,200 100,400" fill="currentColor" />
+        </svg>
+    </button>
+</div>
+<button class="learn-more-button fixed bottom-0 left-0 mb-4 ml-4 bg-slate-100 dark:bg-gray-800 text-black dark:text-white py-2 px-4 rounded-md hover:bg-slate-300 dark:hover:bg-gray-700">
+    Læs Mere
+</button>
+<div class="flex flex-col ">
+<!-- Centered text on top -->
+<h2 class="absolute bottom-14 left-1/2 transform -translate-x-1/2 text-4xl font-semibold z-50 text-black dark:text-white">
+    innovate.aau.dk
+</h2>
+</div>
+<svg
+    viewBox="0 0 69 72"
+    xmlns="http://www.w3.org/2000/svg"
+    class="w-16 h-16 absolute top-8 left-8 fill-black dark:fill-white"
+>
+    <path d="M68.4473 55.0722C66.6046 54.2335 64.7513 53.8828 61.6073 51.6508C53.6033 45.9735 50.002 39.4015 55.1273 25.4922C58.0833 17.4682 59.2166 11.5148 59.0433 3.72951C58.9353 3.6535 58.6286 3.4455 58.5366 3.36816C56.9433 13.0428 54.2753 17.8135 48.2726 27.5615C34.6859 49.6242 47.4593 63.1295 53.4966 68.004C59.0846 65.3186 64.9326 60.6628 68.4473 55.0722Z"/>
+    <path d="M41.8399 26.8043C51.3132 14.8349 55.1945 9.82425 56.0319 1.78825C55.9252 1.72826 55.6346 1.57227 55.5279 1.5136C52.9626 11.2269 47.6532 15.4723 31.8012 26.4376C15.3199 37.8376 15.9039 55.0136 20.3959 67.5443C25.4919 70.1588 31.2585 71.6432 37.3759 71.6432C38.6799 71.6432 39.9679 71.5749 41.2385 71.4443C29.9025 53.3096 30.7892 40.7669 41.8399 26.8043Z"/>
+    <path d="M35.384 17.7161C46.132 12.3935 50.8974 7.08013 53.0067 0.222797C52.912 0.177464 52.5054 -0.00520706 52.5014 0.000125885C46.4134 10.4308 38.8574 11.2001 21.6614 14.0748C11.7854 15.7241 6.41204 20.0375 0.870703 26.1175C0.358703 28.2961 -0.00396724 31.7855 3.27623e-05 34.1028C0.0120328 43.0548 3.06804 51.5108 8.57471 58.0695C8.88271 30.0495 21.956 24.3655 35.384 17.7161Z"/>
+</svg>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentIndexInput = document.getElementById('current-index');
+        const incrementButton = document.getElementById('increment-button');
+        const decrementButton = document.getElementById('decrement-button');
+        let currentIndex = parseInt('1');  
+
+        incrementButton.addEventListener('click', function() {
+            currentIndex += 1;  
+            currentIndexInput.value = currentIndex;  
+        });
+
+        decrementButton.addEventListener('click', function() {
+            currentIndex += -1;  
+            currentIndexInput.value = currentIndex;  
+        });
+    });
+</script>
+{% endblock %}

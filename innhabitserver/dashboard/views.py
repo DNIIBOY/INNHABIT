@@ -33,22 +33,26 @@ def insights(request: HttpRequest) -> HttpResponse:
     ]
     if LabelledDate.objects.filter(date__gt=today).exists():
         components.append("upcoming_event")
-
-    locked_insight = False
-    insight = request.GET.get("insight", None)
-    if insight:
-        if insight not in components:
-            raise ValidationError("Invalid insight")
-        locked_insight = True
+    index = request.GET.get("index", None)
+    if index:
+        insight = components[int(index) % len(components)]
+        context = {"insight_name": insight, "dashboard": True}
     else:
-        insight = random.choice(components)
+        locked_insight = False
+        insight = request.GET.get("insight", None)
+        if insight:
+            if insight not in components:
+                raise ValidationError("Invalid insight")
+            locked_insight = True
+        else:
+            insight = random.choice(components)
 
-    if request.htmx:
-        return DynamicComponent.render_to_response(
-            kwargs={"is": insight},
-            request=request,
-        )
-    context = {"insight_name": insight, "locked_insight": locked_insight}
+        if request.htmx:
+            return DynamicComponent.render_to_response(
+                kwargs={"is": insight},
+                request=request,
+            )
+        context = {"insight_name": insight, "locked_insight": locked_insight}
     return render(request, "insights.html", context=context)
 
 
