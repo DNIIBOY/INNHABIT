@@ -21,12 +21,12 @@
 </style>
 {% endblock %}
 {% block content %}
-    <div class="flex flex-col w-full justify-between items-center text-slate-50 font-semibold text-4xl">
+    <div class="flex flex-col w-full   {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl">
         <div>
-            <h2 class="text-slate-300">Velkommen til</h2>
+        <h2 class="{% if dashboard %} text-black dark:text-white {% else %} text-slate-300 {% endif %}">Velkommen til</h2>
             <h1 class="text-6xl">AAU INNOVATE</h1>
         </div>
-        <div class="flex flex-col items-center gap-24">
+        <div class="flex flex-col items-center gap-8">
             <h1 class="text-8xl font-semibold">Vidste du at?</h1>
             <div
                 hx-get=""
@@ -36,7 +36,8 @@
                 {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
             </div>
         </div>
-        <div class="flex justify-between items-center w-full px-8 md:px-64 mb-8">
+             {% if not dashboard %}
+        <div class="flex justify-between items-center w-full px-8 md:px-64 mb-6">
             <div class="flex items-center fill-slate-50 gap-8">
                 <svg
                     viewBox="0 0 69 72"
@@ -54,5 +55,6 @@
             </div>
             <h2 class="text-4xl font-semibold">innovate.aau.dk</h2>
         </div>
+    {% endif %}
     </div>
 {% endblock %}
