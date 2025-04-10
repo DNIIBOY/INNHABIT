@@ -1,4 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Hello</h2>
+<div class="py-2 w-full flex flex-col items-center">
+    <h1 class="text-4xl">Testing</h1>
+    <div class="w-full">
+        {% component "card" %}
+        {% fill "content" %}
+        {% component "test_event_results" %} {% endcomponent %}
+        {% endfill %}
+        {% endcomponent %}
+    </div>
+</div>
 {% endblock %}
