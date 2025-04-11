@@ -30,7 +30,7 @@
             <h1 class="text-8xl font-semibold">Vidste du at?</h1>
             <div
                 hx-get=""
-                hx-trigger="{% if not locked_insight %}every 30s{% endif %}"
+            hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
                 hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
             >
                 {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
