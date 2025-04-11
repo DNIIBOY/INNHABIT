@@ -8,17 +8,6 @@ html, body {
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
-
-    /* Light mode text color */
-    .light-mode-text {
-        color: #1f2937; /* Tailwind's slate-700 (dark gray) */
-    }
-
-    /* Dark mode text color */
-    .dark-mode-text {
-        color: #e2e8f0; /* Tailwind's slate-200 (light gray) */
-    }
-
     .htmx-swapping > * {
         opacity: 0;
         transform: translateY(-10px);
@@ -37,40 +26,11 @@ html, body {
         }
     }
 
-    /* Custom CSS to target specific elements inside the wrapping container */
-    .custom-text-size h1,
-    .custom-text-size h2 {
-        font-size: 3rem !important;
-    }
-
-    .custom-text-size .text-4xl {
-        font-size: 3rem !important;
-    }
-
-    .custom-text-size .text-6xl {
-        font-size: 2rem !important;
-    }
-
-    .custom-text-size .text-8xl {
-        font-size: 3rem !important;
-    }
-
-    .custom-text-size .flex {
-        flex-wrap: wrap;
-    }
 
     .mirror-horizontal {
         transform: scaleX(-1);
     }
 
-    /* Remove bottom margin on mobile */
-    .custom-text-size {
-        margin-bottom: 0;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 100vh;
-    }
 
     .arrow-left,
     .arrow-right {
@@ -79,7 +39,6 @@ html, body {
     }
 
     @media (max-width: 640px) {
-        /* Smaller font sizes on mobile */
         .custom-text-size h1, .custom-text-size h2 {
             font-size: 2.5rem !important;
         }
@@ -101,7 +60,6 @@ html, body {
             overflow-x: hidden;
         }
 
-        /* Ensure proper button positioning */
         .arrow-left,
         .arrow-right {
             margin-top: 0.5rem;
@@ -114,61 +72,13 @@ html, body {
         }
     }
 
-    @media (min-width: 640px) {
-        /* Larger font sizes on desktop */
-        .custom-text-size h1, .custom-text-size h2 {
-            font-size: 3rem !important;
-        }
 
-        .custom-text-size .text-4xl {
-            font-size: 3rem !important;
-        }
-
-        .custom-text-size .text-6xl {
-            font-size: 2.5rem !important;
-        }
-
-        .custom-text-size .text-8xl {
-            font-size: 3rem !important;
-        }
-
-        .custom-text-size .flex {
-            flex-wrap: nowrap;
-        }
-    }
-
-    /* Default: 100% height (full viewport height) */
-    .custom-height-div {
-        max-height: 80vh;
-    }
-
-    /* For mobile devices, set max-height to 70% of the viewport height */
-    @media (max-width: 640px) {
-        .custom-height-div {
-            max-height: 70vh; /* 70% of the viewport height */
-        }
-    }
-
-    /* Styles for light and dark themes */
-    /* Light mode */
-    .light-mode {
-        background-color: #ffffff;
-        color: #1f2937; /* slate-700 */
-    }
-
-    /* Dark mode */
-    .dark-mode {
-        background-color: #1f2937; /* slate-800 */
-        color: #e2e8f0; /* slate-200 */
-    }
 </style>
 {% endblock %}
 {% block content %}
 
-<!-- Add the custom-text-size class here to apply font size adjustments only inside this container -->
 <div class="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 w-full max-w-full px-3 mb-6 xl:mb-0 xl:w-11/12 custom-text-size">
    
-    <!-- Top Arrow (on mobile) / Left Arrow (on desktop) -->
     <button id="increment-button" class="arrow-left text-slate-300 dark:text-slate-300 mt-4 sm:mr-4"
             hx-trigger="click"
             hx-get="{% url 'insights' %}"
@@ -180,10 +90,8 @@ html, body {
             </svg>
     </button>
 
-    <!-- Content -->
     <div class="flex flex-col w-full max-w-6xl justify-between items-center text-black dark:text-slate-800 font-semibold text-xs max-h-screen overflow-hidden whitespace-normal custom-height-div ">
 
-        <!-- Your content goes here -->
         <input type="hidden" id="current-index" name="index" value="{{ index|default:'1' }}" hx-swap-oob="true">
 
         <div id="insight-container" 
@@ -209,7 +117,6 @@ html, body {
     Læs Mere
 </button>
 <div class="flex flex-col ">
-<!-- Centered text on top -->
 <h2 class="absolute bottom-14 left-1/2 transform -translate-x-1/2 text-4xl font-semibold z-50 text-black dark:text-white">
     innovate.aau.dk
 </h2>
