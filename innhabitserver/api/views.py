@@ -9,6 +9,7 @@ from api.serializers import (
 )
 from django.core.cache import cache
 from django.core.files.base import ContentFile
+from django.db.models.query import QuerySet
 from occupancy.models import (
     DeviceImage,
     DeviceSettings,
@@ -47,11 +48,15 @@ class EntryEventViewset(
     queryset = EntryEvent.objects.all()
     serializer_class = EntryEventSerializer
 
+    def get_queryset(self) -> QuerySet[EntryEvent]:
+        queryset = super().get_queryset()
+        if isinstance(self.request.auth, DeviceAPIKey):
+            raise PermissionDenied
+        return queryset
+
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data.copy())
         if isinstance(request.auth, DeviceAPIKey):
-            if request.method != "POST":
-                raise PermissionDenied
             key = request.auth
             serializer.initial_data["entrance"] = key.device.entrance.pk
         serializer.is_valid(raise_exception=True)

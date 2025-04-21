@@ -31,7 +31,7 @@
             {% component "navbar" %}{% endcomponent %}
         {% endif %}
         <main
-            class="p-4 w-full h-full min-h-screen flex justify-center
+            class="px-4 w-full h-full min-h-screen flex justify-center
             {% if request.user.is_authenticated and request.path != insights_url %} xl:ml-64 {% endif %}
             "
         >
@@ -43,10 +43,8 @@
                 <a href="{% url 'login' %}">Login</a>
             </div>
         {% endif %}
-        
-    <script>
-        
 
+<script>
 document.addEventListener("DOMContentLoaded", function () {
     const themeToggle = document.getElementById("theme-toggle");
     const themeIcon = document.getElementById("theme-icon");
@@ -93,34 +91,34 @@ document.addEventListener("DOMContentLoaded", function () {
         updateIconColor();
     });
 });
-        function onFullscreen() {
-            const nav = document.querySelector("aside");
-            const main = document.querySelector("main");
-            nav.classList.add("hidden");
-            main.classList.remove("xl:ml-64");
-        }
+function onFullscreen() {
+    const nav = document.querySelector("aside");
+    const main = document.querySelector("main");
+    nav.classList.add("hidden");
+    main.classList.remove("xl:ml-64");
+}
 
-        function onEndFullscreen() {
-            const nav = document.querySelector("aside");
-            const main = document.querySelector("main");
-            nav.classList.remove("hidden");
-            {% if request.user.is_authenticated and request.path != insights_url %}
-            main.classList.add("xl:ml-64");
-            {% endif %}
-        }
+function onEndFullscreen() {
+    const nav = document.querySelector("aside");
+    const main = document.querySelector("main");
+    nav.classList.remove("hidden");
+{% if request.user.is_authenticated and request.path != insights_url %}
+    main.classList.add("xl:ml-64");
+{% endif %}
+}
 
-        window.matchMedia('(display-mode: fullscreen)').addListener(({ matches }) => {
-            if (matches) {
-                onFullscreen();
-            } else {
-                onEndFullscreen();
-            }
-        });
+window.matchMedia('(display-mode: fullscreen)').addListener(({ matches }) => {
+    if (matches) {
+        onFullscreen();
+    } else {
+        onEndFullscreen();
+    }
+});
 
-        if( window.innerHeight == screen.height) {
-            onFullscreen();
-        }
-    </script>
+if( window.innerHeight == screen.height) {
+    onFullscreen();
+}
+</script>
 
     {% block js %}
     {% endblock %}
