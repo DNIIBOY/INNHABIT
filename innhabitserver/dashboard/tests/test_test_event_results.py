@@ -179,7 +179,6 @@ class TestMapEvents(TestCase):
 
         result = self._get_mapped()
         self.assertEqual(len(result), 12)
-        self.maxDiff = None
         expected = [
             {
                 "entrance": self.entrances[0],
