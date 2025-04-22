@@ -135,7 +135,7 @@ class TestMapEvents(TestCase):
             ],
         )
 
-    def test_no_syste(self) -> None:
+    def test_no_system(self) -> None:
         EntryEvent.objects.all().delete()
         ExitEvent.objects.all().delete()
 
@@ -164,3 +164,40 @@ class TestMapEvents(TestCase):
                 for i in range(6)
             ],
         )
+
+    def test_wrong_entrance(self) -> None:
+        for i in range(3):
+            TestEntryEvent.objects.create(
+                entrance=self.entrances[1],
+                timestamp=self.base_time + timedelta(minutes=i),
+            )
+        for i in range(3, 6):
+            TestExitEvent.objects.create(
+                entrance=self.entrances[1],
+                timestamp=self.base_time + timedelta(minutes=i),
+            )
+
+        result = self._get_mapped()
+        self.assertEqual(len(result), 12)
+        self.maxDiff = None
+        expected = [
+            {
+                "entrance": self.entrances[0],
+                "timestamp": self.base_time + timedelta(minutes=i),
+                "system_entry": i < 3,
+                "manual_entry": None,
+                "is_equal": False,
+            }
+            for i in range(6)
+        ] + [
+            {
+                "entrance": self.entrances[1],
+                "timestamp": self.base_time + timedelta(minutes=i),
+                "system_entry": None,
+                "manual_entry": i < 3,
+                "is_equal": False,
+            }
+            for i in range(6)
+        ]
+        expected.sort(key=lambda x: x["timestamp"])
+        self.assertSequenceEqual(result, expected)

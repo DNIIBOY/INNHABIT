@@ -1,6 +1,7 @@
 {% component "table" %}
 {% fill "head" %}
 <th>Tid</th>
+<th>Indgang</th>
 <th>System</th>
 <th>Manuel</th>
 <th>Status</th>
@@ -8,9 +9,8 @@
 {% fill "body" %}
 {% for event in events %}
 <tr>
-    <td>
-        {{ event.timestamp|date:"H:i:s" }}
-    </td>
+    <td>{{ event.timestamp|date:"H:i:s" }}</td>
+    <td>{{ event.entrance.name }}</td>
     <td>
         {% if event.system_entry is None %}
         <i class="bi-ban text-5xl text-gray-500 inline-flex align-middle"></i>

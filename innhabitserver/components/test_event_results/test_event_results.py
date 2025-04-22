@@ -74,37 +74,35 @@ class TestEventResults(Component):
 
     def get_context_data(self) -> dict:
         today = timezone.localdate()
+        today_test_events = TestEntryEvent.objects.filter(timestamp__date=today).union(
+            TestExitEvent.objects.filter(timestamp__date=today)
+        )
+        start_time = today_test_events.order_by("timestamp").first().timestamp
+        end_time = today_test_events.order_by("-timestamp").first().timestamp
+        time_range = (start_time, end_time)
         entry_events = (
-            EntryEvent.objects.filter(
-                timestamp__date=today,
-            )
+            EntryEvent.objects.filter(timestamp__range=time_range)
             .annotate(
                 is_entry=Value(True, output_field=BooleanField()),
             )
             .prefetch_related("entrance")
         )
         exit_events = (
-            ExitEvent.objects.filter(
-                timestamp__date=today,
-            )
+            ExitEvent.objects.filter(timestamp__range=time_range)
             .annotate(
                 is_entry=Value(False, output_field=BooleanField()),
             )
             .prefetch_related("entrance")
         )
         test_entry_events = (
-            TestEntryEvent.objects.filter(
-                timestamp__date=today,
-            )
+            TestEntryEvent.objects.filter(timestamp__range=time_range)
             .annotate(
                 is_entry=Value(True, output_field=BooleanField()),
             )
             .prefetch_related("entrance")
         )
         test_exit_events = (
-            TestExitEvent.objects.filter(
-                timestamp__date=today,
-            )
+            TestExitEvent.objects.filter(timestamp__range=time_range)
             .annotate(
                 is_entry=Value(False, output_field=BooleanField()),
             )
