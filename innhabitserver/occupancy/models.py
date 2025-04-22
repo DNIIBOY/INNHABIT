@@ -75,6 +75,11 @@ class Event(models.Model):
     timestamp = models.DateTimeField()
     entrance = models.ForeignKey(Entrance, on_delete=models.CASCADE)
 
+    def __hash__(self) -> int:
+        if hasattr(self, "is_entry"):
+            return hash(f"{super().__hash__()}{self.is_entry}")
+        return super().__hash__()
+
 
 class EntryEvent(Event):
     entrance = models.ForeignKey(

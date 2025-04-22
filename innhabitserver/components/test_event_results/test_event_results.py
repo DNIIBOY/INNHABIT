@@ -1,38 +1,38 @@
 from django.db.models import BooleanField, Value
+from django.db.models.query import QuerySet
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent, TestEntryEvent, TestExitEvent
 
+MAX_TIME_DIFF = 5  # Max between real event and test event
 
-def map_events(system_events, manual_events):
-    # Convert union querysets to lists first to avoid the "after union()" limitation
-    system_events_list = list(system_events)
-    manual_events_list = list(manual_events)
+
+def map_events(
+    system_events: QuerySet[EntryEvent | ExitEvent],
+    manual_events: QuerySet[EntryEvent | ExitEvent],
+) -> list[dict]:
+    system_events = set(system_events)
+    manual_events = set(manual_events)
 
     results = []
-    matched_manual_ids = set()
 
-    # Process system events first
-    for sys_event in system_events_list:
+    for sys_event in system_events:
         # Find closest manual event within 5 seconds and same entrance
         closest_manual = None
-        min_time_diff = 5.01  # Slightly more than 5 seconds
+        min_time_diff = MAX_TIME_DIFF
 
-        for man_event in manual_events_list:
-            if man_event.id in matched_manual_ids:
-                continue
-
+        for man_event in manual_events:
             if man_event.entrance != sys_event.entrance:
                 continue  # Only match if entrance is the same
 
             time_diff = abs((sys_event.timestamp - man_event.timestamp).total_seconds())
-            if time_diff <= 5 and time_diff < min_time_diff:
+            if time_diff <= MAX_TIME_DIFF and time_diff <= min_time_diff:
                 closest_manual = man_event
                 min_time_diff = time_diff
 
         # Create result entry
         if closest_manual:
-            matched_manual_ids.add(closest_manual.id)
+            manual_events.remove(closest_manual)
             results.append(
                 {
                     "timestamp": sys_event.timestamp,
@@ -53,20 +53,17 @@ def map_events(system_events, manual_events):
                 }
             )
 
-    # Add unmatched manual events
-    for man_event in manual_events_list:
-        if man_event.id not in matched_manual_ids:
-            results.append(
-                {
-                    "timestamp": man_event.timestamp,
-                    "entrance": man_event.entrance,
-                    "system_entry": None,
-                    "manual_entry": man_event.is_entry,
-                    "is_equal": False,
-                }
-            )
+    for man_event in manual_events:
+        results.append(
+            {
+                "timestamp": man_event.timestamp,
+                "entrance": man_event.entrance,
+                "system_entry": None,
+                "manual_entry": man_event.is_entry,
+                "is_equal": False,
+            }
+        )
 
-    # Sort results by timestamp
     results.sort(key=lambda x: x["timestamp"])
     return results
 
@@ -117,5 +114,4 @@ class TestEventResults(Component):
         manual_events = test_entry_events.union(test_exit_events)
 
         events = map_events(system_events, manual_events)
-        print(events)
         return {"events": events}

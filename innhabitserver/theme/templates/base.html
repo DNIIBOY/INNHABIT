@@ -23,7 +23,7 @@
 
     {% url "insights" as insights_url %}
     <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
-      class="flex w-full 
+      class="flex w-full transition-color duration-200
              {% if request.path == insights_url %} bg-aau 
              {% else %} bg-gray-50 dark:bg-gray-900 dark:text-white {% endif %}"
       id="main">        {% url "login" as login_url %}
