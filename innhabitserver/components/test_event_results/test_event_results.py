@@ -116,4 +116,6 @@ class TestEventResults(Component):
         system_events = entry_events.union(exit_events)
         manual_events = test_entry_events.union(test_exit_events)
 
-        return {"events": map_events(system_events, manual_events)}
+        events = map_events(system_events, manual_events)
+        print(events)
+        return {"events": events}
