@@ -125,7 +125,13 @@ jobs:
       run: |
         python3 -m pip install --upgrade pip
         python3 -m pip install -r requirements.txt
-    - name: Run unittests
+    - name: Run unittests with coverage
       working-directory: innhabitserver
       run: |
-        python3 manage.py test --no-input --shuffle
+        coverage run manage.py test --no-input --shuffle && coverage report && coverage xml
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: DNIIBOY/INNHABIT
