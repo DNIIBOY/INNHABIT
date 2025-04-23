@@ -129,13 +129,14 @@ private:
      * @return A string representing the current timestamp.
      */
     std::string getTimestampISO();
-
+    void saveFailedEventsToDisk(const ApiEvent api_event);
+    void loadFailedEventsFromDisk();
     // Member variables
     std::string api_key_;  ///< API authentication key.
     std::string base_url_; ///< Base URL of the API.
     CURL* curl_;           ///< CURL handle for making HTTP requests.
     bool should_exit_;     ///< Flag to indicate if the handler should stop.
-
+    bool failed_event_;
     std::thread thread_;                 ///< Thread for processing API events.
     std::queue<ApiEvent> event_queue_;   ///< Queue for storing API events.
     std::mutex queue_mutex_;             ///< Mutex for thread-safe event queue access.
