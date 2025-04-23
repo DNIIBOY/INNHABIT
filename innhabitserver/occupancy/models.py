@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinLengthValidator
 from django.db import models
@@ -19,6 +21,11 @@ class Device(models.Model):
 
     def __str__(self) -> str:
         return f"Device: {self.entrance}"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        super().save(*args, **kwargs)
+        if not hasattr(self, "settings"):
+            DeviceSettings.objects.create(device=self)
 
 
 class DeviceSettings(models.Model):

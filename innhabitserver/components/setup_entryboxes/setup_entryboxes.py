@@ -10,6 +10,6 @@ class SetupEntryboxes(Component):
     def get_context_data(self, image_url: str, settings: DeviceSettings) -> dict:
         return {
             "image_url": image_url,
-            "entry_box": settings.entry_box,
-            "exit_box": settings.exit_box,
+            "entry_box": settings.entry_box if settings else None,
+            "exit_box": settings.exit_box if settings else None,
         }

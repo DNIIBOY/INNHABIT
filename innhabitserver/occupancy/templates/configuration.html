@@ -23,7 +23,11 @@
                 </div>
             </td>
             <td>
+                {% if entrance.device %}
                 <p class="font-semibold">1</p>
+                {% else %}
+                <p class="font-semibold">0</p>
+                {% endif %}
             </td>
             <td class="text-right">
                 <p class="mr-6">{{ entrance.latest_event|date:"H:i, d M" }}</p>

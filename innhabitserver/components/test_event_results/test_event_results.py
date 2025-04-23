@@ -77,9 +77,11 @@ class TestEventResults(Component):
         today_test_events = TestEntryEvent.objects.filter(timestamp__date=today).union(
             TestExitEvent.objects.filter(timestamp__date=today)
         )
-        start_time = today_test_events.order_by("timestamp").first().timestamp
-        end_time = today_test_events.order_by("-timestamp").first().timestamp
-        time_range = (start_time, end_time)
+        first_event = today_test_events.order_by("timestamp").first()
+        last_event = today_test_events.order_by("-timestamp").first()
+        if not first_event or not last_event:
+            return {"events": []}
+        time_range = (first_event.timestamp, last_event.timestamp)
         entry_events = (
             EntryEvent.objects.filter(timestamp__range=time_range)
             .annotate(
