@@ -59,7 +59,7 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/frp/frpc -c /usr/local/frp/frpc.toml
+ExecStart={{ .Envs.FRPC_PATH }}/frpc -c {{ .Envs.FRPC_PATH }}/frpc.toml
 Restart=always
 RestartSec=5
 StandardOutput=syslog
@@ -71,7 +71,7 @@ SyslogIdentifier=%n
 
 ```toml
 serverAddr = "{{ .Envs.FRPS_SERVER_ADDR }}"
-serverPort = {server_port}
+serverPort = "{{ .Envs.FRPS_BIND_PORT }}"
 
 [[proxies]]
 name = "ssh1"
