@@ -1,0 +1,77 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0" version="26.2.14">
+  <diagram name="Page-1" id="tsaDrd3ezq8VZWoEaZW-">
+    <mxGraphModel dx="983" dy="537" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n7cuXWZAEweehr7w-O3V-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="n7cuXWZAEweehr7w-O3V-1" target="n7cuXWZAEweehr7w-O3V-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="80" />
+              <mxPoint x="120" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="n7cuXWZAEweehr7w-O3V-1" target="n7cuXWZAEweehr7w-O3V-16">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="100" />
+              <mxPoint x="430" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-1" value="Person detection output" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry y="30" width="550" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-5" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint y="120" as="sourcePoint" />
+            <mxPoint x="550" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-7" value="&lt;div&gt;Step 1&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="250" y="120" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="n7cuXWZAEweehr7w-O3V-8" target="n7cuXWZAEweehr7w-O3V-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-8" value="Match with existing tracks" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry y="130" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-14" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint y="170" as="sourcePoint" />
+            <mxPoint x="550" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-16" value="Match with remaining tracks" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="180" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-23" value="Low Confidence Detections" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="345" y="80" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-24" value="High Confidence Detections" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="35" y="80" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-25" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint y="220" as="sourcePoint" />
+            <mxPoint x="550" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-27" value="Create new tracks" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry y="230" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-30" value="Unmatched High Confidence Detections" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="42.5" y="180" width="155" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-43" value="&lt;div&gt;Step 2&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="250" y="170" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n7cuXWZAEweehr7w-O3V-46" value="&lt;div&gt;Step 3&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="250" y="220" width="50" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
