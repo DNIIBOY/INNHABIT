@@ -44,3 +44,40 @@ wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov7-tiny.c
 ```sh
 make
 ```
+
+# Systemd setup
+
+## frpc.service
+
+```sh
+[Unit]
+Description=FRP client
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/frp/frpc -c /usr/local/frp/frpc.toml
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=%n
+```
+
+## frpc.toml
+
+```toml
+serverAddr = "{{ .Envs.FRPS_SERVER_ADDR }}"
+serverPort = {server_port}
+
+[[proxies]]
+name = "ssh1"
+type = "tcpmux"
+multiplexer = "httpconnect"
+customDomains = ["{{ .Envs.FRPC_DOMAIN }}"]
+localIP = "127.0.0.1"
+localPort = 22
+```
