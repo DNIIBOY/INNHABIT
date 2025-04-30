@@ -29,10 +29,10 @@
         <div class="flex flex-col items-center gap-32">
             <h1 class="text-8xl font-semibold">Vidste du at?</h1>
             <div
+                class="[&_h2]:text-9xl [&_h3]:text-5xl [&_h3]:text-center [&_h4]:text-4xl [&_h4]:text-center"
                 hx-get=""
-            hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
+                hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
                 hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
-            class="[&_h2]:text-9xl [&_h3]:text-5xl [&_h3]:text-center [&_h4]:text-4xl [&_h4]:text-center">
                 {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
             </div>
         </div>
