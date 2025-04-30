@@ -21,23 +21,23 @@
 </style>
 {% endblock %}
 {% block content %}
-    <div class="flex flex-col w-full   {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl">
+    <div class="flex flex-col w-full py-12 {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl">
         <div>
-        <h2 class="{% if dashboard %} text-black dark:text-white {% else %} text-slate-300 {% endif %}">Velkommen til</h2>
-            <h1 class="text-6xl">AAU INNOVATE</h1>
+        <h2 class="{% if dashboard %} text-black dark:text-white {% else %} text-slate-300 {% endif %} text-7xl">Velkommen til</h2>
+            <h1 class="text-8xl">AAU INNOVATE</h1>
         </div>
-        <div class="flex flex-col items-center gap-8">
+        <div class="flex flex-col items-center gap-32">
             <h1 class="text-8xl font-semibold">Vidste du at?</h1>
             <div
                 hx-get=""
             hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
                 hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
-            >
+            class="[&_h2]:text-9xl [&_h3]:text-5xl [&_h3]:text-center [&_h4]:text-4xl [&_h4]:text-center">
                 {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
             </div>
         </div>
              {% if not dashboard %}
-        <div class="flex justify-between items-center w-full px-8 md:px-64 mb-6">
+        <div class="flex justify-around items-center w-full px-8 mb-6">
             <div class="flex items-center fill-slate-50 gap-8">
                 <svg
                     viewBox="0 0 69 72"
