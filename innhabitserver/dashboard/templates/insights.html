@@ -18,6 +18,16 @@
             transform: translateY(0);
         }
     }
+    .construction-tape {
+        text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+        background: repeating-linear-gradient(
+            45deg,
+            #D6A802,
+            #D6A802 10px,
+            #212121 10px,
+            #212121 20px
+            );
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -58,4 +68,11 @@
         </div>
     {% endif %}
     </div>
+    {% if not debug %}
+    <div class="absolute top-64 left-12 overflow-hidden" style="transform-origin: top left; transform: rotate(-45deg) translate(-20%, 20%);">
+        <div class="construction-tape py-3 text-center shadow-md w-[48rem]">
+            <span class="font-bold text-white text-4xl">Under Udvikling</span>
+        </div>
+    </div>
+    {% endif %}
 {% endblock %}
