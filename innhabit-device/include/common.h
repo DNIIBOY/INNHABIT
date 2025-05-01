@@ -72,14 +72,67 @@ public:
      * @return A shared pointer to a Configuration object.
      * @throws std::runtime_error if the configuration file cannot be opened.
      */
-    static std::shared_ptr<Configuration> loadFromFile(const std::string& configFilePath);
+    static std::shared_ptr<Configuration> loadFromFile(const std::string& configFilePath) {
+                std::ifstream file(configFilePath);
+                if (!file.is_open()) {
+                    ERROR("Failed to open config file: " << configFilePath);
+                    throw std::runtime_error("Config file not found");
+                }
+        
+                json j;
+                file >> j;
+                auto config = std::make_shared<Configuration>();
+        
+                config->modelPath_ = j["ModelPath"].get<std::string>();
+                config->deviceName_ = j["DeviceName"].get<std::string>();
+                config->deviceLocation_ = j["DeviceLokation"].get<std::string>();
+                config->serverApiKey_ = j["ServerApiKey"].get<std::string>();
+                config->serverApi_ = j["ServerAPI"].get<std::string>();
+                config->serverEntryEndpoint_ = j["ServerEntryEndpoint"].get<std::string>();
+                config->serverExitEndpoint_ = j["ServerExitEndpoint"].get<std::string>();
+        
+                auto entranceZone = j["EntranceZone"];
+                for (auto it = entranceZone.begin(); it != entranceZone.end(); ++it) {
+                    auto zoneArray = it.value().get<std::vector<int>>();
+                    if (zoneArray.size() == 4) {
+                        BoxZone zone = {zoneArray[0], zoneArray[1], zoneArray[2], zoneArray[3]};
+                        config->entranceZones_.push_back(zone);
+                    } else {
+                        ERROR("Invalid zone format in config: " << it.key());
+                    }
+                }
+        
+                return config;
+            }
 
     /**
      * @brief Updates configuration settings from a JSON object.
      *
      * @param j JSON object containing new settings.
      */
-    void updateFromJson(const json& j);
+    void updateFromJson(const json& j) {
+                if (j.contains("ModelPath")) modelPath_ = j["ModelPath"].get<std::string>();
+                if (j.contains("DeviceName")) deviceName_ = j["DeviceName"].get<std::string>();
+                if (j.contains("DeviceLokation")) deviceLocation_ = j["DeviceLokation"].get<std::string>();
+                if (j.contains("ServerApiKey")) serverApiKey_ = j["ServerApiKey"].get<std::string>();
+                if (j.contains("ServerAPI")) serverApi_ = j["ServerAPI"].get<std::string>();
+                if (j.contains("ServerEntryEndpoint")) serverEntryEndpoint_ = j["ServerEntryEndpoint"].get<std::string>();
+                if (j.contains("ServerExitEndpoint")) serverExitEndpoint_ = j["ServerExitEndpoint"].get<std::string>();
+        
+                if (j.contains("EntranceZone")) {
+                    entranceZones_.clear();
+                    auto entranceZone = j["EntranceZone"];
+                    for (auto it = entranceZone.begin(); it != entranceZone.end(); ++it) {
+                        auto zoneArray = it.value().get<std::vector<int>>();
+                        if (zoneArray.size() == 4) {
+                            BoxZone zone = {zoneArray[0], zoneArray[1], zoneArray[2], zoneArray[3]};
+                            entranceZones_.push_back(zone);
+                        } else {
+                            ERROR("Invalid zone format in config update: " << it.key());
+                        }
+                    }
+                }
+            }
 
     /**
      * @brief Gets the model file path.

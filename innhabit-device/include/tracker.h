@@ -98,13 +98,30 @@ public:
      * @param boxSize Updated box size.
      * @param conf Updated confidence score.
      */
-    void update(Position position, BoxSize boxSize, float conf);
+    void update(Position position, BoxSize boxSize, float conf) {
+            this->pos = position;
+            this->size = boxSize;
+            this->history.push_back(position);
+            if (this->history.size() > 30) {
+                this->history.erase(this->history.begin());
+            }
+            this->missingFrames = 0;
+            this->confidence = conf;
+            // Note: wasInZone is not updated here; it’s updated in detectMovements
+        }
 
     /**
      * @brief Gets the bounding box from the current position and size.
      * @return The bounding box as a cv::Rect.
      */
-    cv::Rect getBoundingBox() const;
+    cv::Rect getBoundingBox() const {
+            return cv::Rect(
+                pos.x - size.width / 2,
+                pos.y - size.height / 2,
+                size.width,
+                size.height
+            );
+        }
 };
 
 /**
