@@ -36,7 +36,7 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="flex flex-col w-full py-12 {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl">
+<div class="flex flex-col w-full py-12 {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl overflow-hidden">
     <div class="absolute top-0 left-0 overflow-hidden w-full h-full">
         <img
             src="{% static 'aau_pattern.svg' %}"
@@ -78,12 +78,17 @@
         <h2 class="text-4xl font-semibold">innovate.aau.dk</h2>
     </div>
     {% endif %}
-</div>
-{% if not debug %}
-<div class="absolute top-96 left-12 overflow-hidden" style="transform-origin: top left; transform: rotate(-45deg) translate(-20%, 20%);">
-    <div class="construction-tape py-3 text-center shadow-md w-[54rem]">
-        <span class="font-bold text-white text-6xl">Under Udvikling</span>
+    {% if not debug %}
+    <div class="absolute top-96 left-12 overflow-hidden" style="transform-origin: top left; transform: rotate(-45deg) translate(-20%, 20%);">
+        <div class="construction-tape py-3 text-center shadow-md w-[54rem]">
+            <span class="font-bold text-white text-6xl">Under Udvikling</span>
+        </div>
     </div>
+    <div class="absolute bottom-64 overflow-hidden w-full">
+        <div class="construction-tape py-3 text-center shadow-md w-full">
+            <span class="font-bold text-white text-6xl">Under Udvikling</span>
+        </div>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
 {% endblock %}
