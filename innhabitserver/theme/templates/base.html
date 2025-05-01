@@ -1,4 +1,4 @@
-{% load static tailwind_tags django_htmx component_tags %}
+{% load static tailwind_tags django_htmx component_tags compress %}
 <!DOCTYPE html>
 <html lang="dk">
     <head>
@@ -18,7 +18,9 @@
         </style>
         {% block head %}
         {% endblock %}
+        {% compress css %}
         {% tailwind_css %}
+        {% endcompress %}
     </head>
 
     {% url "insights" as insights_url %}

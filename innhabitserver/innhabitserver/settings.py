@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.postgres",
     "tailwind",
+    "compressor",
     "django_htmx",
     "template_partials.apps.SimpleAppConfig",
     "django_browser_reload",
@@ -219,6 +220,7 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
     "django_components.finders.ComponentsFileSystemFinder",
+    "compressor.finders.CompressorFinder",
 ]
 
 TAILWIND_APP_NAME = "theme"
