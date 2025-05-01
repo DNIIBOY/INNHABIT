@@ -59,7 +59,7 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-ExecStart={{ .Envs.FRPC_PATH }}/frpc -c {{ .Envs.FRPC_PATH }}/frpc.toml
+ExecStart=/usr/local/frp/frpc -c /usr/local/frp/frpc.toml
 Restart=always
 RestartSec=5
 StandardOutput=syslog
