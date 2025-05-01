@@ -19,7 +19,7 @@ class DailyComparison(Component):
         ).count()
 
         diff = today_entries - yesterday_entries
-        percentage = (diff / yesterday_entries) * 100 if yesterday_entries else 100
+        percentage = diff / max(yesterday_entries, 1)
 
         return {
             "today_entries": today_entries,
