@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block head %}
 <style>
     .htmx-swapping > * {
@@ -18,6 +19,9 @@
             transform: translateY(0);
         }
     }
+    .pattern-gradient {
+        mask-image: linear-gradient(0deg,rgba(0,0,0,.4),transparent)
+    }
     .construction-tape {
         text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
         background: repeating-linear-gradient(
@@ -31,48 +35,54 @@
 </style>
 {% endblock %}
 {% block content %}
-    <div class="flex flex-col w-full py-12 {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl">
-        <div>
+<div class="flex flex-col w-full py-12 {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl">
+    <div class="absolute top-0 left-0 overflow-hidden w-full h-full">
+        <img
+            src="{% static 'aau_pattern.svg' %}"
+            class="pattern-gradient w-full h-full absolute object-cover"
+        />
+    </div>
+    <div>
         <h2 class="{% if dashboard %} text-black dark:text-white {% else %} text-slate-300 {% endif %} text-7xl">Velkommen til</h2>
-            <h1 class="text-8xl">AAU INNOVATE</h1>
+        <h1 class="text-8xl">AAU INNOVATE</h1>
+    </div>
+    <div class="flex flex-col items-center gap-32">
+        <h1 class="text-8xl font-semibold">Vidste du at?</h1>
+        <div
+            class="text-center [&_h2]:text-9xl [&_h3]:text-5xl [&_h4]:text-4xl"
+            hx-get=""
+            hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
+            hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
+        >
+            {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
         </div>
-        <div class="flex flex-col items-center gap-32">
-            <h1 class="text-8xl font-semibold">Vidste du at?</h1>
-            <div
-                class="text-center [&_h2]:text-9xl [&_h3]:text-5xl [&_h4]:text-4xl"
-                hx-get=""
-                hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
-                hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
+    </div>
+    {% if not dashboard %}
+    <div class="flex justify-around items-center w-full px-8 mb-6">
+        <div class="flex items-center fill-slate-50 gap-8">
+            <svg
+                viewBox="0 0 69 72"
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-20 h-20"
             >
-                {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
+                <path d="M68.4473 55.0722C66.6046 54.2335 64.7513 53.8828 61.6073 51.6508C53.6033 45.9735 50.002 39.4015 55.1273 25.4922C58.0833 17.4682 59.2166 11.5148 59.0433 3.72951C58.9353 3.6535 58.6286 3.4455 58.5366 3.36816C56.9433 13.0428 54.2753 17.8135 48.2726 27.5615C34.6859 49.6242 47.4593 63.1295 53.4966 68.004C59.0846 65.3186 64.9326 60.6628 68.4473 55.0722Z"/>
+                <path d="M41.8399 26.8043C51.3132 14.8349 55.1945 9.82425 56.0319 1.78825C55.9252 1.72826 55.6346 1.57227 55.5279 1.5136C52.9626 11.2269 47.6532 15.4723 31.8012 26.4376C15.3199 37.8376 15.9039 55.0136 20.3959 67.5443C25.4919 70.1588 31.2585 71.6432 37.3759 71.6432C38.6799 71.6432 39.9679 71.5749 41.2385 71.4443C29.9025 53.3096 30.7892 40.7669 41.8399 26.8043Z"/>
+                <path d="M35.384 17.7161C46.132 12.3935 50.8974 7.08013 53.0067 0.222797C52.912 0.177464 52.5054 -0.00520706 52.5014 0.000125885C46.4134 10.4308 38.8574 11.2001 21.6614 14.0748C11.7854 15.7241 6.41204 20.0375 0.870703 26.1175C0.358703 28.2961 -0.00396724 31.7855 3.27623e-05 34.1028C0.0120328 43.0548 3.06804 51.5108 8.57471 58.0695C8.88271 30.0495 21.956 24.3655 35.384 17.7161Z"/>
+            </svg>
+            <div class="flex flex-col uppercase">
+                <p>Aalborg</p>
+                <p>Universitet</p>
             </div>
         </div>
-             {% if not dashboard %}
-        <div class="flex justify-around items-center w-full px-8 mb-6">
-            <div class="flex items-center fill-slate-50 gap-8">
-                <svg
-                    viewBox="0 0 69 72"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="w-20 h-20"
-                >
-                    <path d="M68.4473 55.0722C66.6046 54.2335 64.7513 53.8828 61.6073 51.6508C53.6033 45.9735 50.002 39.4015 55.1273 25.4922C58.0833 17.4682 59.2166 11.5148 59.0433 3.72951C58.9353 3.6535 58.6286 3.4455 58.5366 3.36816C56.9433 13.0428 54.2753 17.8135 48.2726 27.5615C34.6859 49.6242 47.4593 63.1295 53.4966 68.004C59.0846 65.3186 64.9326 60.6628 68.4473 55.0722Z"/>
-                    <path d="M41.8399 26.8043C51.3132 14.8349 55.1945 9.82425 56.0319 1.78825C55.9252 1.72826 55.6346 1.57227 55.5279 1.5136C52.9626 11.2269 47.6532 15.4723 31.8012 26.4376C15.3199 37.8376 15.9039 55.0136 20.3959 67.5443C25.4919 70.1588 31.2585 71.6432 37.3759 71.6432C38.6799 71.6432 39.9679 71.5749 41.2385 71.4443C29.9025 53.3096 30.7892 40.7669 41.8399 26.8043Z"/>
-                    <path d="M35.384 17.7161C46.132 12.3935 50.8974 7.08013 53.0067 0.222797C52.912 0.177464 52.5054 -0.00520706 52.5014 0.000125885C46.4134 10.4308 38.8574 11.2001 21.6614 14.0748C11.7854 15.7241 6.41204 20.0375 0.870703 26.1175C0.358703 28.2961 -0.00396724 31.7855 3.27623e-05 34.1028C0.0120328 43.0548 3.06804 51.5108 8.57471 58.0695C8.88271 30.0495 21.956 24.3655 35.384 17.7161Z"/>
-                </svg>
-                <div class="flex flex-col uppercase">
-                    <p>Aalborg</p>
-                    <p>Universitet</p>
-                </div>
-            </div>
-            <h2 class="text-4xl font-semibold">innovate.aau.dk</h2>
-        </div>
-    {% endif %}
-    </div>
-    {% if not debug %}
-    <div class="absolute top-64 left-12 overflow-hidden" style="transform-origin: top left; transform: rotate(-45deg) translate(-20%, 20%);">
-        <div class="construction-tape py-3 text-center shadow-md w-[48rem]">
-            <span class="font-bold text-white text-4xl">Under Udvikling</span>
-        </div>
+        <h2 class="text-4xl font-semibold">innovate.aau.dk</h2>
     </div>
     {% endif %}
+</div>
+{% if not debug %}
+<div class="absolute top-64 left-12 overflow-hidden" style="transform-origin: top left; transform: rotate(-45deg) translate(-20%, 20%);">
+    <div class="construction-tape py-3 text-center shadow-md w-[48rem]">
+        <span class="font-bold text-white text-4xl">Under Udvikling</span>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
