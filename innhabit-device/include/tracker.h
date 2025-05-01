@@ -71,8 +71,27 @@ public:
      * @param entranceZones List of entrance zones.
      */
     TrackedPerson(int id, Position position, BoxSize boxSize, float conf, int frameHeight, 
-                  const std::vector<BoxZone>& entranceZones);
-
+                  const std::vector<BoxZone>& entranceZones){
+        this->id = id;
+        this->classId = "person";
+        this->update(position, boxSize, conf);
+        this->color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
+        
+        int topY = position.y - boxSize.height / 2;
+        int bottomY = position.y + boxSize.height / 2;
+        this->fromTop = topY < frameHeight * 0.1;
+        this->fromBottom = bottomY > frameHeight * 0.9;
+        this->wasInZone = false;
+        this->spawnedInZone = false;
+        // Check if the initial position is inside any entrance zone
+        for (const auto& zone : entranceZones) {
+            if (isInsideBox(position, zone)) {
+                this->spawnedInZone = true;
+                this->wasInZone = true;
+                break;
+            }
+        }
+    }
     /**
      * @brief Updates the tracked person with new position, box size, and confidence.
      * @param position Updated position.
