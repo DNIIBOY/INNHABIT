@@ -23,6 +23,25 @@ bool isInsideBox(const Position& pos, const BoxZone& zone) {
             pos.y >= zone.y1 && pos.y <= zone.y2);
 }
 
+bool intersectionOverArea(const BoxZone& personZone, const BoxZone& entryExitZone, const float isInsideBoxThreshold) {
+    int x_left = std::max(personZone.x1, entryExitZone.x1);
+    int y_top = std::max(personZone.y1, entryExitZone.y1);
+    int x_right = std::min(personZone.x2, entryExitZone.x2);
+    int y_btm = std::min(personZone.y2, entryExitZone.y2);
+
+    //check if there is any overlap
+    if (x_right < x_left || y_btm < y_top) {
+        return false;
+    }
+
+
+    int intersectionArea = (x_right - x_left) * (y_btm - y_top);
+    int personArea = (personZone.x2 - personZone.x1) * (personZone.y2 - personZone.y1);
+    if (personArea == 0) return false;
+
+    return (static_cast<float>(intersectionArea) / personArea) > isInsideBoxThreshold;
+}
+
 float computeIoU(const cv::Rect& box1, const cv::Rect& box2) {
     int xA = std::max(box1.x, box2.x);
     int yA = std::max(box1.y, box2.y);
