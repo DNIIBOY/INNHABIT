@@ -16,7 +16,6 @@ innhabit-device/compile_commands.json
 innhabit-device/compile_commands.json
 innhabit-device/.cache/
 innhabit-device/*.mp4
-innhabit-device/models
 innhabit-device/build
 runs/
 **/*.zip
