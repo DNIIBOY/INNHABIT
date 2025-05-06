@@ -47,8 +47,8 @@ def filter_events(
         entry_events = entry_events.filter(entrance__in=entrances)
         exit_events = exit_events.filter(entrance__in=entrances)
 
-    view_entry = user.has_perm("occupancy.view_entry_event")
-    view_exit = user.has_perm("occupancy.view_exit_event")
+    view_entry = user.has_perm("occupancy.view_entryevent")
+    view_exit = user.has_perm("occupancy.view_exitevent")
 
     if view_entry and view_exit:
         events = entry_events.union(exit_events)
