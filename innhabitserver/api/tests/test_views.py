@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from api.models import DeviceAPIKey
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from occupancy.models import Device, Entrance, EntryEvent, ExitEvent
 from rest_framework.test import APIClient, APITestCase
 
@@ -101,7 +102,7 @@ class TestEntryEventViewset(APITestCase):
         self.event.refresh_from_db()
         self.assertEqual(self.event.timestamp, self.time)
 
-    def test_create(self) -> None:
+    def test_create_invalid_time(self) -> None:
         self.client.logout()
         url = reverse(self.view_base + "-list")
         response = self.client.post(
@@ -110,11 +111,23 @@ class TestEntryEventViewset(APITestCase):
             headers=self.api_key_headers,
             format="json",
         )
+        self.assertEqual(response.status_code, 400)
+
+    def test_create(self) -> None:
+        self.client.logout()
+        url = reverse(self.view_base + "-list")
+        time = timezone.now()
+        response = self.client.post(
+            url,
+            {"entrance": self.entrance.id, "timestamp": time},
+            headers=self.api_key_headers,
+            format="json",
+        )
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(datetime.fromisoformat(response.data["timestamp"]), self.time)
+        self.assertEqual(datetime.fromisoformat(response.data["timestamp"]), time)
         self.assertEqual(self.test_class.objects.count(), 2)
         obj = self.test_class.objects.get(id=response.data["id"])
-        self.assertEqual(obj.timestamp, self.time)
+        self.assertEqual(obj.timestamp, time)
 
 
 class ExitEventViewset(TestEntryEventViewset):

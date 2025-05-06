@@ -1,8 +1,22 @@
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
 from django.db import models
+from django.utils import timezone
+
+
+def validate_not_future(value: datetime) -> None:
+    if value > timezone.now():
+        raise ValidationError("Timestamp cannot be in the future.")
+
+
+def validate_not_too_old(value: datetime) -> None:
+    one_week_ago = timezone.now() - timedelta(days=7)
+    if value < one_week_ago:
+        raise ValidationError("Timestamp cannot be more than one week old.")
 
 
 class Entrance(models.Model):
@@ -79,7 +93,9 @@ class Event(models.Model):
     class Meta:
         abstract = True
 
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(
+        validators=[validate_not_future, validate_not_too_old]
+    )
     entrance = models.ForeignKey(Entrance, on_delete=models.CASCADE)
 
     def __hash__(self) -> int:
