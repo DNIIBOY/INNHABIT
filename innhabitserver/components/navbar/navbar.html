@@ -28,7 +28,9 @@
             {% if perms.dashboard.view_labelleddate %}
                 {% component "navitem" url_name="dates" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
             {% endif %}
+            {% if perms.occupancy.view_entryevent or perms.occupancy.view_exitevent %}
             {% component "navitem" url_name="export" content="Eksportér" icon="file-earmark-arrow-down" %}{% endcomponent %}
+            {% endif %}
             {% if perms.occupancy.view_device %}
             {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" %}{% endcomponent %}
             {% endif %}

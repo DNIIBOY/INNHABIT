@@ -25,27 +25,28 @@
                 Filtrer
             </button>
         </div>
-            <div id="filter-options" class="hidden">
-        Fra <input name="from_date" type="date" class="dark:bg-gray-800 dark:text-white dark:border-gray-600 border">
-        Til <input name="to_date" type="date" class="dark:bg-gray-800 dark:text-white dark:border-gray-600 border">
-        
-        <input type="radio" name="event_type" value="all" checked class="dark:accent-white">Alle</input>
-        <input type="radio" name="event_type" value="entries" class="dark:accent-white">Indgang</input>
-        <input type="radio" name="event_type" value="exits" class="dark:accent-white">Udgang</input>
+        <div id="filter-options" class="hidden">
+            Fra <input name="from_date" type="date" class="dark:bg-gray-800 dark:text-white dark:border-gray-600 border">
+            Til <input name="to_date" type="date" class="dark:bg-gray-800 dark:text-white dark:border-gray-600 border">
 
-        Indgange  
-        {% for entrance in entrances %}
+            <input type="radio" name="event_type" value="all" checked class="dark:accent-white">Alle</input>
+            <input type="radio" name="event_type" value="entries" class="dark:accent-white">Indgang</input>
+            <input type="radio" name="event_type" value="exits" class="dark:accent-white">Udgang</input>
+            Indgange
+            {% for entrance in entrances %}
             <input type="checkbox" name="entrances" value="{{ entrance.id }}" checked class="dark:accent-white"> {{ entrance.name }}</input>
-        {% endfor %}
-</div>    </form>
+            {% endfor %}
+        </div>
+    </form>
     <div class="w-full">
         {% component "card" %}
         {% fill "content" %}
-            {% component "latest_events" hide_title=True items=20 timestamp_format="d M H:i" infinite_scroll=True %}{% endcomponent %}
+        {% component "latest_events" hide_title=True items=20 timestamp_format="d M H:i" infinite_scroll=True %}{% endcomponent %}
         {% endfill %}
         {% endcomponent %}
     </div>
 </div>
+
 {% endblock %}
 {% block js %}
 <script>

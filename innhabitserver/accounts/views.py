@@ -14,7 +14,7 @@ from .utils import log_admin_action, send_activation_email
 User = get_user_model()
 
 
-@permission_required("accounts.view_user")
+@permission_required("accounts.view_user", raise_exception=True)
 def users(request: HttpRequest) -> HttpResponse:
     users_objects = User.objects.all()
     context = {
@@ -23,7 +23,7 @@ def users(request: HttpRequest) -> HttpResponse:
     return render(request, "manage_users.html", context)
 
 
-@permission_required("accounts.add_user")
+@permission_required("accounts.add_user", raise_exception=True)
 def add_user(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
         return render(request, "registration/add_user.html")
@@ -41,7 +41,7 @@ def add_user(request: HttpRequest) -> HttpResponse:
     return redirect("users")
 
 
-@permission_required("accounts.view_user")
+@permission_required("accounts.view_user", raise_exception=True)
 def user(request: HttpRequest, user_id: int) -> HttpResponse:
     print(request.method)
     user_object = get_object_or_404(User, id=user_id)

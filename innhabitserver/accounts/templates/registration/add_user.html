@@ -14,15 +14,21 @@
             </div>
         {% endif %}
         <label for="username" class="text-3xl font-bold text-center">Email:</label>
-        <input type="text" name="email" placeholder="eksempel@student.aau.dk" class="text-black p-2 rounded">
-        {% if form.email.errors %}
-            <div class="text-red-300 text-sm font-normal">
-                {% for error in form.email.errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            </div>
-        {% endif %}
-        <button class="rounded w-full hover:scale-[102%] transition-all bg-gradient-to-r from-aau to-aau-light text-white">Enter</button>
+        <div>
+            <input type="email" name="email" placeholder="eksempel@student.aau.dk" class="text-black p-2 rounded w-full">
+            {% if form.email.errors %}
+                <div class="text-red-300 text-sm font-normal">
+                    {% for error in form.email.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <button
+                class="w-full px-6 py-3 mt-6 mb-2 font-bold text-center text-white uppercase transition-all rounded-lg active:opacity-85 hover:scale-[102%] shadow-md bg-gradient-to-r from-aau to-aau-light"
+            >
+                Tilføj bruger
+            </button>
+        </div>
     </form>
 {% endfill %}
 {% endcomponent %}

@@ -1,42 +1,44 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-col items-center">
+<div class="flex flex-col items-center w-full gap-4">
     <h1 class="text-4xl py-2">Brugere</h1>
-    {% component "card" %}
+    <div class="w-full lg:w-2/3">
+        {% component "card" %}
         {% fill "content" %}
-            {% component "table" %}
-                {% fill "head" %}
-                    <th class="text-left">Navn</th>
-                    <th>Email</th>
-                    <th>Last Login</th>
-                {% endfill %}
-                {% fill "body" %}
-                    {% for user in users %}
-                        <tr>
-                            <td>
-                                <div class="flex ml-6 py-1">
-                                    <a href="{% url 'user' user.id %}" class="flex items-center hover:underline">
-                                        {{ user.get_full_name }}
-                                    </a>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="font-semibold">{{ user.email }}</span>
-                            </td>
-                            <td>
-                                <span>{{ user.last_login|date:"H:i, d/m/Y" }}</span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% endfill %}
-            {% endcomponent %}
+        {% component "table" %}
+        {% fill "head" %}
+        <th class="text-left">Navn</th>
+        <th>Email</th>
+        <th>Last Login</th>
         {% endfill %}
-    {% endcomponent %}
+        {% fill "body" %}
+        {% for user in users %}
+        <tr>
+            <td>
+                <div class="flex ml-6 py-1">
+                    <a href="{% url 'user' user.id %}" class="flex items-center hover:underline">
+                        {{ user.get_full_name }}
+                    </a>
+                </div>
+            </td>
+            <td>
+                <span class="font-semibold">{{ user.email }}</span>
+            </td>
+            <td>
+                <span>{{ user.last_login|date:"H:i, d/m/Y" }}</span>
+            </td>
+        </tr>
+        {% endfor %}
+        {% endfill %}
+        {% endcomponent %}
+        {% endfill %}
+        {% endcomponent %}
+    </div>
+    {% if perms.dashboard.add_user %}
+    <div>
+        <a href="{% url 'add_user' %}" class="text-4xl">+</a>
+    </div>
+    {% endif %}
 </div>
-
-<div class="flex flex-col justify-end">
-    <a href="{% url 'add_user' %}" class="text-4xl">+</a>
-</div>
-
 {% endblock %}

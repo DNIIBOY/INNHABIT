@@ -58,13 +58,13 @@ def insights(request: HttpRequest) -> HttpResponse:
     return render(request, "insights.html", context=context)
 
 
-@permission_required("dashboard.view_labelleddate")
+@permission_required("dashboard.view_labelleddate", raise_exception=True)
 def dates(request: HttpRequest) -> HttpResponse:
     date_objects = LabelledDate.objects.order_by("date").all()
     return render(request, "dates.html", {"dates": date_objects})
 
 
-@permission_required("dashboard.add_labelleddate")
+@permission_required("dashboard.add_labelleddate", raise_exception=True)
 @require_http_methods(["GET", "POST"])
 def new_date(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
@@ -76,6 +76,7 @@ def new_date(request: HttpRequest) -> HttpResponse:
     return redirect("dates")
 
 
+@permission_required("dashboard.change_labelleddate", raise_exception=True)
 @require_http_methods(["GET", "POST"])
 def edit_date(request: HttpRequest, pk: int) -> HttpResponse:
     labelled_date = get_object_or_404(LabelledDate, pk=pk)

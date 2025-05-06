@@ -1,41 +1,46 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-col items-center w-full">
+<div class="flex flex-col w-full items-center gap-4">
     <h1 class="text-4xl py-2">Begivenheder</h1>
-    {% component "card" %}
+    <div class="w-full lg:w-1/2">
+        {% component "card" %}
         {% fill "content" %}
-            {% component "table" %}
-                {% fill "head" %}
-                    <th class="text-left">Navn på begivenhed</th>
-                    <th class="text-right">Dato</th>
-                {% endfill %}
-                {% fill "body" %}
-                    {% for date in dates %}
-                    <tr>
-                        <td>
-                            <div class="flex ml-6 py-1">
-                                <a href="{% url 'edit_date' date.pk %}" class="hover:underline">
-                                    {{ date.label }}
-                                </a>
-                            </div>
-                        </td>
-                        <td>
-                            <a>
-                                {{ date.date }}
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% endfill %}
-            {% endcomponent %}
+        {% component "table" %}
+        {% fill "head" %}
+        <th class="text-left">Navn på begivenhed</th>
+        <th>Dato</th>
         {% endfill %}
-    {% endcomponent %}
+        {% fill "body" %}
+        {% for date in dates %}
+        <tr>
+            <td>
+                <div class="flex ml-6 py-1">
+                    {% if perms.dashboard.change_labelleddate %}
+                    <a href="{% url 'edit_date' date.pk %}" class="hover:underline">
+                        {{ date.label }}
+                    </a>
+                    {% else %}
+                    <p>{{ date.label }}</p>
+                    {% endif %}
+                </div>
+            </td>
+            <td>
+                <a>
+                    {{ date.date }}
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+        {% endfill %}
+        {% endcomponent %}
+        {% endfill %}
+        {% endcomponent %}
+    </div>
+    {% if perms.dashboard.add_labelleddate %}
+    <div>
+        <a href="{% url 'new_date' %}" class="text-4xl">+</a>
+    </div>
+    {% endif %}
 </div>
-
-<div class="flex flex-col">
-    <a href="{% url 'new_date' %}" class="text-4xl">
-        +
-    </a>
-</div>
-{% endblock %} 
+{% endblock %}
