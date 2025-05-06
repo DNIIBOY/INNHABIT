@@ -48,6 +48,9 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.cookie = "tzinfo=" + timezone + "; path=/";
+
     const themeToggle = document.getElementById("theme-toggle");
     const themeIcon = document.getElementById("theme-icon");
     const html = document.documentElement;
