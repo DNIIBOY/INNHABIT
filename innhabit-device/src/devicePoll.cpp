@@ -128,6 +128,7 @@ json DevicePoller::sendGetRequest(const std::string& endpoint) {
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, ("Authorization: Bearer " + m_apiKey).c_str());
     headers = curl_slist_append(headers, "Content-Type: application/json");
+    headers = curl_slist_append(headers, "User-Agent: InnhabitDevice/1.0");
 
     std::string fullUrl = m_apiUrl + endpoint;
     curl_easy_setopt(m_curl, CURLOPT_URL, fullUrl.c_str());
