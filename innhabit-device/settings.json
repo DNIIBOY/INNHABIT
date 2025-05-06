@@ -1,13 +1,16 @@
 {
-    "ModelPath": "../models/best.engine",
-    "DeviceName": "Jetson Nano 1",
+    "DeviceLocation": "",
     "DeviceLokation": "Indgang A",
-    "ServerApiKey" : "inn-BnlnFa5ByaIZoIMr-gjDsucXkY3qlmDof23IYBji1W6fLI500Q3KAxhO0P2SXliVDyPflcfG6m0z8cKA3", 
+    "DeviceName": "Jetson Nano 1",
+    "ModelPath": "../models/best512.engine",
     "ServerAPI": "http://innhabit.dk/api/v1/",
+    "ServerApiKey": "inn-erYTaYab1THd6Wc1-CkZkeAJHYOk4Yi0JGWj5Wtl4CTMArQLY2KvHwBBmt4vnOiIgE9hD0qodfzfV78Lj",
     "ServerEntryEndpoint": "/entries",
     "ServerExitEndpoint": "/exits",
-    "EntranceZone": {
-        "zone1": [400, 0, 1000, 200]
-    }
+    "entry_box": [
+        355,
+        0,
+        1090,
+        242
+    ]
 }
-        //"zone1": [400, 0, 1000, 200]

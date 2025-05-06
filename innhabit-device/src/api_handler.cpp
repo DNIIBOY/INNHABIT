@@ -9,7 +9,7 @@ ApiHandler::ApiHandler(std::shared_ptr<Configuration> config)
     : base_url_(config->getServerApi()), api_key_(config->getServerApiKey()), 
       curl_(nullptr), should_exit_(false), failed_event_(false) {
     initialize();
-    loadFailedEventsFromDisk();  // Load any previously failed events
+    loadFailedEventsFromDisk();
 }
 
 ApiHandler::~ApiHandler() {
@@ -89,6 +89,8 @@ void ApiHandler::processSingleEvent(const ApiEvent& event) {
             response = sendPostRequest("events/exits/", request_data);
         } else if (event.event_type == "entered") {
             response = sendPostRequest("events/entries/", request_data);
+        } else if (event.event_type == "exited") {
+            response = sendPostRequest("events/exits/", request_data);
         } else {
             ERROR("ApiHandler: Unknown event type: " << event.event_type);
             return;
@@ -97,8 +99,6 @@ void ApiHandler::processSingleEvent(const ApiEvent& event) {
         if (response.is_null() || response.empty()) {
             ERROR("Empty or null response from server");
             saveFailedEventsToDisk(event);  // Save on failure
-        } else {
-            LOG("API response success: " << response.dump());
         }
     } catch (const std::exception& e) {
         ERROR("Error sending event to server: " << e.what());

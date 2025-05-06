@@ -14,14 +14,14 @@ DevicePoller::DevicePoller(const std::string& apiUrl,
     std::shared_ptr<Configuration> config,
     int pollIntervalSeconds)
 : m_apiUrl(apiUrl), m_apiKey(apiKey), m_shouldExit(shouldExit),
-m_frameQueue(frameQueue), m_frameMutex(frameMutex), m_frameCV(frameCV),
-m_apiHandler(apiHandler), m_config(config), m_pollIntervalSeconds(pollIntervalSeconds),
-m_curl(nullptr) {
-curl_global_init(CURL_GLOBAL_ALL);
-m_curl = curl_easy_init();
-if (!m_curl) {
-throw std::runtime_error("CURL initialization failed in DevicePoller");
-}
+  m_frameQueue(frameQueue), m_frameMutex(frameMutex), m_frameCV(frameCV),
+  m_apiHandler(apiHandler), m_config(config), m_pollIntervalSeconds(pollIntervalSeconds),
+  m_curl(nullptr) {
+    curl_global_init(CURL_GLOBAL_ALL);
+    m_curl = curl_easy_init();
+    if (!m_curl) {
+        throw std::runtime_error("CURL initialization failed in DevicePoller");
+    }
 }
 
 DevicePoller::~DevicePoller() {
@@ -70,6 +70,8 @@ void DevicePoller::pollServer() {
                         json settings = sendGetRequest("device/settings/");
                         if (!settings.is_null() && !settings.empty()) {
                             m_config->updateFromJson(settings);
+                            m_config->saveToFile("../settings.json");
+                            LOG("Settings saved to file");
                             LOG("Settings updated successfully: " << settings.dump());
                         } else {
                             ERROR("Failed to fetch new settings from API");
