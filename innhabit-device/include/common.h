@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include "detector.h"
+#include <tracker/zone_type.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -41,16 +41,6 @@ static const char* const COCO_LABELS[80] = {
     "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
     "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
     "toothbrush"
-};
-
-/**
- * @brief Represents a rectangular bounding box zone.
- *
- * This struct is used to define an area with top-left (x1, y1) and bottom-right (x2, y2) coordinates.
- */
-struct BoxZone {
-    int x1, y1; ///< Top-left corner coordinates
-    int x2, y2; ///< Bottom-right corner coordinates
 };
 
 // Include the new Configuration class

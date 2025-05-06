@@ -6,7 +6,7 @@
 #include <ctime>  // For std::strftime
 
 ApiHandler::ApiHandler(std::shared_ptr<Configuration> config) 
-    : base_url_(config->getServerApi()), api_key_(config->getServerApiKey()), 
+    : base_url_(config->GetServerApi()), api_key_(config->GetServerApiKey()), 
       curl_(nullptr), should_exit_(false), failed_event_(false) {
     initialize();
     loadFailedEventsFromDisk();

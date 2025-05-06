@@ -1,6 +1,6 @@
 #include "api_handler.h"
 #include "detector.h"
-#include "tracker.h"
+#include <tracker/people_tracker.h>
 #include "common.h"
 #include "cameraThread.h"
 #include "detectionThread.h"
@@ -27,7 +27,7 @@ std::condition_variable displayCV;
 std::atomic<bool> shouldExit(false);
 std::unique_ptr<ApiHandler> apiHandler;
 
-void movementEventCallback(const TrackedPerson& person, const std::string& eventType) {
+void movementEventCallback(const tracker::TrackedPerson& person, const std::string& eventType) {
     if (apiHandler) {
         apiHandler->onPersonEvent(eventType);
         //std::cout << "[INFO] Movement event: " << eventType << std::endl;
@@ -43,15 +43,15 @@ void printUsage(const char* progName) {
 }
 
 int main(int argc, char** argv) {
-    auto config = Configuration::loadFromFile("../settings.json");
+    auto config = Configuration::LoadFromFile("../settings.json");
 
-    PeopleTracker tracker(config, 10, 120.0f, 0.1f, 0.9f);
-    tracker.setMovementCallback(movementEventCallback);
+    tracker::PeopleTracker tracker(config);
+    tracker.set_movement_callback(movementEventCallback);
     
     apiHandler.reset(new ApiHandler(config));
     apiHandler->start();
     
-    GenericDetector* detector = createDetector(config->getModelPath(), {"person"});
+    GenericDetector* detector = createDetector(config->GetModelPath(), {"person"});
     if (!detector) {
         std::cerr << "Error: Failed to initialize detector." << std::endl;
         return -1;
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                                 displayQueue, displayMutex, displayCV, 
                                 shouldExit, MAX_QUEUE_SIZE);
-    DevicePoller poller(config->getServerApi(), config->getServerApiKey(), shouldExit, 
+    DevicePoller poller(config->GetServerApi(), config->GetServerApiKey(), shouldExit, 
                         frameQueue, frameMutex, frameCV, apiHandler.get(), config, 60);
     DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
     //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
