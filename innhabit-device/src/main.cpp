@@ -98,10 +98,10 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    //std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
-    //LOG("Attempting to open pipeline: " << pipeline);
-    //cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
-    cv::VideoCapture cap("../Indgang A.mp4"); // Open default camera (0)
+    std::string pipeline = "nvarguscamerasrc sensor-id=0 exposurecompensation=-1 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    LOG("Attempting to open pipeline: " << pipeline);
+    cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    //v::VideoCapture cap("../Indgang A.mp4"); // Open default camera (0)
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open camera" << std::endl;
         return -1;
