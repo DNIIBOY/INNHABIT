@@ -4,12 +4,10 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include <string>
-#include <cmath>
+#include <functional>
 #include "detector.h"
 #include "common.h"
-
-using namespace cv;
-using namespace std;
+#include "configuration.h"
 
 /**
  * @struct Position
@@ -53,7 +51,7 @@ public:
     float confidence; ///< Confidence score of the detection (0.0 - 1.0).
     bool fromTop; ///< Whether the person initially appeared in the top part of the image.
     bool fromBottom; ///< Whether the person initially appeared in the bottom part of the image.
-    bool wasInZone; ///< Whether the person was last seen in an entrance zone.
+    bool wasInZone; ///< Whether the person is currently or was in any entrance zone.
     bool spawnedInZone; ///< Whether the person initially appeared in an entrance zone.
 
     /**
@@ -68,67 +66,32 @@ public:
      * @param boxSize Initial size of the tracking box.
      * @param conf Confidence score.
      * @param frameHeight Height of the frame.
-     * @param entranceZones List of entrance zones.
+     * @param entranceZones The list of entrance zones.
      */
     TrackedPerson(int id, Position position, BoxSize boxSize, float conf, int frameHeight, 
-                  const std::vector<BoxZone>& entranceZones){
-        this->id = id;
-        this->classId = "person";
-        this->update(position, boxSize, conf);
-        this->color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
-        
-        int topY = position.y - boxSize.height / 2;
-        int bottomY = position.y + boxSize.height / 2;
-        this->fromTop = topY < frameHeight * 0.1;
-        this->fromBottom = bottomY > frameHeight * 0.9;
-        this->wasInZone = false;
-        this->spawnedInZone = false;
-        // Check if the initial position is inside any entrance zone
-        for (const auto& zone : entranceZones) {
-            if (isInsideBox(position, zone)) {
-                this->spawnedInZone = true;
-                this->wasInZone = true;
-                break;
-            }
-        }
-    }
+                  const std::vector<BoxZone>& entranceZones);
+
     /**
      * @brief Updates the tracked person with new position, box size, and confidence.
      * @param position Updated position.
      * @param boxSize Updated box size.
      * @param conf Updated confidence score.
+     * @param entranceZones The list of entrance zones.
      */
-    void update(Position position, BoxSize boxSize, float conf) {
-            this->pos = position;
-            this->size = boxSize;
-            this->history.push_back(position);
-            if (this->history.size() > 30) {
-                this->history.erase(this->history.begin());
-            }
-            this->missingFrames = 0;
-            this->confidence = conf;
-            // Note: wasInZone is not updated here; it’s updated in detectMovements
-        }
+    void update(Position position, BoxSize boxSize, float conf, const std::vector<BoxZone>& entranceZones);
 
     /**
      * @brief Gets the bounding box from the current position and size.
      * @return The bounding box as a cv::Rect.
      */
-    cv::Rect getBoundingBox() const {
-            return cv::Rect(
-                pos.x - size.width / 2,
-                pos.y - size.height / 2,
-                size.width,
-                size.height
-            );
-        }
+    cv::Rect getBoundingBox() const;
 };
 
 /**
  * @typedef MovementCallback
  * @brief Callback function type for movement events.
  */
-typedef void (*MovementCallback)(const TrackedPerson&, const std::string&);
+using MovementCallback = std::function<void(const TrackedPerson&, const std::string&)>;
 
 /**
  * @class PeopleTracker
@@ -144,8 +107,9 @@ public:
      * @param topThreshold Threshold for detecting movement from the top.
      * @param bottomThreshold Threshold for detecting movement from the bottom.
      */
-    PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames_ = 10, float maxDistance_ = 120.0f, 
-                  float topThreshold_ = 0.1f, float bottomThreshold_ = 0.9f);
+    PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames = 10, 
+                  float maxDistance = 120.0f, float topThreshold = 0.1f, 
+                  float bottomThreshold = 0.9f);
 
     /**
      * @brief Updates the tracker with new detections.
@@ -173,19 +137,20 @@ public:
     void setMovementCallback(MovementCallback callback);
 
     /**
-     * @brief Sets the entrance zones for detecting movements.
-     * @param zones A vector of entrance zones.
+     * @brief Sets the entrance zones.
+     * @param zones The list of entrance zones.
      */
     void setEntranceZones(const std::vector<BoxZone>& zones);
 
 private:
     std::vector<TrackedPerson> people; ///< List of currently tracked people.
+    std::shared_ptr<Configuration> m_config; ///< Configuration object.
+    std::vector<BoxZone> entranceZones; ///< List of entrance zones.
     int nextId; ///< ID counter for new tracked persons.
     int maxMissingFrames; ///< Maximum number of frames before a person is removed.
     float maxDistance; ///< Maximum allowable movement distance for matching.
     float topThreshold; ///< Threshold for movement from the top of the frame.
     float bottomThreshold; ///< Threshold for movement from the bottom of the frame.
-    std::vector<BoxZone> entranceZones; ///< Entrance zones for tracking entry/exit events.
     MovementCallback movementCallback; ///< Callback function for movement events.
 
     /**
@@ -194,7 +159,7 @@ private:
      * @param frameHeight The height of the frame.
      * @param PersonRemoved Flag indicating if the person was removed.
      */
-    void detectMovements(const TrackedPerson& person, int frameHeight, bool PersonRemoved = false);
+    void detectMovements(TrackedPerson& person, int frameHeight, bool PersonRemoved = false);
 };
 
 #endif // TRACKER_H

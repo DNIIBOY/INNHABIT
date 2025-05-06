@@ -3,37 +3,20 @@
 #include <iostream>
 #include <cmath>
 
-using namespace cv;
-using namespace std;
-
-PeopleTracker::PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames_, 
-    float maxDistance_, float topThreshold_, float bottomThreshold_)
-: nextId(0), maxMissingFrames(maxMissingFrames_), maxDistance(maxDistance_),
-topThreshold(topThreshold_), bottomThreshold(bottomThreshold_), // Fix typo if needed
-movementCallback(nullptr) {
-entranceZones = config->getEntranceZones();
-}
-
-void PeopleTracker::setEntranceZones(const std::vector<BoxZone>& zones) {
-    entranceZones = zones;
-}
-
 bool isInsideBox(const Position& pos, const BoxZone& zone) {
     return (pos.x >= zone.x1 && pos.x <= zone.x2 && 
             pos.y >= zone.y1 && pos.y <= zone.y2);
 }
 
-bool intersectionOverArea(const BoxZone& personZone, const BoxZone& entryExitZone, const float isInsideBoxThreshold) {
-    int x_left = std::max(personZone.x1, entryExitZone.x1);
-    int y_top = std::max(personZone.y1, entryExitZone.y1);
-    int x_right = std::min(personZone.x2, entryExitZone.x2);
-    int y_btm = std::min(personZone.y2, entryExitZone.y2);
+bool intersectionOverArea(const BoxZone& personZone, const BoxZone& entryZone, const float isInsideBoxThreshold) {
+    int x_left = std::max(personZone.x1, entryZone.x1);
+    int y_top = std::max(personZone.y1, entryZone.y1);
+    int x_right = std::min(personZone.x2, entryZone.x2);
+    int y_btm = std::min(personZone.y2, entryZone.y2);
 
-    //check if there is any overlap
     if (x_right < x_left || y_btm < y_top) {
         return false;
     }
-
 
     int intersectionArea = (x_right - x_left) * (y_btm - y_top);
     int personArea = (personZone.x2 - personZone.x1) * (personZone.y2 - personZone.y1);
@@ -51,23 +34,99 @@ float computeIoU(const cv::Rect& box1, const cv::Rect& box2) {
     int intersectionArea = std::max(0, xB - xA) * std::max(0, yB - yA);
     int unionArea = box1.area() + box2.area() - intersectionArea;
 
-    return unionArea > 0 ? (float)intersectionArea / unionArea : 0.0f;
+    return unionArea > 0 ? static_cast<float>(intersectionArea) / unionArea : 0.0f;
 }
 
+TrackedPerson::TrackedPerson() : id(0), classId(""), missingFrames(0), confidence(0.0f), 
+                                fromTop(false), fromBottom(false), wasInZone(false), 
+                                spawnedInZone(false) {}
+
+TrackedPerson::TrackedPerson(int id, Position position, BoxSize boxSize, float conf, 
+                             int frameHeight, const std::vector<BoxZone>& entranceZones)
+    : id(id), classId("person"), missingFrames(0), confidence(conf), 
+      fromTop(false), fromBottom(false), wasInZone(false), spawnedInZone(false) {
+    update(position, boxSize, conf, entranceZones);
+    color = cv::Scalar(rand() % 255, rand() % 255, rand() % 255);
+    
+    int topY = position.y - boxSize.height / 2;
+    int bottomY = position.y + boxSize.height / 2;
+    fromTop = topY < frameHeight * 0.1;
+    fromBottom = bottomY > frameHeight * 0.9;
+
+    for (const auto& zone : entranceZones) {
+        if (isInsideBox(position, zone)) {
+            spawnedInZone = true;
+            wasInZone = true;
+            break;
+        }
+    }
+}
+
+void TrackedPerson::update(Position position, BoxSize boxSize, float conf, 
+                           const std::vector<BoxZone>& entranceZones) {
+    pos = position;
+    size = boxSize;
+    history.push_back(position);
+    if (history.size() > 30) {
+        history.erase(history.begin());
+    }
+    missingFrames = 0;
+    confidence = conf;
+    bool inAnyZone = false;
+    for (const auto& zone : entranceZones) {
+        if (isInsideBox(position, zone)) {
+            inAnyZone = true;
+            wasInZone = true;
+            break;
+        }
+    }
+    if (!inAnyZone && !spawnedInZone) {
+        wasInZone = false;
+    }
+}
+
+cv::Rect TrackedPerson::getBoundingBox() const {
+    return cv::Rect(pos.x - size.width / 2, pos.y - size.height / 2, size.width, size.height);
+}
+
+PeopleTracker::PeopleTracker(std::shared_ptr<Configuration> config, int maxMissingFrames, 
+                            float maxDistance, float topThreshold, float bottomThreshold)
+    : nextId(0), maxMissingFrames(maxMissingFrames), maxDistance(maxDistance),
+      topThreshold(topThreshold), bottomThreshold(bottomThreshold), movementCallback(nullptr) {
+    m_config = config;
+    entranceZones = config->getEntranceZones();
+
+    // Log entrance zones for debugging
+    LOG("Entrance zones: " << (entranceZones.empty() ? "None" : ""));
+    for (size_t i = 0; i < entranceZones.size(); ++i) {
+        LOG("Zone " << i << ": (x1=" << entranceZones[i].x1 << ", y1=" << entranceZones[i].y1 
+            << ", x2=" << entranceZones[i].x2 << ", y2=" << entranceZones[i].y2 << ")");
+    }
+    if (entranceZones.empty()) {
+        ERROR("No entrance zones configured");
+    }
+}
+
+void PeopleTracker::setEntranceZones(const std::vector<BoxZone>& zones) {
+    entranceZones = zones;
+}
 
 void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int frameHeight) {
+    if (entranceZones.empty()) {
+        ERROR("Cannot update tracker: no entrance zones configured");
+        return;
+    }
+
     std::vector<Detection> highConfDetections;
     std::vector<Detection> lowConfDetections;
     std::vector<bool> trackMatched(people.size(), false);
     std::vector<bool> detMatched(filteredDetections.size(), false);
 
-    // ByteTrack parameters
     const float confThresholdHigh = 0.6f;
     const float confThresholdLow = 0.2f;
     const float iouThresholdHigh = 0.3f;
     const float iouThresholdLow = 0.4f;
 
-    // Separate high and low-confidence detections
     for (size_t i = 0; i < filteredDetections.size(); ++i) {
         if (filteredDetections[i].confidence > confThresholdHigh) {
             highConfDetections.push_back(filteredDetections[i]);
@@ -76,7 +135,6 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
         }
     }
 
-    // Step 1: Match high-confidence detections to existing tracks
     for (size_t t = 0; t < people.size(); ++t) {
         float highestIoU = 0.0;
         int bestDetIdx = -1;
@@ -99,14 +157,13 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
                 highConfDetections[bestDetIdx].bounding_box.width,
                 highConfDetections[bestDetIdx].bounding_box.height
             };
-            people[t].update(pos, size, highConfDetections[bestDetIdx].confidence);
+            people[t].update(pos, size, highConfDetections[bestDetIdx].confidence, entranceZones);
             trackMatched[t] = true;
             detMatched[bestDetIdx] = true;
             detectMovements(people[t], frameHeight);
         }
     }
 
-    // Step 2: Match unmatched tracks to low-confidence detections
     for (size_t t = 0; t < people.size(); ++t) {
         if (trackMatched[t]) continue;
 
@@ -131,14 +188,13 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
                 lowConfDetections[bestDetIdx].bounding_box.width,
                 lowConfDetections[bestDetIdx].bounding_box.height
             };
-            people[t].update(pos, size, lowConfDetections[bestDetIdx].confidence);
+            people[t].update(pos, size, lowConfDetections[bestDetIdx].confidence, entranceZones);
             trackMatched[t] = true;
             detMatched[bestDetIdx + highConfDetections.size()] = true;
             detectMovements(people[t], frameHeight);
         }
     }
 
-    // Step 3: Update missing frames and remove old tracks
     std::vector<TrackedPerson> newPeople;
     for (size_t t = 0; t < people.size(); ++t) {
         if (!trackMatched[t]) {
@@ -146,14 +202,13 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
             if (people[t].missingFrames < maxMissingFrames) {
                 newPeople.push_back(people[t]);
             } else {
-                detectMovements(people[t], frameHeight, true);  // Check movement before removal
+                detectMovements(people[t], frameHeight, true);
             }
         } else {
             newPeople.push_back(people[t]);
         }
     }
 
-    // Step 4: Add new tracks for unmatched high-confidence detections
     for (size_t d = 0; d < highConfDetections.size(); ++d) {
         if (!detMatched[d]) {
             Position pos = {
@@ -164,15 +219,17 @@ void PeopleTracker::update(const std::vector<Detection>& filteredDetections, int
                 highConfDetections[d].bounding_box.width,
                 highConfDetections[d].bounding_box.height
             };
-            TrackedPerson newPerson(nextId++, pos, size, highConfDetections[d].confidence, frameHeight, entranceZones);
+            TrackedPerson newPerson(nextId++, pos, size, highConfDetections[d].confidence, 
+                                   frameHeight, entranceZones);
             newPeople.push_back(newPerson);
+            detectMovements(newPerson, frameHeight);
         }
     }
 
     people = newPeople;
 }
 
-void PeopleTracker::detectMovements(const TrackedPerson& person, int frameHeight, bool PersonRemoved) {
+void PeopleTracker::detectMovements(TrackedPerson& person, int frameHeight, bool PersonRemoved) {
     if (person.history.size() < 2 || !movementCallback) {
         return;
     }
@@ -180,34 +237,27 @@ void PeopleTracker::detectMovements(const TrackedPerson& person, int frameHeight
     const Position& prevPos = person.history[person.history.size() - 2];
     const Position& currPos = person.history.back();
 
-    // Create a mutable copy of the person to update wasInZone
-    TrackedPerson& mutablePerson = const_cast<TrackedPerson&>(person);
-
     for (size_t i = 0; i < entranceZones.size(); ++i) {
         bool prevInZone = isInsideBox(prevPos, entranceZones[i]);
         bool currInZone = isInsideBox(currPos, entranceZones[i]);
 
-        // Update wasInZone based on current position
         if (currInZone) {
-            mutablePerson.wasInZone = true;
+            person.wasInZone = true;
         }
 
-        // Entry event: Person spawned in zone and moved out
         if (person.spawnedInZone && !currInZone && PersonRemoved) {
-            movementCallback(mutablePerson, "entered");
-            mutablePerson.wasInZone = false; // Reset after event
+            movementCallback(person, "entered");
+            person.wasInZone = false;
             return;
         }
 
-        // Exit event: Person is removed while in zone
-        if (PersonRemoved && mutablePerson.wasInZone && prevInZone) {
-            movementCallback(mutablePerson, "exited");
-            mutablePerson.wasInZone = false;
+        if (PersonRemoved && person.wasInZone && prevInZone) {
+            movementCallback(person, "exited");
+            person.wasInZone = false;
             return;
         }
     }
 
-    // If not in any zone currently and wasn't spawned in a zone, reset wasInZone
     bool inAnyZone = false;
     for (const auto& zone : entranceZones) {
         if (isInsideBox(currPos, zone)) {
@@ -216,24 +266,36 @@ void PeopleTracker::detectMovements(const TrackedPerson& person, int frameHeight
         }
     }
     if (!inAnyZone && !person.spawnedInZone) {
-        mutablePerson.wasInZone = false;
+        person.wasInZone = false;
     }
 }
 
 void PeopleTracker::draw(cv::Mat& frame) {
+    if (entranceZones.empty()) {
+        ERROR("Cannot draw: no entrance zones configured");
+        return;
+    }
+
+    for (size_t i = 0; i < entranceZones.size(); ++i) {
+        const auto& zone = entranceZones[i];
+        cv::rectangle(frame, cv::Point(zone.x1, zone.y1), cv::Point(zone.x2, zone.y2),
+                      cv::Scalar(0, 255 - (i * 50 % 255), i * 50 % 255), 2);
+        cv::putText(frame, "Zone " + std::to_string(i), cv::Point(zone.x1, zone.y1 - 10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255 - (i * 50 % 255), i * 50 % 255), 2);
+    }
+
     for (const auto& person : people) {
         cv::Rect bbox = person.getBoundingBox();
         cv::rectangle(frame, bbox, person.color, 2);
 
-        // Include confidence in the label
-        string label = "ID: " + to_string(person.id) + " Conf: " + to_string(person.confidence);
+        std::string label = "ID: " + std::to_string(person.id) + " Conf: " + std::to_string(person.confidence);
         if (person.wasInZone) {
             label += " (In Zone)";
         }
         if (person.spawnedInZone) {
             label += " (Spawned in Zone)";
         }
-        int y = max(bbox.y - 10, 15);
+        int y = std::max(bbox.y - 10, 15);
         cv::putText(frame, label, cv::Point(bbox.x, y), cv::FONT_HERSHEY_SIMPLEX, 0.5, person.color, 2);
 
         if (person.history.size() > 1) {
@@ -241,20 +303,13 @@ void PeopleTracker::draw(cv::Mat& frame) {
                 float alpha = static_cast<float>(i) / person.history.size();
                 cv::Scalar trailColor = person.color * alpha;
                 cv::line(frame, cv::Point(person.history[i-1].x, person.history[i-1].y),
-                        cv::Point(person.history[i].x, person.history[i].y), trailColor, 1);
+                         cv::Point(person.history[i].x, person.history[i].y), trailColor, 1);
                 cv::circle(frame, cv::Point(person.history[i].x, person.history[i].y), 2, trailColor, -1);
             }
         }
     }
-
-    for (size_t i = 0; i < entranceZones.size(); ++i) {
-        const auto& zone = entranceZones[i];
-        cv::rectangle(frame, cv::Point(zone.x1, zone.y1), cv::Point(zone.x2, zone.y2),
-                     cv::Scalar(0, 255 - (i * 50 % 255), i * 50 % 255), 2);
-        cv::putText(frame, "Zone " + to_string(i), cv::Point(zone.x1, zone.y1 - 10),
-                   cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255 - (i * 50 % 255), i * 50 % 255), 2);
-    }
 }
+
 const std::vector<TrackedPerson>& PeopleTracker::getTrackedPeople() const {
     return people;
 }
