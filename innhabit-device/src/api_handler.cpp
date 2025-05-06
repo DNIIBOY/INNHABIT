@@ -85,9 +85,9 @@ void ApiHandler::processSingleEvent(const ApiEvent& event) {
         };
         
         json response;
-        if (event.event_type == "entered") {
+        if (event.event_type == "exited") {
             response = sendPostRequest("events/exits/", request_data);
-        } else if (event.event_type == "exited") {
+        } else if (event.event_type == "entered") {
             response = sendPostRequest("events/entries/", request_data);
         } else {
             ERROR("ApiHandler: Unknown event type: " << event.event_type);
@@ -119,9 +119,9 @@ void ApiHandler::processRemainingEvents() {
                 {"entrance", 1}
             };
             
-            if (event.event_type == "entered") {
+            if (event.event_type == "exited") {
                 sendPostRequest("events/exits/", request_data);
-            } else if (event.event_type == "exited") {
+            } else if (event.event_type == "entered") {
                 sendPostRequest("events/entries/", request_data);
             }
         } catch (...) {
