@@ -118,19 +118,19 @@ int main(int argc, char** argv) {
                               shouldExit, MAX_QUEUE_SIZE);
     DevicePoller poller(config->getServerApi(), config->getServerApiKey(), shouldExit, 
                         frameQueue, frameMutex, frameCV, apiHandler.get(), config, 60); // Poll every 5 seconds
-    //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
+    RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
     DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
 
     capturer.start(cap);
     processor.start(detector, tracker);
-    //streamManager.start();  // Updated variable name
-    display.start();
+    streamManager.start();  // Updated variable name
+    //display.start();
     poller.start();
     // Wait for threads to complete
     capturer.join();
     processor.join();
-    //streamManager.join();  // Updated variable name
-    display.join();
+    streamManager.join();  // Updated variable name
+    //display.join();
     poller.join();
     // Properly shutdown the API handler
     apiHandler->shutdown();
