@@ -8,7 +8,7 @@
 #include <atomic>
 #include <thread>
 #include "detector.h"
-#include "tracker.h"
+#include "tracker/people_tracker.h"
 
 /**
  * @class DetectionProcessor
@@ -50,7 +50,7 @@ public:
      * @param detector A pointer to the GenericDetector used for detecting objects in the frames.
      * @param tracker A reference to the PeopleTracker used for tracking detected people.
      */
-    void start(GenericDetector* detector, PeopleTracker& tracker);
+    void start(GenericDetector* detector, tracker::PeopleTracker& tracker);
 
     /**
      * @brief Joins the processing thread.
@@ -69,7 +69,7 @@ private:
      * @param detector A pointer to the GenericDetector used for detecting objects in the frames.
      * @param tracker A reference to the PeopleTracker used for tracking detected people.
      */
-    void processFrames(GenericDetector* detector, PeopleTracker& tracker);
+    void processFrames(GenericDetector* detector, tracker::PeopleTracker& tracker);
 
     std::queue<cv::Mat>& m_frameQueue; ///< A reference to the queue containing the frames to be processed.
     std::mutex& m_frameMutex; ///< A reference to the mutex protecting the frame queue.

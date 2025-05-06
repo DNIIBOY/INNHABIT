@@ -18,7 +18,7 @@ DetectionProcessor::DetectionProcessor(std::queue<cv::Mat>& frameQueue,
       m_maxQueueSize(maxQueueSize) {
 }
 
-void DetectionProcessor::start(GenericDetector* detector, PeopleTracker& tracker) {
+void DetectionProcessor::start(GenericDetector* detector, tracker::PeopleTracker& tracker) {
     m_thread = std::thread(&DetectionProcessor::processFrames, this, detector, std::ref(tracker));
 }
 
@@ -28,7 +28,7 @@ void DetectionProcessor::join() {
     }
 }
 
-void DetectionProcessor::processFrames(GenericDetector* detector, PeopleTracker& tracker) {
+void DetectionProcessor::processFrames(GenericDetector* detector, tracker::PeopleTracker& tracker) {
     while (!m_shouldExit) {
         cv::Mat frame;
         {

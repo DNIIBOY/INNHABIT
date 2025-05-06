@@ -69,8 +69,8 @@ void DevicePoller::pollServer() {
                         LOG("Received update_settings command from server");
                         json settings = sendGetRequest("device/settings/");
                         if (!settings.is_null() && !settings.empty()) {
-                            m_config->updateFromJson(settings);
-                            m_config->saveToFile("../settings.json");
+                            m_config->UpdateFromJson(settings);
+                            m_config->SaveToFile("../settings.json");
                             LOG("Settings saved to file");
                             LOG("Settings updated successfully: " << settings.dump());
                         } else {

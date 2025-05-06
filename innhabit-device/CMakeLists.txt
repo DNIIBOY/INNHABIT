@@ -3,6 +3,7 @@ project(ObjectDetection)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
 # Find OpenCV (ensure CUDA support is enabled)
 find_package(OpenCV REQUIRED)
@@ -19,7 +20,7 @@ include_directories(${OpenCV_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${CMAKE_SOURCE_D
 # Options for platform support
 option(USE_CUDA "Enable CUDA support for Jetson" OFF)
 option(USE_RKNN "Enable RKNN support for RK3588" OFF)
-option(USE_TENSORRT "Enable TensorRT support" OFF)
+option(USE_TENSORRT "Enable TensorRT support" ON)  # Assuming TensorRT is needed
 
 # Enable debug output in Debug mode
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -53,27 +54,28 @@ endif()
 if(USE_TENSORRT)
     add_definitions(-DUSE_TENSORRT)
     find_library(TENSORRT_LIBRARY nvinfer PATHS /usr/lib /usr/local/lib)
-    if(NOT TENSORRT_LIBRARY)
-        message(FATAL_ERROR "TensorRT library (libnvinfer.so) not found! Please install it.")
-    endif()
     find_library(TENSORRT_ONNX_LIBRARY nvonnxparser PATHS /usr/lib /usr/local/lib)
-    if(NOT TENSORRT_ONNX_LIBRARY)
-        message(FATAL_ERROR "TensorRT ONNX parser library (libnvonnxparser.so) not found! Please install it.")
+    find_library(TENSORRT_PLUGIN_LIBRARY nvinfer_plugin PATHS /usr/lib /usr/local/lib)
+    if(NOT TENSORRT_LIBRARY OR NOT TENSORRT_ONNX_LIBRARY OR NOT TENSORRT_PLUGIN_LIBRARY)
+        message(FATAL_ERROR "TensorRT libraries (libnvinfer.so, libnvonnxparser.so, libnvinfer_plugin.so) not found!")
     endif()
-    include_directories(/usr/include/x86_64-linux-gnu)  # Adjust if TensorRT headers are elsewhere
+    include_directories(/usr/include/x86_64-linux-gnu)
 endif()
 
 # Define common source files
-set(COMMON_SOURCES
-    src/main.cpp
-    src/detector.cpp
-    src/tracker.cpp
-    src/api_handler.cpp
-    src/cameraThread.cpp
-    src/displayThread.cpp
-    src/detectionThread.cpp
-    src/rtspStreamManager.cpp
-    src/devicePoll.cpp
+set(SOURCES
+    src/core/main.cpp
+    src/core/api_handler.cpp
+    src/core/cameraThread.cpp
+    src/core/detectionThread.cpp
+    src/core/detector.cpp
+    src/core/devicePoll.cpp
+    src/core/displayThread.cpp
+    src/core/rtspStreamManager.cpp
+    src/core/configuration.cpp
+    src/tracker/person_tracker.cpp
+    src/tracker/tracked_person.cpp
+    src/tracker/utils.cpp
 )
 
 # Define platform-specific source files
@@ -86,11 +88,10 @@ if(USE_CUDA)
 endif()
 if(USE_TENSORRT)
     list(APPEND PLATFORM_SOURCES src/platforms/tensorrt/tensorrt.cpp)
-    # Add CUDA kernel source file
     set(CUDA_KERNEL_SOURCES src/platforms/tensorrt/preprocess.cu)
 endif()
 if(NOT USE_CUDA AND NOT USE_RKNN AND NOT USE_TENSORRT)
-    list(APPEND PLATFORM_SOURCES src/platforms/cpu/cpu.cpp)  # Default to CPU
+    list(APPEND PLATFORM_SOURCES src/platforms/cpu/cpu.cpp)
 endif()
 
 # Compile CUDA kernels if TensorRT is enabled
@@ -103,10 +104,7 @@ if(USE_TENSORRT)
 endif()
 
 # Add executable
-add_executable(object_detection
-    ${COMMON_SOURCES}
-    ${PLATFORM_SOURCES}
-)
+add_executable(object_detection ${SOURCES} ${PLATFORM_SOURCES})
 
 # Link libraries
 target_link_libraries(object_detection PRIVATE 
@@ -130,7 +128,8 @@ if(USE_TENSORRT)
     target_link_libraries(object_detection PRIVATE 
         ${TENSORRT_LIBRARY}
         ${TENSORRT_ONNX_LIBRARY}
-        cuda_kernels  # Link the CUDA kernels library
+        ${TENSORRT_PLUGIN_LIBRARY}
+        cuda_kernels
     )
 endif()
 
