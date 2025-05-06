@@ -97,7 +97,6 @@ int main(int argc, char** argv) {
         std::cerr << "Error: Failed to initialize detector." << std::endl;
         return -1;
     }
-
     std::string pipeline = "nvarguscamerasrc sensor-id=0 exposurecompensation=-1 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
     LOG("Attempting to open pipeline: " << pipeline);
     cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
@@ -119,7 +118,7 @@ int main(int argc, char** argv) {
     DevicePoller poller(config->getServerApi(), config->getServerApiKey(), shouldExit, 
                         frameQueue, frameMutex, frameCV, apiHandler.get(), config, 60); // Poll every 5 seconds
     RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
-    DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
+    //DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
 
     capturer.start(cap);
     processor.start(detector, tracker);
