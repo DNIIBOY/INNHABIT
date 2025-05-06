@@ -4,7 +4,7 @@ from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent, TestEntryEvent, TestExitEvent
 
-MAX_TIME_DIFF = 5  # Max between real event and test event
+MAX_TIME_DIFF = 12  # Max between real event and test event
 
 
 def map_events(
