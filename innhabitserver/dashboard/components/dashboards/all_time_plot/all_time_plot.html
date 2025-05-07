@@ -1,0 +1,23 @@
+{% load partials %}
+<div class="p-6 pb-0 flex justify-between">
+    <div class="flex w-full">
+        <div class="w-full">
+            <h5 class="text-3xl font-bold">Udvikling</h5>
+            <p class="w-full hidden lg:block text-xl">Aktivitet i bygningen over tid</p>
+        </div>
+    </div>
+</div>
+<div class="h-full px-4">
+        <canvas id="all-time-chart" class="block box-border w-full h-full"></canvas>
+</div>
+<div
+    hx-get="{% url 'all_time_plot' %}"
+    hx-trigger="every 1h"
+    hx-target="#all-time-json-element"
+    hx-swap="outerHTML"
+    hidden
+>
+    {% partialdef json_element inline %}
+    <div id="all-time-json-element" hidden data-json="{{ json_data }}"></div>
+    {% endpartialdef json_element %}
+</div>

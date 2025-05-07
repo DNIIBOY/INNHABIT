@@ -1,3 +1,4 @@
+from .all_time_plot.all_time_plot import AllTimePlot
 from .busiest_days.busiest_days import BusiestDays
 from .comparison_plot.comparison_plot import ComparisonPlot
 from .daily_visitors.daily_visitors import DailyVisitors
@@ -8,6 +9,7 @@ from .occupants.occupants import Occupants
 from .weekly_visitors.weekly_visitors import WeeklyVisitors
 
 __all__ = [
+    "AllTimePlot",
     "BusiestDays",
     "ComparisonPlot",
     "DailyVisitors",

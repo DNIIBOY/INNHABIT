@@ -49,9 +49,10 @@
 
     <div class="flex flex-wrap">
         <div class="w-full flex flex-col px-3 mb-6 lg:mb-0 lg:w-1/3">
-            {% if perms.occupancy.view_entryevent %}
-            {% component "card" %}
+        {% if perms.occupancy.view_entryevent %}
+        {% component "card" %}
         {% fill "content" %}
+        {% component "all_time_plot" %}{% endcomponent %}
         {% endfill %}
         {% endcomponent %}
         {% endif %}
