@@ -31,6 +31,8 @@ class Configuration : public std::enable_shared_from_this<Configuration> {
   static std::shared_ptr<Configuration> LoadFromFile(
       const std::string& config_file_path);
 
+  void UpdateFromApi(const nlohmann::json& json_data);
+
   // Updates configuration settings from a JSON object.
   // Args:
   //   json_data: JSON object containing new settings.

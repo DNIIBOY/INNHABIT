@@ -1,26 +1,26 @@
 {
-    "model_path": "../models/best512.engine",
-    "device_name": "Jetson Nano 1",
+    "custom": {},
     "device_location": "Indgang A",
+    "device_name": "Jetson Nano 1",
+    "model_path": "../models/best512.engine",
     "server_api": "http://innhabit.dk/api/v1/",
     "server_api_key": "inn-erYTaYab1THd6Wc1-CkZkeAJHYOk4Yi0JGWj5Wtl4CTMArQLY2KvHwBBmt4vnOiIgE9hD0qodfzfV78Lj",
     "server_entry_endpoint": "/entries",
     "server_exit_endpoint": "/exits",
     "zones": [
         {
-            "x1": 355,
-            "y1": 0,
+            "type": "ENTRY",
+            "x1": 333,
             "x2": 1092,
-            "y2": 266,
-            "type": "ENTRY"
+            "y1": 0,
+            "y2": 238
         },
         {
-            "x1": 115,
-            "y1": 565,
-            "x2": 1100,
-            "y2": 720,
-            "type": "EXIT"
+            "type": "EXIT",
+            "x1": 0,
+            "x2": 1280,
+            "y1": 485,
+            "y2": 720
         }
-    ],
-    "custom": {}
+    ]
 }
