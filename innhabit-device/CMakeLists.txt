@@ -20,7 +20,7 @@ include_directories(${OpenCV_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${CMAKE_SOURCE_D
 # Options for platform support
 option(USE_CUDA "Enable CUDA support for Jetson" OFF)
 option(USE_RKNN "Enable RKNN support for RK3588" OFF)
-option(USE_TENSORRT "Enable TensorRT support" ON)  # Assuming TensorRT is needed
+option(USE_TENSORRT "Enable TensorRT support" OFF)  # Assuming TensorRT is needed
 
 # Enable debug output in Debug mode
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -30,12 +30,9 @@ endif()
 
 # Platform-specific configurations
 if(USE_CUDA OR USE_TENSORRT)
-    find_package(CUDA REQUIRED)
-    if(NOT CUDA_FOUND)
-        message(FATAL_ERROR "CUDA is required for USE_CUDA or USE_TENSORRT but was not found!")
-    endif()
-    include_directories(${CUDA_INCLUDE_DIRS})
-    link_directories(${CUDA_LIBRARY_DIRS})
+    find_package(CUDAToolkit REQUIRED)
+    include_directories(${CUDAToolkit_INCLUDE_DIRS})
+    link_directories(${CUDAToolkit_LIBRARY_DIRS})
 endif()
 
 if(USE_CUDA)
@@ -73,7 +70,7 @@ set(SOURCES
     src/core/displayThread.cpp
     src/core/rtspStreamManager.cpp
     src/core/configuration.cpp
-    src/tracker/person_tracker.cpp
+    src/tracker/people_tracker.cpp
     src/tracker/tracked_person.cpp
     src/tracker/utils.cpp
 )
@@ -113,7 +110,7 @@ target_link_libraries(object_detection PRIVATE
 )
 
 if(USE_CUDA OR USE_TENSORRT)
-    find_library(CUDART_LIBRARY cudart HINTS ${CUDA_LIBRARY_DIRS} PATHS /usr/local/cuda/lib64)
+    find_library(CUDART_LIBRARY cudart HINTS ${CUDAToolkit_LIBRARY_DIRS} PATHS /usr/local/cuda/lib64)
     if(NOT CUDART_LIBRARY)
         message(FATAL_ERROR "CUDA runtime library (libcudart.so) not found!")
     endif()

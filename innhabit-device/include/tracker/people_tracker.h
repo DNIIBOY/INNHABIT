@@ -8,6 +8,7 @@
 #include "tracked_person.h"
 #include "zone_type.h"
 #include "configuration.h"
+#include "detector.h"
 
 namespace tracker {
 
@@ -28,12 +29,6 @@ public:
      * @param config Shared pointer to the configuration object.
      */
     explicit PeopleTracker(std::shared_ptr<Configuration> config);
-
-    /**
-     * @brief Destructor for people_tracker.
-     */
-    ~();
-
     /**
      * @brief Updates the tracker with new detections.
      * @param detections List of detected objects.
