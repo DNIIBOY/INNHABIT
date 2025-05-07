@@ -3,7 +3,9 @@
 #include <stdexcept>
 
 std::shared_ptr<Configuration> Configuration::GetInstance() {
-    static std::shared_ptr<Configuration> instance = std::make_shared<Configuration>();
+    // Create a static shared_ptr with a custom deleter to bypass the private constructor
+    static std::shared_ptr<Configuration> instance(new Configuration(), 
+        [](Configuration* p) { delete p; });
     return instance;
 }
 
@@ -28,8 +30,19 @@ void Configuration::LoadConfigFile(const std::string& config_file_path) {
     UpdateFromJson(json_data);
 }
 
+void Configuration::UpdateFromApi(const nlohmann::json& json_data) {
+    typed_zones_.clear();
+    for (const auto& [key, type] : {std::pair{"entry_box", tracker::ZoneType::ENTRY}, {"exit_box", tracker::ZoneType::EXIT}}) {
+        if (json_data.contains(key)) {
+            const auto& zone = json_data[key];
+            if (zone.is_array() && zone.size() == 4) {
+                typed_zones_.emplace_back(zone[0].get<int>(), zone[1].get<int>(), zone[2].get<int>(), zone[3].get<int>(), type);
+            }
+        }
+    }
+}
+
 void Configuration::UpdateFromJson(const nlohmann::json& json_data) {
-    std::unique_lock<std::shared_mutex> write_lock(mutex_);
     if (json_data.contains("model_path")) {
         model_path_ = json_data["model_path"].get<std::string>();
     }
@@ -58,9 +71,9 @@ void Configuration::UpdateFromJson(const nlohmann::json& json_data) {
             int y1 = zone["y1"].get<int>();
             int x2 = zone["x2"].get<int>();
             int y2 = zone["y2"].get<int>();
-            std::string type = zone["type"].get<std::string>();
-            tracker::ZoneType zone_type = type == "ENTRY" ? tracker::ZoneType::ENTRY : tracker::ZoneType::EXIT;
-            typed_zones_.emplace_back(x1, y1, x2, y2, zone_type);
+            std::string type_str = zone["type"].get<std::string>();
+            tracker::ZoneType type = (type_str == "ENTRY") ? tracker::ZoneType::ENTRY : tracker::ZoneType::EXIT;
+            typed_zones_.emplace_back(x1, y1, x2, y2, type);
         }
     }
     // Update config_data_ for custom key-value pairs
@@ -76,6 +89,13 @@ void Configuration::UpdateFromJson(const nlohmann::json& json_data) {
                 config_data_[key] = value.get<bool>();
             }
         }
+    }
+    // print saved zones
+    for (size_t i = 0; i < typed_zones_.size(); ++i) {
+        const auto& zone = typed_zones_[i];
+        LOG("Zone " << i << ": (x1=" << zone.zone.x1 << ", y1=" << zone.zone.y1
+            << ", x2=" << zone.zone.x2 << ", y2=" << zone.zone.y2
+            << ", type=" << zone.getTypeString() << ")");
     }
 }
 

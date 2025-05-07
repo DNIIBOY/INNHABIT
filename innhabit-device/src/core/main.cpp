@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
                                 displayQueue, displayMutex, displayCV, 
                                 shouldExit, MAX_QUEUE_SIZE);
     DevicePoller poller(config->GetServerApi(), config->GetServerApiKey(), shouldExit, 
-                        frameQueue, frameMutex, frameCV, apiHandler.get(), config, 60);
+                        frameQueue, frameMutex, frameCV, apiHandler.get(), config, 10);
     DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
     //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
     capturer.start(cap);

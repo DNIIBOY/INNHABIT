@@ -28,6 +28,7 @@ void PeopleTracker::set_access_zones(const std::vector<TypedZone>& zones) {
 }
 
 void PeopleTracker::update(const std::vector<Detection>& filtered_detections, int frame_height) {
+    set_access_zones(config_->GetTypedZones());
     if (access_zones_.empty()) {
         ERROR("Cannot update tracker: no access zones configured");
         return;
@@ -151,48 +152,19 @@ void PeopleTracker::update(const std::vector<Detection>& filtered_detections, in
 }
 
 void PeopleTracker::detect_movements(TrackedPerson& person, int frame_height, bool person_removed) {
-    if (person.postion_history_.size() < 2 || !movement_callback_) {
+    if (person.postion_history_.size() < 2) {
         return;
     }
+    // Check if the person is moving from exit zone to entry zone or vice versa
+    if (access_zones_.size() == 2) {
+        if(person.first_zone_type_ == ZoneType::ENTRY && person.last_zone_type_ == ZoneType::EXIT && person_removed) {
+            movement_callback_(person, "entered");
+            LOG("Person " << person.id_ << "entered the building");
+        } else if (person.first_zone_type_ == ZoneType::EXIT && person.last_zone_type_ == ZoneType::ENTRY && person_removed) {
+            movement_callback_(person, "exited");
+            LOG("Person " << person.id_ << "exited the building");
 
-    const Position& prev_pos = person.postion_history_[person.postion_history_.size() - 2];
-    const Position& curr_pos = person.postion_history_.back();
-
-    for (size_t i = 0; i < access_zones_.size(); ++i) {
-        bool prev_in_zone = isInsideZone(prev_pos, access_zones_[i].zone);
-        bool curr_in_zone = isInsideZone(curr_pos, access_zones_[i].zone);
-
-        if (curr_in_zone) {
-            person.last_zone_type_ = access_zones_[i].type;
         }
-
-        if (person.first_zone_type_ != ZoneType::NONE && !curr_in_zone && person_removed) {
-            if (movement_callback_) {
-                movement_callback_(person, "entered");
-            }
-            person.last_zone_type_ = ZoneType::NONE;
-            return;
-        }
-
-        if (person_removed && person.last_zone_type_ != ZoneType::NONE && prev_in_zone) {
-            if (movement_callback_) {
-                movement_callback_(person, "exited");
-            }
-            person.last_zone_type_ = ZoneType::NONE;
-            return;
-        }
-    }
-
-    bool in_any_zone = false;
-    for (const auto& zone : access_zones_) {
-        if (isInsideZone(curr_pos, zone.zone)) {
-            in_any_zone = true;
-            person.last_zone_type_ = zone.type;
-            break;
-        }
-    }
-    if (!in_any_zone && person.first_zone_type_ == ZoneType::NONE) {
-        person.last_zone_type_ = ZoneType::NONE;
     }
 }
 
@@ -218,10 +190,14 @@ void PeopleTracker::draw(cv::Mat& frame) {
 
         std::string label = "ID: " + std::to_string(person.id_) + " Conf: " + std::to_string(person.confidence_);
         if (person.last_zone_type_ != ZoneType::NONE) {
-            label += " (" + (person.last_zone_type_ == ZoneType::ENTRY ? "Entry" : "Exit") + ")";
+            // Fix string concatenation using std::string
+            std::string zoneType = (person.last_zone_type_ == ZoneType::ENTRY) ? "Entry" : "Exit";
+            label += std::string(" (") + zoneType + ")";
         }
         if (person.first_zone_type_ != ZoneType::NONE) {
-            label += " (Spawned in " + (person.first_zone_type_ == ZoneType::ENTRY ? "Entry" : "Exit") + ")";
+            // Fix string concatenation using std::string
+            std::string zoneType = (person.first_zone_type_ == ZoneType::ENTRY) ? "Entry" : "Exit";
+            label += std::string(" (Spawned in ") + zoneType + ")";
         }
         int y = std::max(bbox.y - 10, 15);
         cv::putText(frame, label, cv::Point(bbox.x, y), cv::FONT_HERSHEY_SIMPLEX, 0.5, person.color_, 2);

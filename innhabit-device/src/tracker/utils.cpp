@@ -14,6 +14,7 @@ bool intersectionOverArea(const BoxZone& bounding_box, const BoxZone& zone, cons
     int x_right = std::min(bounding_box.x2, zone.x2);
     int y_btm = std::min(bounding_box.y2, zone.y2);
 
+    //check if there is any overlap
     if (x_right < x_left || y_btm < y_top) {
         return false;
     }
