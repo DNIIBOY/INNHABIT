@@ -65,21 +65,16 @@ class AllTimePlot(Component):
         return render(request, self.template_name + "#json_element", context)
 
     def get_context_data(self) -> dict:
+        print("lol")
         entry_stats = EntryEvent.objects.aggregate(
             earliest=Min("timestamp"), latest=Max("timestamp")
         )
 
         earliest_date = (
-            min(entry_stats["earliest"] or timezone.now())
-            if entry_stats["earliest"]
-            else timezone.now()
+            entry_stats["earliest"] if entry_stats["earliest"] else timezone.now()
         )
 
-        latest_date = (
-            max(entry_stats["latest"] or timezone.now())
-            if entry_stats["latest"]
-            else timezone.now()
-        )
+        latest_date = entry_stats["latest"] if entry_stats["latest"] else timezone.now()
 
         start_year, start_month = earliest_date.year, earliest_date.month
         end_year, end_month = latest_date.year, latest_date.month
@@ -102,7 +97,7 @@ class AllTimePlot(Component):
             else:
                 labels.append(month_name)
 
-            # Move to next month
+            current_month += 1
             if current_month > 12:
                 current_month = 1
                 current_year += 1
