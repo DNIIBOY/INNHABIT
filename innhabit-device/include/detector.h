@@ -24,7 +24,7 @@ struct Detection {
  */
 struct DetectionOutput {
     vector<void*> buffers;   ///< Pointers to output buffers
-    vector<Mat> outputs;     ///< For OpenCV DNN outputs
+    vector<cv::Mat> outputs;     ///< For OpenCV DNN outputs
     
     /**
      * @brief Clears all output buffers.

@@ -1,13 +1,14 @@
 #include <tracker/people_tracker.h>
 #include <tracker/utils.h>
 #include <opencv2/opencv.hpp>
+#include "detector.h"
 #include <algorithm>
 #include <iostream>
 
 namespace tracker {
 
-people_tracker::people_tracker(std::shared_ptr<Configuration> config)
-    : config_(config), people_(), access_zones_(config->getTypedZones()), next_id_(0),
+PeopleTracker::PeopleTracker(std::shared_ptr<Configuration> config)
+    : config_(config), people_(), access_zones_(config->GetTypedZones()), next_id_(0),
       max_missing_frames_(10), max_distance_(120.0f), top_threshold_(0.1f), bottom_threshold_(0.9f),
       movement_callback_(nullptr) {
     // Log access zones for debugging
@@ -22,13 +23,11 @@ people_tracker::people_tracker(std::shared_ptr<Configuration> config)
     }
 }
 
-people_tracker::~people_tracker() {}
-
-void people_tracker::set_access_zones(const std::vector<TypedZone>& zones) {
+void PeopleTracker::set_access_zones(const std::vector<TypedZone>& zones) {
     access_zones_ = zones;
 }
 
-void people_tracker::update(const std::vector<Detection>& filtered_detections, int frame_height) {
+void PeopleTracker::update(const std::vector<Detection>& filtered_detections, int frame_height) {
     if (access_zones_.empty()) {
         ERROR("Cannot update tracker: no access zones configured");
         return;
@@ -151,7 +150,7 @@ void people_tracker::update(const std::vector<Detection>& filtered_detections, i
     people_ = new_people;
 }
 
-void people_tracker::detect_movements(TrackedPerson& person, int frame_height, bool person_removed) {
+void PeopleTracker::detect_movements(TrackedPerson& person, int frame_height, bool person_removed) {
     if (person.postion_history_.size() < 2 || !movement_callback_) {
         return;
     }
@@ -197,7 +196,7 @@ void people_tracker::detect_movements(TrackedPerson& person, int frame_height, b
     }
 }
 
-void people_tracker::draw(cv::Mat& frame) {
+void PeopleTracker::draw(cv::Mat& frame) {
     if (access_zones_.empty()) {
         ERROR("Cannot draw: no access zones configured");
         return;
@@ -239,11 +238,11 @@ void people_tracker::draw(cv::Mat& frame) {
     }
 }
 
-const std::vector<TrackedPerson>& people_tracker::get_tracked_people() const {
+const std::vector<TrackedPerson>& PeopleTracker::get_tracked_people() const {
     return people_;
 }
 
-void people_tracker::set_movement_callback(MovementCallback callback) {
+void PeopleTracker::set_movement_callback(MovementCallback callback) {
     movement_callback_ = callback;
 }
 

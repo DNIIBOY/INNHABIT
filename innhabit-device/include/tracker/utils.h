@@ -2,8 +2,8 @@
 #define TRACKER_UTILS_H
 
 #include <opencv2/opencv.hpp>
-#include "zone_type.h"
-#include "tracked_person.h"
+#include "tracker/tracked_person.h"
+#include <tracker/zone_type.h>
 
 namespace tracker {
 
