@@ -65,7 +65,6 @@ class AllTimePlot(Component):
         return render(request, self.template_name + "#json_element", context)
 
     def get_context_data(self) -> dict:
-        print("lol")
         entry_stats = EntryEvent.objects.aggregate(
             earliest=Min("timestamp"), latest=Max("timestamp")
         )
