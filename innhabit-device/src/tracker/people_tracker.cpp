@@ -159,10 +159,8 @@ void PeopleTracker::detect_movements(TrackedPerson& person, int frame_height, bo
     if (access_zones_.size() == 2) {
         if(person.first_zone_type_ == ZoneType::ENTRY && person.last_zone_type_ == ZoneType::EXIT && person_removed) {
             movement_callback_(person, "entered");
-            LOG("Person " << person.id_ << "entered the building");
         } else if (person.first_zone_type_ == ZoneType::EXIT && person.last_zone_type_ == ZoneType::ENTRY && person_removed) {
             movement_callback_(person, "exited");
-            LOG("Person " << person.id_ << "exited the building");
 
         }
     }
