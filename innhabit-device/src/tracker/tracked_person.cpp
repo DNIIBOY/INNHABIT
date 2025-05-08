@@ -27,8 +27,12 @@ void TrackedPerson::initialize_zone_info(int frame_height, const std::vector<Typ
     bool from_bottom = bottom_y > frame_height * 0.9;
 
     // Check if person spawned in a zone
+    BoxZone bounding_box = {current_position_.x - size_.width / 2,
+                             current_position_.y - size_.height / 2,
+                             current_position_.x + size_.width / 2,
+                             current_position_.y + size_.height / 2};
     for (const auto& zone : typed_zones) {
-        if (isInsideZone(current_position_, zone.zone)) {
+        if (intersectionOverArea(bounding_box, zone.zone, 0.6f)) {
             first_zone_type_ = zone.type;
             last_zone_type_ = zone.type;
             break;
@@ -51,8 +55,12 @@ void TrackedPerson::update(const Position& pos, const BoxSize& size, float conf,
 
     // Update zone information
     bool in_any_zone = false;
+    BoxZone bounding_box = {current_position_.x - size_.width / 2,
+        current_position_.y - size_.height / 2,
+        current_position_.x + size_.width / 2,
+        current_position_.y + size_.height / 2};
     for (const auto& zone : typed_zones) {
-        if (isInsideZone(current_position_, zone.zone)) {
+        if (intersectionOverArea(bounding_box, zone.zone, 0.6f)) {
             last_zone_type_ = zone.type;
             in_any_zone = true;
             break;
