@@ -68,50 +68,53 @@ def map_events(
     return results
 
 
+def get_test_results() -> list[dict]:
+    today = timezone.localdate()
+    today_test_events = TestEntryEvent.objects.filter(timestamp__date=today).union(
+        TestExitEvent.objects.filter(timestamp__date=today)
+    )
+    first_event = today_test_events.order_by("timestamp").first()
+    last_event = today_test_events.order_by("-timestamp").first()
+    if not first_event or not last_event:
+        return []
+    time_range = (first_event.timestamp, last_event.timestamp)
+    entry_events = (
+        EntryEvent.objects.filter(timestamp__range=time_range)
+        .annotate(
+            is_entry=Value(True, output_field=BooleanField()),
+        )
+        .prefetch_related("entrance")
+    )
+    exit_events = (
+        ExitEvent.objects.filter(timestamp__range=time_range)
+        .annotate(
+            is_entry=Value(False, output_field=BooleanField()),
+        )
+        .prefetch_related("entrance")
+    )
+    test_entry_events = (
+        TestEntryEvent.objects.filter(timestamp__range=time_range)
+        .annotate(
+            is_entry=Value(True, output_field=BooleanField()),
+        )
+        .prefetch_related("entrance")
+    )
+    test_exit_events = (
+        TestExitEvent.objects.filter(timestamp__range=time_range)
+        .annotate(
+            is_entry=Value(False, output_field=BooleanField()),
+        )
+        .prefetch_related("entrance")
+    )
+    system_events = entry_events.union(exit_events)
+    manual_events = test_entry_events.union(test_exit_events)
+
+    return map_events(system_events, manual_events)
+
+
 @register("test_event_results")
 class TestEventResults(Component):
     template_name = "test_event_results.html"
 
     def get_context_data(self) -> dict:
-        today = timezone.localdate()
-        today_test_events = TestEntryEvent.objects.filter(timestamp__date=today).union(
-            TestExitEvent.objects.filter(timestamp__date=today)
-        )
-        first_event = today_test_events.order_by("timestamp").first()
-        last_event = today_test_events.order_by("-timestamp").first()
-        if not first_event or not last_event:
-            return {"events": []}
-        time_range = (first_event.timestamp, last_event.timestamp)
-        entry_events = (
-            EntryEvent.objects.filter(timestamp__range=time_range)
-            .annotate(
-                is_entry=Value(True, output_field=BooleanField()),
-            )
-            .prefetch_related("entrance")
-        )
-        exit_events = (
-            ExitEvent.objects.filter(timestamp__range=time_range)
-            .annotate(
-                is_entry=Value(False, output_field=BooleanField()),
-            )
-            .prefetch_related("entrance")
-        )
-        test_entry_events = (
-            TestEntryEvent.objects.filter(timestamp__range=time_range)
-            .annotate(
-                is_entry=Value(True, output_field=BooleanField()),
-            )
-            .prefetch_related("entrance")
-        )
-        test_exit_events = (
-            TestExitEvent.objects.filter(timestamp__range=time_range)
-            .annotate(
-                is_entry=Value(False, output_field=BooleanField()),
-            )
-            .prefetch_related("entrance")
-        )
-        system_events = entry_events.union(exit_events)
-        manual_events = test_entry_events.union(test_exit_events)
-
-        events = map_events(system_events, manual_events)
-        return {"events": events}
+        return {"events": get_test_results()}

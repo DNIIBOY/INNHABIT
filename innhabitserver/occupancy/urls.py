@@ -13,6 +13,7 @@ urlpatterns = [
     ),
     path("configuration/<int:device_id>/api_key/", views.api_key_view, name="api_key"),
     path("test_events/", views.test_events, name="test_events"),
+    path("test_events/export/", views.test_event_export, name="test_event_export"),
     path("test_events/new/", views.select_test_entrance, name="select_test_entrance"),
     path("test_events/new/<int:pk>/", views.add_test_events, name="add_test_events"),
     path("dates/", dates, name="dates"),

@@ -1,6 +1,7 @@
 import csv
 
 from api.models import DeviceAPIKey
+from components.test_event_results.test_event_results import get_test_results
 from dashboard.utils import filter_events
 from django.contrib.auth.decorators import permission_required
 from django.core.cache import cache
@@ -38,6 +39,38 @@ def configuration(request: HttpRequest) -> HttpResponse:
 )
 def test_events(request: HttpRequest) -> HttpResponse:
     return render(request, "test_events.html")
+
+
+@permission_required(
+    ("occupancy.view_testentryevent", "occupancy.view_testexitevent"),
+    raise_exception=True,
+)
+def test_event_export(request: HttpRequest) -> HttpResponse:
+    test_results = get_test_results()
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+
+    def rows_generator():
+        yield writer.writerow(["Tid", "Indgang", "System", "Manuel", "Status"])
+        for item in test_results:
+            yield writer.writerow(
+                [
+                    item["timestamp"].isoformat(),
+                    item["entrance"].name,
+                    item["system_entry"],
+                    item["manual_entry"],
+                    item["is_equal"],
+                ]
+            )
+
+    response = StreamingHttpResponse(
+        (row for row in rows_generator()), content_type="text/csv"
+    )
+    today = timezone.localtime().date()
+    response["Content-Disposition"] = (
+        f'attachment; filename="innhabit_test_data_{today}.csv"'
+    )
+    return response
 
 
 @permission_required(
