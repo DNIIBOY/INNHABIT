@@ -57,10 +57,10 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    //std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
-    //LOG("Attempting to open pipeline: " << pipeline);
-    //cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
-    cv::VideoCapture cap("../Indgang A.mp4");
+    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    LOG("Attempting to open pipeline: " << pipeline);
+    cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
+    //cv::VideoCapture cap("../Indgang A.mp4");
     cap.set(cv::CAP_PROP_FPS, 30);
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open camera" << std::endl;
@@ -77,18 +77,18 @@ int main(int argc, char** argv) {
                                 shouldExit, MAX_QUEUE_SIZE);
     DevicePoller poller(config->GetServerApi(), config->GetServerApiKey(), shouldExit, 
                         frameQueue, frameMutex, frameCV, apiHandler.get(), config, 10);
-    DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
-    //RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
+    //DisplayManager display(displayQueue, displayMutex, displayCV, shouldExit);
+    RTSPStreamManager streamManager(displayQueue, displayMutex, displayCV, shouldExit, "/stream", "127.0.0.1");  // Updated class name
     capturer.start(cap);
     processor.start(detector, tracker);
-    display.start();
+    //display.start();
     poller.start();
-    //streamManager.start();  // Updated variable name
+    streamManager.start();  // Updated variable name
     capturer.join();
     processor.join();
-    display.join();
+    //display.join();
     poller.join();
-    //streamManager.join();  // Updated variable name
+    streamManager.join();  // Updated variable name
     apiHandler->shutdown();
     apiHandler->join();
     apiHandler.reset();
