@@ -2,6 +2,7 @@ import random
 
 from dashboard.models import LabelledDate
 from django.contrib.auth.decorators import login_required, permission_required
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -54,7 +55,11 @@ def insights(request: HttpRequest) -> HttpResponse:
             kwargs={"is": insight},
             request=request,
         )
-    context = {"insight_name": insight, "locked_insight": locked_insight}
+    context = {
+        "dev_banner": cache.get("dev_banner", True),
+        "insight_name": insight,
+        "locked_insight": locked_insight,
+    }
     return render(request, "insights.html", context=context)
 
 
