@@ -158,9 +158,9 @@ void PeopleTracker::detect_movements(TrackedPerson& person, int frame_height, bo
     // Check if the person is moving from exit zone to entry zone or vice versa
     if (access_zones_.size() == 2) {
         if(person.first_zone_type_ == ZoneType::ENTRY && person.last_zone_type_ == ZoneType::EXIT && person_removed) {
-            movement_callback_(person, "entered");
-        } else if (person.first_zone_type_ == ZoneType::EXIT && person.last_zone_type_ == ZoneType::ENTRY && person_removed) {
             movement_callback_(person, "exited");
+        } else if (person.first_zone_type_ == ZoneType::EXIT && person.last_zone_type_ == ZoneType::ENTRY && person_removed) {
+            movement_callback_(person, "entered");
 
         }
     }
