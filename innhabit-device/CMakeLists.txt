@@ -30,7 +30,8 @@ endif()
 
 # Platform-specific configurations
 if(USE_CUDA OR USE_TENSORRT)
-    find_package(CUDAToolkit REQUIRED)
+    enable_language(CUDA)
+    # find_package(CUDAToolkit REQUIRED)
     include_directories(${CUDAToolkit_INCLUDE_DIRS})
     link_directories(${CUDAToolkit_LIBRARY_DIRS})
 endif()
