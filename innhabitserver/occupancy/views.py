@@ -2,6 +2,7 @@ import csv
 
 from api.models import DeviceAPIKey
 from dashboard.utils import filter_events
+from django.contrib.auth.decorators import permission_required
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import F, Max
@@ -31,15 +32,27 @@ def configuration(request: HttpRequest) -> HttpResponse:
     return render(request, "configuration.html", {"entrances": entrances})
 
 
+@permission_required(
+    ("occupancy.view_testentryevent", "occupancy.view_testexitevent"),
+    raise_exception=True,
+)
 def test_events(request: HttpRequest) -> HttpResponse:
     return render(request, "test_events.html")
 
 
+@permission_required(
+    ("occupancy.add_testentryevent", "occupancy.add_testexitevent"),
+    raise_exception=True,
+)
 def select_test_entrance(requests: HttpRequest) -> HttpResponse:
     entrances = Entrance.objects.all()
     return render(requests, "select_test_entrance.html", {"entrances": entrances})
 
 
+@permission_required(
+    ("occupancy.add_testentryevent", "occupancy.add_testexitevent"),
+    raise_exception=True,
+)
 def add_test_events(request: HttpRequest, pk: int) -> HttpResponse:
     entrance = get_object_or_404(Entrance, pk=pk)
     if request.method == "POST":
