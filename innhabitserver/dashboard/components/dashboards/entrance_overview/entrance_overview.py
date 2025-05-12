@@ -1,12 +1,13 @@
 import json
 
 from dashboard.utils import FakeMetadata
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, IntegerField, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django_components import Component, register
-from occupancy.models import Entrance
+from occupancy.models import Entrance, EntryEvent, ExitEvent
 
 
 @register("entrance_overview")
@@ -28,15 +29,33 @@ class EntranceOverview(Component):
 
     def get_context_data(self) -> dict:
         today = timezone.localtime().date()
-        entrances = Entrance.objects.annotate(
-            entry_count=Count(
-                "entries", filter=Q(entries__timestamp__date=today), distinct=True
-            ),
-            exit_count=Count(
-                "exits", filter=Q(exits__timestamp__date=today), distinct=True
-            ),
-            event_count=F("entry_count") + F("exit_count"),
-        ).order_by("name")
+        entry_counts = (
+            EntryEvent.objects.filter(entrance=OuterRef("pk"), timestamp__date=today)
+            .values("entrance")
+            .annotate(count=Count("id"))
+            .values("count")
+        )
+
+        exit_counts = (
+            ExitEvent.objects.filter(entrance=OuterRef("pk"), timestamp__date=today)
+            .values("entrance")
+            .annotate(count=Count("id"))
+            .values("count")
+        )
+
+        entrances = (
+            Entrance.objects.annotate(
+                entry_count=Coalesce(
+                    Subquery(entry_counts, output_field=IntegerField()), Value(0)
+                ),
+                exit_count=Coalesce(
+                    Subquery(exit_counts, output_field=IntegerField()), Value(0)
+                ),
+            )
+            .annotate(event_count=F("entry_count") + F("exit_count"))
+            .order_by("name")
+        )
+
         labels = []
         events = []
         for entrance in entrances:
