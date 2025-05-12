@@ -1,10 +1,9 @@
-from datetime import timezone
-from datetime import datetime, timedelta, UTC
-
-from matplotlib import pyplot as plt
 import csv
 import sys
+from datetime import UTC, datetime, timedelta, timezone
+
 import requests
+from matplotlib import pyplot as plt
 
 
 def main() -> None:
@@ -83,16 +82,14 @@ def main() -> None:
     response.raise_for_status()
     reader = csv.reader(response.text.splitlines())
     next(reader)
-    i = 0
     window_end = start + timedelta(hours=1)
     event_count = 0
     for row in reader:
         timestamp = datetime.fromisoformat(row[1])
-        if timestamp > window_end:
+        while timestamp > window_end:
             if window_end in count_map:
                 count_map[window_end]["innhabit"] = event_count
             window_end = window_end + timedelta(hours=1)
-            i += 1
             event_count = 0
         event_count += 1
 
