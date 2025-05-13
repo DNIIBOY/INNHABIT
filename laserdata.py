@@ -104,9 +104,11 @@ def main() -> None:
         labels.append(key.strftime("%H"))
     plt.plot(labels, innhabit, label="INNHABIT")
     plt.plot(labels, laser, label="Laser")
+    plt.xlabel("Time of day")
+    plt.ylabel("Number of events measured")
     plt.legend()
-    plt.title(date.strftime("%d/%m %Y"))
     plt.show()
+    # plt.savefig("INNHABIT_VS_LASER.png", dpi=300, bbox_inches="tight")
 
 
 if __name__ == "__main__":
