@@ -36,17 +36,17 @@ def insights_dashboard(request: HttpRequest) -> HttpResponse:
     if LabelledDate.objects.filter(date__gt=today).exists():
         components.append("upcoming_event")
 
-    index = request.GET.get("index", 0)
-    if index:
-        index = int(index)
+    index_arg = request.GET.get("index", 0)
+    if index_arg:
+        index_arg = int(index_arg)
     else:
-        index = 0
+        index_arg = 0
 
-    insight = components[index % len(components)]
+    insight = components[index_arg % len(components)]
 
     context = {
         "insight_name": insight,
-        "index": index,
+        "index": index_arg,
     }
 
     if request.htmx:
