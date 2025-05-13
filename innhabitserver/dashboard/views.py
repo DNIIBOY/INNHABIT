@@ -22,6 +22,41 @@ def index(request: HttpRequest) -> HttpResponse:
 def top_row(request: HttpRequest) -> HttpResponse:
     return render(request, "admin_dashboard.html#top_row")
 
+def insights_dashboard(request: HttpRequest) -> HttpResponse:
+    today = timezone.localtime().date()
+    components = [
+        "cafeteria_day",
+        "current_occupancy",
+        "daily_comparison",
+        "top_days",
+        "visitors_today",
+    ]
+    
+    if LabelledDate.objects.filter(date__gt=today).exists():
+        components.append("upcoming_event")
+
+    index = request.GET.get('index', 0)
+    if index:
+        index = int(index)
+    else: 
+        index=0
+    
+
+    insight = components[index % len(components)]
+
+    context = {
+        "insight_name": insight,
+        "index": index,
+    }
+
+    if request.htmx:
+        return DynamicComponent.render_to_response(
+            kwargs={"is": insight},
+            request=request,
+        )
+
+    return render(request, "public_dashboard.html", context=context)
+
 
 def insights(request: HttpRequest) -> HttpResponse:
     today = timezone.localtime().date()

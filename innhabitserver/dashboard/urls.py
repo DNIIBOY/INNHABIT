@@ -17,6 +17,7 @@ urlpatterns = [
     path("", views.index, name="dashboard"),
     path("top_row/", views.top_row, name="dashboard_top_row"),
     path("insights/", views.insights, name="insights"),
+    path("insights_dashboard/", views.insights_dashboard, name="insights_dashboard"),
     path("components/all_time_plot/", AllTimePlot.as_view(), name="all_time_plot"),
     path("components/busiest_days/", BusiestDays.as_view(), name="busiest_days"),
     path(

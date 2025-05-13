@@ -1,87 +1,14 @@
 {% extends "base.html" %}
 {% block head %}
-<style>
-html, body {
-        height: 100%;
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }
-    .htmx-swapping > * {
-        opacity: 0;
-        transform: translateY(-10px);
-        transition: all 0.3s ease;
-    }
-    .htmx-settling > * {
-        opacity: 0;
-        transform: translateY(10px);
-        animation: fadeIn 0.3s ease forwards;
-    }
-
-    @keyframes fadeIn {
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-
-    .mirror-horizontal {
-        transform: scaleX(-1);
-    }
-
-
-    .arrow-left,
-    .arrow-right {
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    @media (max-width: 640px) {
-        .custom-text-size h1, .custom-text-size h2 {
-            font-size: 2.5rem !important;
-        }
-
-        .custom-text-size .text-4xl {
-            font-size: 2rem !important;
-        }
-
-        .custom-text-size .text-6xl {
-            font-size: 1.8rem !important;
-        }
-
-        .custom-text-size .text-8xl {
-            font-size: 2rem !important;
-        }
-
-        .custom-text-size .flex {
-            flex-wrap: wrap;
-            overflow-x: hidden;
-        }
-
-        .arrow-left,
-        .arrow-right {
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .custom-text-size {
-            height: 100vh;
-            overflow: hidden;
-        }
-    }
-
-
-</style>
 {% endblock %}
+
 {% block content %}
 
 <div class="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 w-full max-w-full px-3 mb-6 xl:mb-0 xl:w-11/12 custom-text-size">
    
     <button id="increment-button" class="arrow-left text-slate-300 dark:text-slate-300 mt-4 sm:mr-4"
             hx-trigger="click"
-            hx-get="{% url 'insights' %}"
+            hx-get="{% url 'insights_dashboard' %}"
             hx-target="#insight-container"
             hx-swap="innerHTML swap:0.3s settle:0.3s"
             hx-include="#current-index">
@@ -95,16 +22,18 @@ html, body {
         <input type="hidden" id="current-index" name="index" value="{{ index|default:'1' }}" hx-swap-oob="true">
 
         <div id="insight-container" 
-             hx-get="{% url 'insights' %}?index={{ index|default:'1' }}"
+              class="dark:text-white text-4xl text-black"
+             hx-get="{% url 'insights_dashboard' %}?index={{ index|default:'1' }}"
              hx-trigger="load"
              hx-target="#insight-container"
              hx-swap="innerHTML swap:0.3s settle:0.3s">
         </div>
+        <p>
     </div>
 
     <button id="decrement-button" class="arrow-right text-slate-300 dark:text-slate-300 mt-4 sm:ml-4"
             hx-trigger="click"
-            hx-get="{% url 'insights' %}"
+            hx-get="{% url 'insights_dashboard' %}"
             hx-target="#insight-container"
             hx-swap="innerHTML swap:0.3s settle:0.3s"
             hx-include="#current-index">
