@@ -36,7 +36,7 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="flex flex-col w-full py-12 {% if dashboard %} mt-16 mb-16 text-black dark:text-white {% else %} justify-between text-slate-50 {% endif %} items-center font-semibold text-4xl overflow-hidden">
+<div class="flex flex-col w-full py-12 justify-between text-slate-50 items-center font-semibold text-4xl overflow-hidden">
     <div class="absolute top-0 left-0 overflow-hidden w-full h-full">
         <img
             src="{% static 'aau_pattern.svg' %}"
@@ -44,7 +44,7 @@
         />
     </div>
     <div>
-        <h2 class="{% if dashboard %} text-black dark:text-white {% else %} text-slate-300 {% endif %} text-7xl">Velkommen til</h2>
+        <h2 class="text-slate-300 text-7xl">Velkommen til</h2>
         <h1 class="text-8xl">AAU INNOVATE</h1>
     </div>
     <div class="flex flex-col items-center gap-32">
@@ -52,13 +52,12 @@
         <div
             class="text-center [&_h2]:text-9xl [&_h3]:text-5xl [&_h4]:text-4xl"
             hx-get=""
-            hx-trigger="{% if not locked_insight %} {% if not dashboard %} every 30s{% endif %} {% endif %}"
+            hx-trigger="{% if not locked_insight %} every 30s{% endif %}"
             hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
         >
             {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
         </div>
     </div>
-    {% if not dashboard %}
     <div class="flex justify-around items-center w-full px-8 mb-6">
         <div class="flex items-center fill-slate-50 gap-8">
             <svg
@@ -77,7 +76,6 @@
         </div>
         <h2 class="text-4xl font-semibold">innovate.aau.dk</h2>
     </div>
-    {% endif %}
     {% if dev_banner %}
     <div class="absolute top-96 left-12 overflow-hidden" style="transform-origin: top left; transform: rotate(-45deg) translate(-20%, 20%);">
         <div class="construction-tape py-3 text-center shadow-md w-[54rem]">
