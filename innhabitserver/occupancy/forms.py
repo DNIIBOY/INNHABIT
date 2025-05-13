@@ -25,6 +25,7 @@ class FilterEventsForm(Form):
     event_type = ChoiceField(choices=event_types, required=False)
     from_date = DateField(required=False)
     to_date = DateField(required=False)
+    test_events = BooleanField(required=False, initial=False)
     entrances = ModelMultipleChoiceField(
         queryset=Entrance.objects.all(), required=False
     )

@@ -11,7 +11,7 @@ from django.db.models.functions import Greatest
 from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 from occupancy.forms import ConfigureDeviceForm, FilterEventsForm
 from occupancy.models import Device, Entrance, TestEntryEvent, TestExitEvent
 
@@ -183,6 +183,7 @@ class Echo:
         return value
 
 
+@require_GET
 def export_data(request: HttpRequest) -> HttpResponse:
     filters = FilterEventsForm(request.GET)
     if not filters.is_valid():
