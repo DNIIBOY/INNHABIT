@@ -66,7 +66,7 @@ void TrackedPerson::update(const Position& pos, const BoxSize& size, float conf,
             break;
         }
     }
-    if (!in_any_zone && first_zone_type_ == ZoneType::NONE) {
+    if (!in_any_zone) {
         last_zone_type_ = ZoneType::NONE;
     }
 }
