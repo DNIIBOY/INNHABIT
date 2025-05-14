@@ -88,7 +88,7 @@ class DeviceImageViewset(
     parser_classes = [JSONParser, FormParser, MultiPartParser, FileUploadParser]
 
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data.copy())
         if request.headers.get("Content-Type").startswith("image/"):
             content = ContentFile(
                 request.data["file"].read(), name=request.data["file"].name
