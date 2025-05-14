@@ -7,10 +7,11 @@ from matplotlib import pyplot as plt
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        print("Usage: python laserdata.py <password>")
+    if len(sys.argv) != 3:
+        print("Usage: python laserdata.py <password> <session_token>")
         sys.exit(1)
     password = sys.argv[1]
+    session_token = sys.argv[2]
 
     token_response = requests.post(
         "http://iot.multiteknik.dk:8080/api/auth/login",
@@ -71,6 +72,10 @@ def main() -> None:
 
     response = requests.get(
         "https://innhabit.dk/export/csv/",
+        cookies={
+            "sessionid": session_token,
+            "tzinfo": "Europe/Copenhagen",
+        },
         params={
             "from_date": date,
             "to_date": (
@@ -79,6 +84,9 @@ def main() -> None:
             "entrances": 1,
         },
     )
+    if response.status_code == 403:
+        print("403 Error: Invalid session token")
+        sys.exit(1)
     response.raise_for_status()
     reader = csv.reader(response.text.splitlines())
     next(reader)

@@ -1,12 +1,17 @@
 import csv
 import sys
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 from matplotlib import pyplot as plt
 
 
 def main() -> None:
+    if len(sys.argv) != 2:
+        print("Usage: python occupancydata.py <session_token>")
+        sys.exit(1)
+    session_token = sys.argv[1]
+
     date = input("Enter date (DD-MM-YYYY): ")
     try:
         date = datetime.strptime(date, "%d-%m-%Y").date()
@@ -16,6 +21,10 @@ def main() -> None:
 
     response = requests.get(
         "https://innhabit.dk/export/csv/",
+        cookies={
+            "sessionid": session_token,
+            "tzinfo": "Europe/Copenhagen",
+        },
         params={
             "from_date": date,
             "to_date": (
@@ -92,8 +101,8 @@ def main() -> None:
     plt.xlabel("Time of day")
     plt.ylabel("Current occupants in building")
     plt.tight_layout()
-    # plt.show()
-    plt.savefig("INNHABIT_occupancy.png", dpi=300, bbox_inches="tight")
+    plt.show()
+    # plt.savefig("INNHABIT_occupancy.png", dpi=300, bbox_inches="tight")
 
 
 if __name__ == "__main__":
