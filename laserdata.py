@@ -3,6 +3,7 @@ import sys
 from datetime import UTC, datetime, timedelta, timezone
 
 import requests
+import numpy as np
 from matplotlib import pyplot as plt
 
 
@@ -53,15 +54,23 @@ def main() -> None:
     response = requests.get(
         "http://iot.multiteknik.dk:8080/api/plugins/telemetry/DEVICE/47afeb80-276e-11ec-92de-537d4a380471/values/timeseries",
         params={
-            "keys": "c1",
+            "keys": "c1,c2,c3",
             "startTs": str(int(start.timestamp() * 1000)),
             "endTs": str(int(end.timestamp() * 1000)),
             "limit": 1000,
         },
         headers={"X-Authorization": f"Bearer {token}"},
     )
+    response.raise_for_status()
 
-    laser_counts = response.json()["c1"]
+    json = response.json()
+    c1, c2, c3 = np.array(json["c1"]), np.array(json["c2"]), np.array(json["c3"])
+    laser_counts = []
+    for x, y, z in zip(c1, c2, c3):
+        assert x["ts"] == y["ts"]
+        assert y["ts"] == z["ts"]
+        value = int(x["value"])  # + int(y["value"]) + int(z["value"])
+        laser_counts.append({"ts": x["ts"], "value": value})
     laser_counts.sort(key=lambda x: x["ts"])
     for count in laser_counts:
         timestamp = datetime.fromtimestamp(
@@ -81,7 +90,7 @@ def main() -> None:
             "to_date": (
                 date + timedelta(days=1) if date != datetime.now().date() else date
             ),
-            "entrances": 1,
+            "entrances": [1, 2, 3],
         },
     )
     if response.status_code == 403:

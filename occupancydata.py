@@ -30,7 +30,6 @@ def main() -> None:
             "to_date": (
                 date + timedelta(days=1) if date != datetime.now().date() else date
             ),
-            "entrances": 1,
         },
     )
     response.raise_for_status()
