@@ -32,7 +32,7 @@ void TrackedPerson::initialize_zone_info(int frame_height, const std::vector<Typ
                              current_position_.x + size_.width / 2,
                              current_position_.y + size_.height / 2};
     for (const auto& zone : typed_zones) {
-        if (intersectionOverArea(bounding_box, zone.zone, 0.6f)) {
+        if (intersectionOverArea(bounding_box, zone.zone, 0.2f)) {
             first_zone_type_ = zone.type;
             last_zone_type_ = zone.type;
             break;
@@ -60,7 +60,7 @@ void TrackedPerson::update(const Position& pos, const BoxSize& size, float conf,
         current_position_.x + size_.width / 2,
         current_position_.y + size_.height / 2};
     for (const auto& zone : typed_zones) {
-        if (intersectionOverArea(bounding_box, zone.zone, 0.6f)) {
+        if (intersectionOverArea(bounding_box, zone.zone, 0.2f)) {
             last_zone_type_ = zone.type;
             in_any_zone = true;
             break;
