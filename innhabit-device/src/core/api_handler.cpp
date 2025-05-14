@@ -1,15 +1,15 @@
 #include "api_handler.h"
 #include <iostream>
 #include <chrono>
-#include <fstream>
+#include <vector>
 #include <stdexcept>
-#include <ctime>  // For std::strftime
+#include <ctime>
+#include <opencv2/imgcodecs.hpp>
 
 ApiHandler::ApiHandler(std::shared_ptr<Configuration> config) 
     : base_url_(config->GetServerApi()), api_key_(config->GetServerApiKey()), 
-      curl_(nullptr), should_exit_(false), failed_event_(false) {
+      curl_(nullptr), should_exit_(false), failed_event_(false), last_api_success_(false) {
     initialize();
-    loadFailedEventsFromDisk();
 }
 
 ApiHandler::~ApiHandler() {
@@ -50,7 +50,6 @@ void ApiHandler::processEvents() {
         ApiEvent event;
         bool has_event = false;
         
-        // Get event from queue
         {
             std::unique_lock<std::mutex> lock(queue_mutex_);
             queue_cv_.wait(lock, [this] { 
@@ -68,13 +67,11 @@ void ApiHandler::processEvents() {
             }
         }
         
-        // Process the event
         if (has_event && !should_exit_) {
             processSingleEvent(event);
         }
     }
     
-    // Process any remaining events in the queue before exiting
     processRemainingEvents();
 }
 
@@ -89,8 +86,6 @@ void ApiHandler::processSingleEvent(const ApiEvent& event) {
             response = sendPostRequest("events/exits/", request_data);
         } else if (event.event_type == "entered") {
             response = sendPostRequest("events/entries/", request_data);
-        } else if (event.event_type == "exited") {
-            response = sendPostRequest("events/exits/", request_data);
         } else {
             ERROR("ApiHandler: Unknown event type: " << event.event_type);
             return;
@@ -98,11 +93,13 @@ void ApiHandler::processSingleEvent(const ApiEvent& event) {
 
         if (response.is_null() || response.empty()) {
             ERROR("Empty or null response from server");
-            saveFailedEventsToDisk(event);  // Save on failure
+            saveFailedEventsToDisk(event);
+        } else if (last_api_success_ && failed_event_) {
+            std::thread(&ApiHandler::loadFailedEventsFromDisk, this).detach();
         }
     } catch (const std::exception& e) {
         ERROR("Error sending event to server: " << e.what());
-        saveFailedEventsToDisk(event);  // Save on exception
+        saveFailedEventsToDisk(event);
     }
 }
 
@@ -170,18 +167,23 @@ json ApiHandler::sendPostRequest(const std::string& endpoint, const json& data) 
                 if (result.is_discarded()) {
                     ERROR("Failed to parse response as JSON");
                     result = json();
+                } else {
+                    last_api_success_ = true;
                 }
             } catch (const json::parse_error& e) {
                 ERROR("Parse error: " << e.what());
                 result = json();
+                last_api_success_ = false;
             }
         } else {
             ERROR("HTTP error: " << http_code << " - Response: " << response);
             result = json();
+            last_api_success_ = false;
         }
     } else {
         ERROR("CURL error: " << curl_easy_strerror(res));
         result = json();
+        last_api_success_ = false;
     }
 
     curl_slist_free_all(headers);
@@ -223,14 +225,18 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
     }
 
     try {
-        std::string temp_filename = "temp_image_" + getTimestampISO() + ".png";
-        cv::imwrite(temp_filename, image);
+        // Encode image to PNG in memory
+        std::vector<uchar> buffer;
+        if (!cv::imencode(".png", image, buffer)) {
+            ERROR("Failed to encode image to PNG");
+            return false;
+        }
 
         curl_mime* mime = curl_mime_init(curl_);
         curl_mimepart* part = curl_mime_addpart(mime);
 
         curl_mime_name(part, "image");
-        curl_mime_filedata(part, temp_filename.c_str());
+        curl_mime_data(part, reinterpret_cast<const char*>(buffer.data()), buffer.size());
         curl_mime_type(part, "image/png");
 
         struct curl_slist* headers = nullptr;
@@ -252,7 +258,6 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
 
         curl_mime_free(mime);
         curl_slist_free_all(headers);
-        std::remove(temp_filename.c_str());
 
         if (res != CURLE_OK) {
             ERROR("CURL error sending image: " << curl_easy_strerror(res));
@@ -261,13 +266,19 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
 
         if (http_code >= 200 && http_code < 300) {
             LOG("Image uploaded successfully. Response: " << response);
+            last_api_success_ = true;
+            if (failed_event_) {
+                std::thread(&ApiHandler::loadFailedEventsFromDisk, this).detach();
+            }
             return true;
         } else {
             ERROR("HTTP error sending image: " << http_code << " - Response: " << response);
+            last_api_success_ = false;
             return false;
         }
     } catch (const std::exception& e) {
         ERROR("Error sending image: " << e.what());
+        last_api_success_ = false;
         return false;
     }
 }
@@ -275,68 +286,28 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
 void ApiHandler::saveFailedEventsToDisk(const ApiEvent api_event) {
     try {
         failed_event_ = true;
-        
-        std::ofstream file("failed_events.bin", std::ios::binary | std::ios::app);
-        if (!file.is_open()) {
-            ERROR("Failed to open failed_events.bin for writing");
-            return;
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+            failed_events_.push_back(api_event);
         }
-
-        uint32_t event_type_len = static_cast<uint32_t>(api_event.event_type.length());
-        file.write(reinterpret_cast<const char*>(&event_type_len), sizeof(event_type_len));
-        file.write(api_event.event_type.c_str(), event_type_len);
-
-        uint32_t timestamp_len = static_cast<uint32_t>(api_event.timestamp.length());
-        file.write(reinterpret_cast<const char*>(&timestamp_len), sizeof(timestamp_len));
-        file.write(api_event.timestamp.c_str(), timestamp_len);
-
-        file.close();
-        LOG("Successfully saved failed event to disk");
+        LOG("Successfully saved failed event to memory");
     } catch (const std::exception& e) {
-        ERROR("Error saving failed event to disk: " << e.what());
+        ERROR("Error saving failed event to memory: " << e.what());
     }
 }
 
 void ApiHandler::loadFailedEventsFromDisk() {
     try {
-        std::ifstream file("failed_events.bin", std::ios::binary);
-        if (!file.is_open()) {
-            LOG("No failed_events.bin file found or unable to open");
-            return;
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        for (const auto& event : failed_events_) {
+            event_queue_.push(event);
+            LOG("Loaded failed event: " << event.event_type << " at " << event.timestamp);
         }
-
-        while (file.good() && !file.eof()) {
-            uint32_t event_type_len = 0;
-            file.read(reinterpret_cast<char*>(&event_type_len), sizeof(event_type_len));
-            if (file.eof()) break;
-
-            std::string event_type;
-            event_type.resize(event_type_len);
-            file.read(&event_type[0], event_type_len);
-
-            uint32_t timestamp_len = 0;
-            file.read(reinterpret_cast<char*>(&timestamp_len), sizeof(timestamp_len));
-            if (file.eof()) break;
-
-            std::string timestamp;
-            timestamp.resize(timestamp_len);
-            file.read(&timestamp[0], timestamp_len);
-
-            ApiEvent event{event_type, timestamp};
-            {
-                std::lock_guard<std::mutex> lock(queue_mutex_);
-                event_queue_.push(event);
-            }
-            LOG("Loaded failed event: " << event_type << " at " << timestamp);
-        }
-
-        file.close();
+        failed_events_.clear();
+        failed_event_ = false;
         queue_cv_.notify_one();
-
-        if (std::remove("failed_events.bin") == 0) {
-            LOG("Successfully removed failed_events.bin after loading");
-        }
+        LOG("Successfully loaded failed events from memory");
     } catch (const std::exception& e) {
-        ERROR("Error loading failed events from disk: " << e.what());
+        ERROR("Error loading failed events from memory: " << e.what());
     }
 }

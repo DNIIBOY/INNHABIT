@@ -111,7 +111,7 @@ void PeopleTracker::update(const std::vector<Detection>& filtered_detections, in
             people_[t].update(pos, size, low_conf_detections[best_det_idx].confidence, access_zones_);
             track_matched[t] = true;
             det_matched[best_det_idx + high_conf_detections.size()] = true;
-            detect_movements(people_[t], frame_height);
+            detect_movements(people_[t], frame_height); // remove here
         }
     }
 
@@ -144,7 +144,7 @@ void PeopleTracker::update(const std::vector<Detection>& filtered_detections, in
             TrackedPerson new_person(next_id_++, pos, size, high_conf_detections[d].confidence,
                                     frame_height, access_zones_);
             new_people.push_back(new_person);
-            detect_movements(new_person, frame_height);
+            detect_movements(new_person, frame_height); // remove here
         }
     }
 
@@ -163,6 +163,15 @@ void PeopleTracker::detect_movements(TrackedPerson& person, int frame_height, bo
             movement_callback_(person, "entered");
 
         }
+    } else if (access_zones_.size() == 1) {
+        if (person.first_zone_type_ != person.last_zone_type_ && person_removed) {
+            if (person.last_zone_type_ == ZoneType::ENTRY || person.first_zone_type_ == ZoneType::EXIT) {
+                movement_callback_(person, "entered");
+            } else if (person.first_zone_type_ == ZoneType::ENTRY || person.last_zone_type_ == ZoneType::EXIT) {
+                movement_callback_(person, "exited");
+            }
+        }
+
     }
 }
 
