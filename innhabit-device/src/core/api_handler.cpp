@@ -225,18 +225,14 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
     }
 
     try {
-        // Encode image to PNG in memory
-        std::vector<uchar> buffer;
-        if (!cv::imencode(".png", image, buffer)) {
-            ERROR("Failed to encode image to PNG");
-            return false;
-        }
+        std::string temp_filename = "temp_image_" + getTimestampISO() + ".png";
+-       cv::imwrite(temp_filename, image);
 
         curl_mime* mime = curl_mime_init(curl_);
         curl_mimepart* part = curl_mime_addpart(mime);
 
         curl_mime_name(part, "image");
-        curl_mime_data(part, reinterpret_cast<const char*>(buffer.data()), buffer.size());
+        curl_mime_filedata(part, temp_filename.c_str());
         curl_mime_type(part, "image/png");
 
         struct curl_slist* headers = nullptr;
@@ -258,6 +254,7 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
 
         curl_mime_free(mime);
         curl_slist_free_all(headers);
+        std::remove(temp_filename.c_str());
 
         if (res != CURLE_OK) {
             ERROR("CURL error sending image: " << curl_easy_strerror(res));
@@ -266,19 +263,13 @@ bool ApiHandler::sendImage(const cv::Mat& image) {
 
         if (http_code >= 200 && http_code < 300) {
             LOG("Image uploaded successfully. Response: " << response);
-            last_api_success_ = true;
-            if (failed_event_) {
-                std::thread(&ApiHandler::loadFailedEventsFromDisk, this).detach();
-            }
             return true;
         } else {
             ERROR("HTTP error sending image: " << http_code << " - Response: " << response);
-            last_api_success_ = false;
             return false;
         }
     } catch (const std::exception& e) {
         ERROR("Error sending image: " << e.what());
-        last_api_success_ = false;
         return false;
     }
 }
