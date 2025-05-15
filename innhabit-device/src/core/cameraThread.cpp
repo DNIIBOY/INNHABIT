@@ -4,12 +4,14 @@
 
 // Constructor for the FrameCapturer class
 FrameCapturer::FrameCapturer(std::queue<cv::Mat>& frameQueue, 
-                           std::mutex& frameMutex,
+                           std::mutex& frameMutex, std::queue<cv::Mat>& displayQueue, std::mutex& displayMutex,
                            std::condition_variable& frameCV,
                            std::atomic<bool>& shouldExit,
                            const int maxQueueSize) 
     : m_frameQueue(frameQueue),
       m_frameMutex(frameMutex),
+      m_displayQueue(displayQueue),
+      m_displayMutex(displayMutex),
       m_frameCV(frameCV),
       m_shouldExit(shouldExit),
       m_maxQueueSize(maxQueueSize) {
@@ -61,6 +63,10 @@ void FrameCapturer::captureFrames(cv::VideoCapture& cap) {
             
             if (m_frameQueue.size() >= m_maxQueueSize || brightness < 10.0) {
                 continue; // Drop frame
+            }
+            if ( brightness < 10.0){
+                std::unique_lock<std::mutex> lock(m_displayMutex);
+                m_displayQueue.push(frame.clone());
             }
             m_frameQueue.push(frame.clone());
         }

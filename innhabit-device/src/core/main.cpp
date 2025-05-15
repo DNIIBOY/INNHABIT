@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
               << cap.get(cv::CAP_PROP_FRAME_WIDTH) << "x" << cap.get(cv::CAP_PROP_FRAME_HEIGHT)
               << " framerate: " << cap.get(cv::CAP_PROP_FPS) << std::endl;
     
-    FrameCapturer capturer(frameQueue, frameMutex, frameCV, shouldExit, MAX_QUEUE_SIZE);
+    FrameCapturer capturer(frameQueue, frameMutex, displayQueue, displayMutex, frameCV, shouldExit, MAX_QUEUE_SIZE);
     DetectionProcessor processor(frameQueue, frameMutex, frameCV, 
                                 displayQueue, displayMutex, displayCV, 
                                 shouldExit, MAX_QUEUE_SIZE);

@@ -30,9 +30,13 @@ public:
      * @param frameCV A reference to the condition variable used for synchronizing frame capturing.
      * @param shouldExit A reference to an atomic boolean that signals whether the capturing should stop.
      * @param maxQueueSize The maximum size of the frame queue before dropping frames.
+     * @param displayQueue
+     * @param displayMutex
      */
     FrameCapturer(std::queue<cv::Mat>& frameQueue, 
                   std::mutex& frameMutex,
+                  std::queue<cv::Mat>& displayQueue, 
+                  std::mutex& displayMutex,
                   std::condition_variable& frameCV,
                   std::atomic<bool>& shouldExit,
                   const int maxQueueSize);
@@ -68,6 +72,8 @@ private:
     
     std::queue<cv::Mat>& m_frameQueue; ///< A reference to the queue storing captured frames.
     std::mutex& m_frameMutex; ///< A reference to the mutex for synchronizing access to the frame queue.
+    std::queue<cv::Mat>& m_displayQueue;
+    std::mutex& m_displayMutex;
     std::condition_variable& m_frameCV; ///< A reference to the condition variable for synchronizing frame capture.
     std::atomic<bool>& m_shouldExit; ///< A reference to the atomic boolean indicating whether to stop capturing frames.
     const int m_maxQueueSize; ///< The maximum size of the frame queue before dropping frames.
