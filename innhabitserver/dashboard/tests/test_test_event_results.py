@@ -111,7 +111,6 @@ class TestMapEvents(TestCase):
             ]
         )
         matches = self._get_mapped()
-        self.maxDiff = None
         self.assertEqual(
             matches,
             [
