@@ -1,5 +1,6 @@
 #include "cameraThread.h"
 #include <iostream>
+#include <chrono>
 
 // Constructor for the FrameCapturer class
 FrameCapturer::FrameCapturer(std::queue<cv::Mat>& frameQueue, 
@@ -28,10 +29,26 @@ void FrameCapturer::join() {
 
 // Capture frames from the camera and add them to the frame queue to be processed by other threads
 void FrameCapturer::captureFrames(cv::VideoCapture& cap) {
+	int brightness_index = 0;
+	double brightness = 200;
+	cv::Mat gray_frame;
     while (!m_shouldExit) {
+	auto start = std::chrono::high_resolution_clock::now();
         cv::Mat frame;
         cap.read(frame);
-        {
+	brightness_index += 1;
+	if (brightness_index >= 30)
+	{
+		cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
+		brightness = cv::mean(gray_frame)[0];
+		brightness_index = 0;
+	}
+		std::cout << "brightness" << brightness << "\n";
+		auto end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> elapsed = end - start;
+		std::cout << "Time taken: " << elapsed.count() << " ms\n";
+	
+        {	
             std::unique_lock<std::mutex> lock(m_frameMutex);
             m_frameCV.wait(lock, [this] { 
                 return m_frameQueue.size() < m_maxQueueSize || m_shouldExit; 
@@ -42,7 +59,7 @@ void FrameCapturer::captureFrames(cv::VideoCapture& cap) {
                 break;
             }
             
-            if (m_frameQueue.size() >= m_maxQueueSize) {
+            if (m_frameQueue.size() >= m_maxQueueSize || brightness < 10.0) {
                 continue; // Drop frame
             }
             m_frameQueue.push(frame.clone());
