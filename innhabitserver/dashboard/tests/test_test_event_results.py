@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from components.test_event_results.test_event_results import map_events
+from components.test_event_results.test_event_results import hungarian_event_map
 from django.db.models import BooleanField, Value
 from django.test import TestCase
 from occupancy.models import (
@@ -63,7 +63,95 @@ class TestMapEvents(TestCase):
             .prefetch_related("entrance")
         )
         manual_events = test_entry_events.union(test_exit_events)
-        return map_events(self.system_events, manual_events)
+        return hungarian_event_map(self.system_events, manual_events)
+
+    def test_claude_case(self) -> None:
+        EntryEvent.objects.all().delete()
+        ExitEvent.objects.all().delete()
+        EntryEvent.objects.bulk_create(
+            [
+                EntryEvent(
+                    entrance=self.entrances[0],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC),
+                ),
+                EntryEvent(
+                    entrance=self.entrances[0],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 5, tzinfo=UTC),
+                ),
+                EntryEvent(
+                    entrance=self.entrances[0],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 15, tzinfo=UTC),
+                ),
+                EntryEvent(
+                    entrance=self.entrances[1],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC),
+                ),
+                EntryEvent(
+                    entrance=self.entrances[1],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 10, tzinfo=UTC),
+                ),
+            ]
+        )
+        TestEntryEvent.objects.all().delete()
+        TestExitEvent.objects.all().delete()
+        TestEntryEvent.objects.bulk_create(
+            [
+                TestEntryEvent(
+                    entrance=self.entrances[0],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 2, tzinfo=UTC),
+                ),
+                TestEntryEvent(
+                    entrance=self.entrances[0],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 8, tzinfo=UTC),
+                ),
+                TestEntryEvent(
+                    entrance=self.entrances[1],
+                    timestamp=datetime(2023, 1, 1, 12, 0, 3, tzinfo=UTC),
+                ),
+            ]
+        )
+        matches = self._get_mapped()
+        self.maxDiff = None
+        self.assertEqual(
+            matches,
+            [
+                {
+                    "timestamp": datetime(2023, 1, 1, 12, 0, tzinfo=UTC),
+                    "entrance": self.entrances[0],
+                    "system_entry": True,
+                    "manual_entry": True,
+                    "is_equal": True,
+                },
+                {
+                    "timestamp": datetime(2023, 1, 1, 12, 0, tzinfo=UTC),
+                    "entrance": self.entrances[1],
+                    "system_entry": True,
+                    "manual_entry": True,
+                    "is_equal": True,
+                },
+                {
+                    "timestamp": datetime(2023, 1, 1, 12, 0, 5, tzinfo=UTC),
+                    "entrance": self.entrances[0],
+                    "system_entry": True,
+                    "manual_entry": True,
+                    "is_equal": True,
+                },
+                {
+                    "timestamp": datetime(2023, 1, 1, 12, 0, 10, tzinfo=UTC),
+                    "entrance": self.entrances[1],
+                    "system_entry": True,
+                    "manual_entry": None,
+                    "is_equal": False,
+                },
+                {
+                    "timestamp": datetime(2023, 1, 1, 12, 0, 15, tzinfo=UTC),
+                    "entrance": self.entrances[0],
+                    "system_entry": True,
+                    "manual_entry": None,
+                    "is_equal": False,
+                },
+            ],
+        )
 
     def test_all_match(self) -> None:
         for i in range(3):
@@ -121,19 +209,7 @@ class TestMapEvents(TestCase):
 
     def test_no_manual(self) -> None:
         result = self._get_mapped()
-        self.assertSequenceEqual(
-            result,
-            [
-                {
-                    "entrance": self.entrances[0],
-                    "timestamp": self.base_time + timedelta(minutes=i),
-                    "system_entry": i < 3,
-                    "manual_entry": None,
-                    "is_equal": False,
-                }
-                for i in range(6)
-            ],
-        )
+        self.assertSequenceEqual(result, [])
 
     def test_no_system(self) -> None:
         EntryEvent.objects.all().delete()
@@ -151,19 +227,7 @@ class TestMapEvents(TestCase):
             )
 
         result = self._get_mapped()
-        self.assertSequenceEqual(
-            result,
-            [
-                {
-                    "entrance": self.entrances[0],
-                    "timestamp": self.base_time + timedelta(minutes=i),
-                    "system_entry": None,
-                    "manual_entry": i >= 3,
-                    "is_equal": False,
-                }
-                for i in range(6)
-            ],
-        )
+        self.assertSequenceEqual(result, [])
 
     def test_wrong_entrance(self) -> None:
         for i in range(3):
@@ -178,25 +242,4 @@ class TestMapEvents(TestCase):
             )
 
         result = self._get_mapped()
-        self.assertEqual(len(result), 12)
-        expected = [
-            {
-                "entrance": self.entrances[0],
-                "timestamp": self.base_time + timedelta(minutes=i),
-                "system_entry": i < 3,
-                "manual_entry": None,
-                "is_equal": False,
-            }
-            for i in range(6)
-        ] + [
-            {
-                "entrance": self.entrances[1],
-                "timestamp": self.base_time + timedelta(minutes=i),
-                "system_entry": None,
-                "manual_entry": i < 3,
-                "is_equal": False,
-            }
-            for i in range(6)
-        ]
-        expected.sort(key=lambda x: x["timestamp"])
-        self.assertSequenceEqual(result, expected)
+        self.assertEqual(len(result), 0)
