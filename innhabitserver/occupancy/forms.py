@@ -28,6 +28,7 @@ class FilterEventsForm(Form):
     entrances = ModelMultipleChoiceField(
         queryset=Entrance.objects.all(), required=False
     )
+    test_events = BooleanField(required=False, initial=False)
 
     def clean_from_date(self) -> timezone.datetime | None:
         from_date = self.cleaned_data["from_date"]

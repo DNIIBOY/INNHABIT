@@ -7,7 +7,13 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import BooleanField, CharField, Value
 from django.db.models.query import QuerySet
 from django.http import HttpRequest
-from occupancy.models import Entrance, EntryEvent, ExitEvent
+from occupancy.models import (
+    Entrance,
+    EntryEvent,
+    ExitEvent,
+    TestEntryEvent,
+    TestExitEvent,
+)
 
 
 @dataclass
@@ -21,13 +27,18 @@ def filter_events(
     event_type: str | None = None,
     from_date: str | date | None = None,
     to_date: str | date | None = None,
+    test_events: bool = False,
 ) -> QuerySet[EntryEvent | ExitEvent]:
 
-    entry_events = EntryEvent.objects.annotate(
+    entry_model, exit_model = EntryEvent, ExitEvent
+    if test_events:
+        entry_model, exit_model = TestEntryEvent, TestExitEvent
+
+    entry_events = entry_model.objects.annotate(
         is_entry=Value(True, output_field=BooleanField()),
         direction=Value("Ind", output_field=CharField()),
     ).prefetch_related("entrance")
-    exit_events = ExitEvent.objects.annotate(
+    exit_events = exit_model.objects.annotate(
         is_entry=Value(False, output_field=BooleanField()),
         direction=Value("Ud", output_field=CharField()),
     ).prefetch_related("entrance")

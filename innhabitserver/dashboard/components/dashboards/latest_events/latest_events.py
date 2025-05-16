@@ -47,6 +47,7 @@ class LatestEvents(Component):
         infinite_scroll: bool = False,
         hide_title: bool = False,
         timestamp_format: str = "H:i",
+        test_events: bool = False,
     ) -> dict:
         events = filter_events(
             user=self.request.user,
@@ -54,6 +55,7 @@ class LatestEvents(Component):
             event_type=event_type,
             from_date=from_date,
             to_date=to_date,
+            test_events=test_events,
         )
         latest_events = events.order_by("-timestamp")[offset : offset + items]
 
