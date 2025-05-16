@@ -35,7 +35,7 @@ void FrameCapturer::captureFrames(cv::VideoCapture& cap) {
 	double brightness = 200;
 	cv::Mat gray_frame;
     while (!m_shouldExit) {
-	auto start = std::chrono::high_resolution_clock::now();
+	
         cv::Mat frame;
         cap.read(frame);
 	brightness_index += 1;
@@ -43,12 +43,12 @@ void FrameCapturer::captureFrames(cv::VideoCapture& cap) {
 	{
 		cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
 		brightness = cv::mean(gray_frame)[0];
+		std::cout << "brightness" << brightness << "\n";
 		brightness_index = 0;
 	}
-		std::cout << "brightness" << brightness << "\n";
-		auto end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> elapsed = end - start;
-		std::cout << "Time taken: " << elapsed.count() << " ms\n";
+		
+		
+		
 	
         {	
             std::unique_lock<std::mutex> lock(m_frameMutex);
