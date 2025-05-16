@@ -2,8 +2,8 @@ import csv
 import sys
 from datetime import UTC, datetime, timedelta, timezone
 
-import requests
 import numpy as np
+import requests
 from matplotlib import pyplot as plt
 
 
@@ -69,7 +69,7 @@ def main() -> None:
     for x, y, z in zip(c1, c2, c3):
         assert x["ts"] == y["ts"]
         assert y["ts"] == z["ts"]
-        value = int(x["value"])  # + int(y["value"]) + int(z["value"])
+        value = int(x["value"]) + int(y["value"]) + int(z["value"])
         laser_counts.append({"ts": x["ts"], "value": value})
     laser_counts.sort(key=lambda x: x["ts"])
     for count in laser_counts:
