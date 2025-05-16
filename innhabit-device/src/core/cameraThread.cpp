@@ -67,6 +67,7 @@ void FrameCapturer::captureFrames(cv::VideoCapture& cap) {
             if ( brightness < 10.0){
                 std::unique_lock<std::mutex> lock(m_displayMutex);
                 m_displayQueue.push(frame.clone());
+		continue;
             }
             m_frameQueue.push(frame.clone());
         }
