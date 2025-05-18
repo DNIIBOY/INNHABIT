@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     
-    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! videoconvert ! video/x-raw, format=BGR ! appsink";
+    std::string pipeline = "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=1640, height=1232, framerate=30/1, format=NV12 ! nvvidconv flip-method=2 ! video/x-raw, width=1280, height=720, format=NV12 ! videoconvert ! video/x-raw, format=BGR ! appsink";
     LOG("Attempting to open pipeline: " << pipeline);
     cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
     cap.set(cv::CAP_PROP_FPS, 30);
