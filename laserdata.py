@@ -49,7 +49,7 @@ def main() -> None:
                 date.year, date.month, date.day, 1, tzinfo=timezone(timedelta(hours=2))
             )
             + timedelta(hours=i)
-        ] = {"innhabit": 0, "laser": 0}
+        ] = {"innhabit": 0, "laser": 0, "manual": 0}
 
     response = requests.get(
         "http://iot.multiteknik.dk:8080/api/plugins/telemetry/DEVICE/47afeb80-276e-11ec-92de-537d4a380471/values/timeseries",
@@ -110,17 +110,50 @@ def main() -> None:
             event_count = 0
         event_count += 1
 
+    response = requests.get(
+        "https://innhabit.dk/export/csv/",
+        cookies={
+            "sessionid": session_token,
+            "tzinfo": "Europe/Copenhagen",
+        },
+        params={
+            "from_date": date,
+            "to_date": (
+                date + timedelta(days=1) if date != datetime.now().date() else date
+            ),
+            "entrances": [1, 2, 3],
+            "test_events": True,
+        },
+    )
+    response.raise_for_status()
+    reader = csv.reader(response.text.splitlines())
+    next(reader)
+    window_end = start + timedelta(hours=1)
+    event_count = 0
+    for row in reader:
+        timestamp = datetime.fromisoformat(row[1])
+        while timestamp > window_end:
+            if window_end in count_map:
+                count_map[window_end]["manual"] = event_count
+            window_end = window_end + timedelta(hours=1)
+            event_count = 0
+        event_count += 1
+
     laser = []
     innhabit = []
+    manual = []
     labels = []
     while count_map:
         key = min(count_map.keys())
         items = count_map.pop(key)
         laser.append(items["laser"])
         innhabit.append(items["innhabit"])
+        manual.append(items["manual"])
         labels.append(key.strftime("%H"))
+
     plt.plot(labels, innhabit, label="INNHABIT")
     plt.plot(labels, laser, label="Laser")
+    plt.plot(labels, manual, label="Manual", linestyle="--")
     plt.xlabel("Time of day")
     plt.ylabel("Number of events measured")
     plt.legend()
