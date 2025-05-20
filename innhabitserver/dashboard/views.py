@@ -4,6 +4,7 @@ from dashboard.models import LabelledDate
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.forms import BooleanField
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -84,6 +85,12 @@ def insights(request: HttpRequest) -> HttpResponse:
     else:
         locked_insight = False
         insight = random.choice(components)
+
+    if BooleanField(initial=False).to_python(request.GET.get("raw")):
+        component = DynamicComponent(insight).get_context_data(
+            **{"is": insight, "request": request}
+        )["comp_class"]()
+        return HttpResponse(list(component.get_context_data().values())[0])
 
     if request.htmx:
         return DynamicComponent.render_to_response(
