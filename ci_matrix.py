@@ -21,12 +21,12 @@ ax.set_yticks([])
 stakeholders = [
     (1, 3.5, "Security", "center", "center"),
     (1, 4, "Investors", "center", "center"),
-    (1, 4.5, "Subjects", "center", "center"),
-    (1, 6, "Insurance", "center", "center"),
-    (1.2, 5.5, "Competitors", "center", "center"),
-    (1.7, 6.5, "Emergency Services", "center", "center"),
+    (2.5, 5, "Subjects", "center", "center"),
+    (1, 2, "Insurance", "center", "center"),
+    (1.2, 2.5, "Competitors", "center", "center"),
+    (1.7, 3, "Emergency Services", "center", "center"),
     (4, 5, "FoodHub", "center", "center"),
-    (6, 3.5, "Customers", "center", "center"),
+    (5, 3.5, "Customers", "center", "center"),
     (8.1, 2, "Data Protection Agency", "center", "center"),
     (7.6, 1.5, "Working Environment Authority", "center", "center"),
     (9, 9, "INNOVATE", "center", "center"),
@@ -84,4 +84,5 @@ ax.text(
 
 # Display the plot
 plt.grid(False)
-plt.show()
+# plt.show()
+plt.savefig("CI_Matrix.png", dpi=300, bbox_inches="tight")
