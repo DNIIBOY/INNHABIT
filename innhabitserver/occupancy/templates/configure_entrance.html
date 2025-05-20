@@ -51,13 +51,13 @@
                 {% endif %}
             </div>
             <div>
-                {% component "latest_events" entrances=[entrance] items=3 %}{% endcomponent %}
+                {% component "latest_events" entrances=[entrance] items=3 / %}
             </div>
             {% endfill %}
             {% endcomponent %}
         </div>
         {% if perms.occupancy.change_devicesettings %}
-        {% component "setup_entryboxes" image_url=image.url settings=settings %}{% endcomponent %}
+        {% component "setup_entryboxes" image_url=image.url settings=settings / %}
         {% endif %}
     </div>
 </div>

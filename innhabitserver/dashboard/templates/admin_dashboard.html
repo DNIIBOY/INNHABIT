@@ -12,7 +12,7 @@
             {% if perms.occupancy.view_entryevent and perms.occupancy.view_exitevent %}
             {% component "card" %}
             {% fill "content" %}
-            {% component "occupants" %}{% endcomponent %}
+            {% component "occupants" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -21,7 +21,7 @@
             {% if perms.occupancy.view_entryevent %}
             {% component "card" %}
             {% fill "content" %}
-            {% component "daily_visitors" %}{% endcomponent %}
+            {% component "daily_visitors" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -30,7 +30,7 @@
             {% if perms.occupancy.view_entryevent %}
             {% component "card" %}
             {% fill "content" %}
-            {% component "weekly_visitors" %}{% endcomponent %}
+            {% component "weekly_visitors" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -39,7 +39,7 @@
             {% if perms.occupancy.view_entryevent %}
             {% component "card" %}
             {% fill "content" %}
-            {% component "monthly_visitors" %}{% endcomponent %}
+            {% component "monthly_visitors" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -52,7 +52,7 @@
         {% if perms.occupancy.view_entryevent %}
         {% component "card" %}
         {% fill "content" %}
-        {% component "all_time_plot" %}{% endcomponent %}
+        {% component "all_time_plot" / %}
         {% endfill %}
         {% endcomponent %}
         {% endif %}
@@ -61,7 +61,7 @@
         {% if perms.occupancy.view_entryevent and perms.occupancy.view_entrance %}
             {% component "card" %}
             {% fill "content" %}
-            {% component "entrance_overview" %}{% endcomponent %}
+            {% component "entrance_overview" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -70,7 +70,7 @@
             {% if perms.occupancy.view_entryevent or perms.occupancy.view_exitevent %}
             {% component "card" %}
             {% fill "content" %}
-                {% component "latest_events" %}{% endcomponent %}
+                {% component "latest_events" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -86,7 +86,7 @@
             hx-trigger="every 60s"
             {% endfill %}
             {% fill "content" %}
-            {% component "busiest_days" %}{% endcomponent %}
+            {% component "busiest_days" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}
@@ -95,7 +95,7 @@
             {% if perms.occupancy.view_entryevent and perms.occupancy.view_exitevent %}
             {% component "card" %}
             {% fill "content" %}
-            {% component "comparison_plot" %}{% endcomponent %}
+            {% component "comparison_plot" / %}
             {% endfill %}
             {% endcomponent %}
             {% endif %}

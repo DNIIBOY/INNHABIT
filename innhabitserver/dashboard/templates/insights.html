@@ -55,7 +55,7 @@
             hx-trigger="{% if not locked_insight %} every 30s{% endif %}"
             hx-swap="innerHTML {% if not locked_insight %} swap:0.3s settle:0.3s {% endif %}"
         >
-            {% component "dynamic" is="{{ insight_name }}" %}{% endcomponent %}
+            {% component "dynamic" is="{{ insight_name }}" / %}
         </div>
     </div>
     <div class="flex justify-around items-center w-full px-8 mb-6">

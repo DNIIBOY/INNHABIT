@@ -21,21 +21,21 @@
 
     <div class="items-center w-auto h-screen overflow-auto grow basis-full">
         <ul class="flex flex-col px-4 gap-2">
-            {% component "navitem" url_name="dashboard" content="Dashboard" icon="shop-window" %}{% endcomponent %}
+            {% component "navitem" url_name="dashboard" content="Dashboard" icon="shop-window" / %}
             {% if perms.accounts.view_user %}
-                {% component "navitem" url_name="users" content="Brugere" icon="people" %}{% endcomponent %}
+                {% component "navitem" url_name="users" content="Brugere" icon="people" / %}
             {% endif %}
             {% if perms.dashboard.view_labelleddate %}
-                {% component "navitem" url_name="dates" content="Begivenheder" icon="calendar2-heart" %}{% endcomponent %}
+                {% component "navitem" url_name="dates" content="Begivenheder" icon="calendar2-heart" / %}
             {% endif %}
             {% if perms.occupancy.view_entryevent or perms.occupancy.view_exitevent %}
-            {% component "navitem" url_name="export" content="Eksportér" icon="file-earmark-arrow-down" %}{% endcomponent %}
+            {% component "navitem" url_name="export" content="Eksportér" icon="file-earmark-arrow-down" / %}
             {% endif %}
             {% if perms.occupancy.view_device %}
-            {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" %}{% endcomponent %}
+            {% component "navitem" url_name="configuration" content="System" icon="gear-wide-connected" / %}
             {% endif %}
             {% if perms.occupancy.view_testentryevent or perms.occupancy.view_testexitevent %}
-            {% component "navitem" url_name="test_events" content="Test" icon="kanban" %}{% endcomponent %}
+            {% component "navitem" url_name="test_events" content="Test" icon="kanban" / %}
             {% endif %}
         </ul>
     </div>
