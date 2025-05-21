@@ -1,5 +1,5 @@
 <div class="flex flex-col items-center gap-8">
-    <h2 hx-get="?insight=current_occupancy&raw=True" hx-trigger="every 1s" hx-swap="innerHTML">
+    <h2 hx-get="{% url 'insights' %}?insight=current_occupancy&raw=True" hx-trigger="every 1s" hx-swap="innerHTML">
         {{ current_occupancy }}
     </h2>
     <h3>Personer befinder sig i bygningen lige nu</h3>
