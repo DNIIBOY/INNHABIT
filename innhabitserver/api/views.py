@@ -10,6 +10,7 @@ from api.serializers import (
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db.models.query import QuerySet
+from django.utils import timezone
 from occupancy.models import (
     DeviceImage,
     DeviceSettings,
@@ -53,6 +54,12 @@ class EntryEventViewset(
         if isinstance(self.request.auth, DeviceAPIKey):
             raise PermissionDenied
         return queryset
+
+    def perform_create(self, serializer: EntryEventSerializer) -> None:
+        hour = timezone.now().hour
+        if hour < 3:
+            return
+        super().perform_create(serializer)
 
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = self.get_serializer(data=request.data.copy())
