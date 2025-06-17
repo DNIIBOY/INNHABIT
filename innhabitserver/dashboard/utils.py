@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import date
 from typing import Sequence
 
@@ -6,7 +5,6 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.core.exceptions import PermissionDenied
 from django.db.models import BooleanField, CharField, Value
 from django.db.models.query import QuerySet
-from django.http import HttpRequest
 from occupancy.models import (
     Entrance,
     EntryEvent,
@@ -14,11 +12,6 @@ from occupancy.models import (
     TestEntryEvent,
     TestExitEvent,
 )
-
-
-@dataclass
-class FakeMetadata:
-    request: HttpRequest
 
 
 def filter_events(

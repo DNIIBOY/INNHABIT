@@ -1,6 +1,5 @@
 import json
 
-from dashboard.utils import FakeMetadata
 from django.db.models import Count, Max, Min, Model
 from django.db.models.functions import ExtractMonth, ExtractYear
 from django.http import HttpRequest, HttpResponse
@@ -59,9 +58,8 @@ class AllTimePlot(Component):
         if not request.htmx:
             return self.render_to_response(request=request)
 
-        with self._with_metadata(FakeMetadata(request)):
-            context = self.get_context_data()
-
+        self.request = request
+        context = self.get_context_data()
         return render(request, self.template_name + "#json_element", context)
 
     def get_context_data(self) -> dict:
