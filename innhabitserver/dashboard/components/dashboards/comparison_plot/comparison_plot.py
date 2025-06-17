@@ -2,7 +2,6 @@ import json
 from datetime import timedelta
 
 import numpy as np
-from dashboard.utils import FakeMetadata
 from django.db.models import Count, ExpressionWrapper, IntegerField, Q
 from django.db.models.functions import ExtractHour, ExtractMinute, Floor
 from django.db.models.query import QuerySet
@@ -59,8 +58,8 @@ class ComparisonPlot(Component):
         if not request.htmx:
             return self.render_to_response(request=request)
 
-        with self._with_metadata(FakeMetadata(request)):
-            context = self.get_context_data()
+        self.request = request
+        context = self.get_context_data()
         return render(request, self.template_name + "#json_element", context)
 
     def get_context_data(self, interval: int = 10) -> dict:

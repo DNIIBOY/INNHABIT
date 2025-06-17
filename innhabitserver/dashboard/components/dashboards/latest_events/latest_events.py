@@ -2,7 +2,7 @@ import urllib.parse
 from datetime import date
 from typing import Sequence
 
-from dashboard.utils import FakeMetadata, filter_events
+from dashboard.utils import filter_events
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django_components import Component, register
@@ -32,8 +32,8 @@ class LatestEvents(Component):
         if not request.htmx:
             return self.render_to_response(request=request, kwargs=kwargs)
 
-        with self._with_metadata(FakeMetadata(request)):
-            context = self.get_context_data(**kwargs)
+        self.request = request
+        context = self.get_context_data(**kwargs)
         return render(request, self.template_name + "#event_rows", context)
 
     def get_context_data(
