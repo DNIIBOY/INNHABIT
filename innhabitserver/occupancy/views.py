@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 
 from api.models import DeviceAPIKey
 from components.test_event_results.test_event_results import get_test_results
@@ -6,21 +7,14 @@ from dashboard.utils import filter_events
 from django.contrib.auth.decorators import permission_required
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import F, Max, OuterRef, Subquery
-from django.db.models.functions import Greatest
+from django.db.models import Max, Value
+from django.db.models.functions import Coalesce, Greatest
 from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from occupancy.forms import ConfigureDeviceForm, FilterEventsForm
-from occupancy.models import (
-    Device,
-    Entrance,
-    EntryEvent,
-    ExitEvent,
-    TestEntryEvent,
-    TestExitEvent,
-)
+from occupancy.models import Device, Entrance, TestEntryEvent, TestExitEvent
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -30,18 +24,15 @@ def index(request: HttpRequest) -> HttpResponse:
 def configuration(request: HttpRequest) -> HttpResponse:
     entrances = (
         Entrance.objects.annotate(
-            latest_entry=Subquery(
-                EntryEvent.objects.filter(entrance_id=OuterRef("id")).aggregate(
-                    max_ts=Max("timestamp")
-                )["max_ts"]
-            ),
-            latest_exit=Subquery(
-                ExitEvent.objects.filter(entrance_id=OuterRef("id")).aggregate(
-                    max_ts=Max("timestamp")
-                )["max_ts"]
-            ),
+            latest_entry=Max("entries__timestamp"),
+            latest_exit=Max("exits__timestamp"),
         )
-        .annotate(latest_event=Greatest(F("latest_entry"), F("latest_exit")))
+        .annotate(
+            latest_event=Greatest(
+                Coalesce("latest_entry", Value(datetime.min)),
+                Coalesce("latest_exit", Value(datetime.min)),
+            )
+        )
         .order_by("id")
     )
     return render(request, "configuration.html", {"entrances": entrances})
