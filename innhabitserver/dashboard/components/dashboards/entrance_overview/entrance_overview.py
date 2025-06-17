@@ -1,9 +1,11 @@
 import json
+from typing import Any
 
 from django.db.models import Count, F, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.template.context import Context
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import Entrance, EntryEvent, ExitEvent
@@ -26,7 +28,9 @@ class EntranceOverview(Component):
         context = self.get_context_data()
         return render(request, self.template_name + "#json_element", context)
 
-    def get_context_data(self) -> dict:
+    def get_template_data(
+        self, args: Any, kwargs: Any, slots: Any, context: Context
+    ) -> dict:
         today = timezone.localtime().date()
         entry_counts = (
             EntryEvent.objects.filter(entrance=OuterRef("pk"), timestamp__date=today)

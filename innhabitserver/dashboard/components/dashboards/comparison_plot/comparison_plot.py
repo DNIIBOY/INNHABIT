@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from typing import Any
 
 import numpy as np
 from django.db.models import Count, ExpressionWrapper, IntegerField, Q
@@ -7,6 +8,7 @@ from django.db.models.functions import ExtractHour, ExtractMinute, Floor
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.template.context import Context
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent
@@ -62,7 +64,10 @@ class ComparisonPlot(Component):
         context = self.get_context_data()
         return render(request, self.template_name + "#json_element", context)
 
-    def get_context_data(self, interval: int = 10) -> dict:
+    def get_template_data(
+        self, args: Any, kwargs: Any, slots: Any, context: Context
+    ) -> dict:
+        interval = int(kwargs.get("interval", 10))
         assert 60 % interval == 0, "Interval must be a divisor of 60"
 
         now = timezone.localtime()

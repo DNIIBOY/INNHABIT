@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
+from django.template.context import Context
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent, ExitEvent
@@ -13,7 +15,9 @@ class Occupants(Component):
     def get(self, request: HttpRequest) -> HttpResponse:
         return self.render_to_response(request=request)
 
-    def get_context_data(self) -> dict:
+    def get_template_data(
+        self, args: Any, kwargs: Any, slots: Any, context: Context
+    ) -> dict:
         now = timezone.localtime()
         comparison_time = now - timedelta(hours=1)
         today = now.date()

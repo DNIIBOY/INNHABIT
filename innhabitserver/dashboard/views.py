@@ -87,6 +87,11 @@ def insights(request: HttpRequest) -> HttpResponse:
         insight = random.choice(components)
 
     if BooleanField(initial=False).to_python(request.GET.get("raw")):
+        print(
+            DynamicComponent(insight).get_context_data(
+                **{"is": insight, "request": request}
+            )
+        )
         component = DynamicComponent(insight).get_context_data(
             **{"is": insight, "request": request}
         )["comp_class"]()

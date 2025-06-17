@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
+from django.template.context import Context
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent
@@ -13,7 +15,10 @@ class WeeklyVisitors(Component):
     def get(self, request: HttpRequest) -> HttpResponse:
         return self.render_to_response(request=request)
 
-    def get_context_data(self) -> dict:
+    def get_template_data(
+        self, args: Any, kwargs: Any, slots: Any, context: Context
+    ) -> dict:
+        print(args, kwargs, slots, context)
         today = timezone.localtime().date()
         start_of_this_week = today - timedelta(days=today.weekday())
         end_of_this_week = start_of_this_week + timedelta(days=6)

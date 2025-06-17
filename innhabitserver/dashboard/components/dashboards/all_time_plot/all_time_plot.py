@@ -1,9 +1,11 @@
 import json
+from typing import Any
 
 from django.db.models import Count, Max, Min, Model
 from django.db.models.functions import ExtractMonth, ExtractYear
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.template.context import Context
 from django.utils import timezone
 from django_components import Component, register
 from occupancy.models import EntryEvent
@@ -62,7 +64,9 @@ class AllTimePlot(Component):
         context = self.get_context_data()
         return render(request, self.template_name + "#json_element", context)
 
-    def get_context_data(self) -> dict:
+    def get_template_data(
+        self, args: Any, kwargs: Any, slots: Any, context: Context
+    ) -> dict:
         entry_stats = EntryEvent.objects.aggregate(
             earliest=Min("timestamp"), latest=Max("timestamp")
         )
