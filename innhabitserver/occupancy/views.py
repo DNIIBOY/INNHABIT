@@ -6,14 +6,21 @@ from dashboard.utils import filter_events
 from django.contrib.auth.decorators import permission_required
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import F, Max
+from django.db.models import F, Max, OuterRef, Subquery
 from django.db.models.functions import Greatest
 from django.http import Http404, HttpRequest, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from occupancy.forms import ConfigureDeviceForm, FilterEventsForm
-from occupancy.models import Device, Entrance, TestEntryEvent, TestExitEvent
+from occupancy.models import (
+    Device,
+    Entrance,
+    EntryEvent,
+    ExitEvent,
+    TestEntryEvent,
+    TestExitEvent,
+)
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -23,12 +30,19 @@ def index(request: HttpRequest) -> HttpResponse:
 def configuration(request: HttpRequest) -> HttpResponse:
     entrances = (
         Entrance.objects.annotate(
-            latest_entry=Max("entries__timestamp"),
-            latest_exit=Max("exits__timestamp"),
-            latest_event=Greatest(F("latest_entry"), F("latest_exit")),
+            latest_entry=Subquery(
+                EntryEvent.objects.filter(entrance_id=OuterRef("id")).aggregate(
+                    max_ts=Max("timestamp")
+                )["max_ts"]
+            ),
+            latest_exit=Subquery(
+                ExitEvent.objects.filter(entrance_id=OuterRef("id")).aggregate(
+                    max_ts=Max("timestamp")
+                )["max_ts"]
+            ),
         )
+        .annotate(latest_event=Greatest(F("latest_entry"), F("latest_exit")))
         .order_by("id")
-        .all()
     )
     return render(request, "configuration.html", {"entrances": entrances})
 
